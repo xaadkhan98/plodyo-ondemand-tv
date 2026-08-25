@@ -1,0 +1,35 @@
+name: Build Windows Desktop Release
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main, master ]
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Install Dependencies
+        run: flutter pub get
+
+      - name: Build Windows Release
+        run: flutter build windows --release
+
+      - name: Compress Windows Build Artifacts
+        run: |
+          Compress-Archive -Path build\windows\x64\runner\Release\* -DestinationPath plodyo-ondemand-tv-windows-release.zip
+
+      - name: Upload Windows Build Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: plodyo-ondemand-tv-windows-release
+          path: plodyo-ondemand-tv-windows-release.zip
