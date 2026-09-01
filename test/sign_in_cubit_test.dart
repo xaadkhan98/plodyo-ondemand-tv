@@ -2,7 +2,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:plodyo_ondemand_tv/data/models/actor.dart';
 import 'package:plodyo_ondemand_tv/data/models/auth_exception.dart';
 import 'package:plodyo_ondemand_tv/data/models/auth_response.dart';
+import 'package:plodyo_ondemand_tv/data/models/invite_model.dart';
 import 'package:plodyo_ondemand_tv/data/repositories/auth_repository.dart';
+import 'package:plodyo_ondemand_tv/data/services/auth_api_service.dart';
 import 'package:plodyo_ondemand_tv/ui/features/auth/cubit/sign_in_cubit.dart';
 import 'package:plodyo_ondemand_tv/ui/features/auth/cubit/sign_in_state.dart';
 
@@ -63,6 +65,57 @@ class FakeAuthRepository implements AuthRepository {
   @override
   Future<void> signOut() async {
     _currentAuth = null;
+  }
+
+  @override
+  Future<AuthResponse> refreshToken() async {
+    return _currentAuth!;
+  }
+
+  @override
+  Future<String> forgotPassword({required String email}) async {
+    return 'Reset link sent';
+  }
+
+  @override
+  Future<String> resetPassword({required String token, required String newPassword}) async {
+    return 'Password updated';
+  }
+
+  @override
+  Future<AuthMeResponse> getMe() async {
+    return AuthMeResponse(
+      actor: _currentAuth?.actor ??
+          const Actor(userId: 'u1', email: 'a@b.com', fullName: 'A', role: 'SUPER_ADMIN'),
+      memberships: const [],
+    );
+  }
+
+  @override
+  Future<InviteModel> previewInvite(String token) async {
+    return const InviteModel(
+      id: 'i1',
+      email: 'a@b.com',
+      role: 'SUPER_ADMIN',
+      status: 'PENDING',
+      createdAt: '',
+    );
+  }
+
+  @override
+  Future<String> acceptInvite({required String token, required String password, String? fullName}) async {
+    return 'Invite accepted';
+  }
+
+  @override
+  Future<Map<String, dynamic>> registerVenue({
+    required String name,
+    required String partnerType,
+    required String contactEmail,
+    String? contactName,
+    String? phone,
+  }) async {
+    return {'status': 'PENDING_APPROVAL'};
   }
 }
 

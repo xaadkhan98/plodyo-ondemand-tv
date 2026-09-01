@@ -45,7 +45,7 @@
         android:required="false" />
 
     <application
-        android:label="Plodyo TV"
+        android:label="Plodyo"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
         android:banner="@drawable/launch_background"

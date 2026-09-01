@@ -2,7 +2,7 @@
 class AppConstants {
   AppConstants._();
 
-  static const String appName = 'Plodyo TV';
+  static const String appName = 'Plodyo';
   
   // Animation Durations
   static const Duration focusAnimationDuration = Duration(milliseconds: 200);

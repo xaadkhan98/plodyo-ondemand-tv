@@ -1,37 +1,38 @@
-import 'dart:async';
-import 'dart:convert';
-import 'dart:io';
-import 'package:http/http.dart' as http;
 import '../../core/constants/api_constants.dart';
 import '../models/actor.dart';
-import '../models/auth_exception.dart';
 import '../models/auth_response.dart';
+import '../models/invite_model.dart';
+import '../models/membership.dart';
+import 'api_client.dart';
 
-/// API Client communicating with the OnDemand Plodyo authentication endpoints.
+class AuthMeResponse {
+  const AuthMeResponse({
+    required this.actor,
+    required this.memberships,
+  });
+
+  final Actor actor;
+  final List<Membership> memberships;
+
+  factory AuthMeResponse.fromJson(Map<String, dynamic> json) {
+    final rawMemberships = (json['memberships'] as List<dynamic>?) ?? [];
+    return AuthMeResponse(
+      actor: Actor.fromJson((json['actor'] as Map<String, dynamic>?) ?? {}),
+      memberships: rawMemberships
+          .whereType<Map<String, dynamic>>()
+          .map((m) => Membership.fromJson(m))
+          .toList(),
+    );
+  }
+}
+
+/// Service communicating with OnDemand Plodyo Authentication & Public Registration/Invite endpoints.
 class AuthApiService {
   AuthApiService({
-    http.Client? httpClient,
-  }) : _httpClient = httpClient ?? http.Client();
+    ApiClient? apiClient,
+  }) : _client = apiClient ?? ApiClient();
 
-  final http.Client _httpClient;
-
-  Map<String, String> _buildHeaders({String? clientSecret, String? accessToken}) {
-    final headers = <String, String>{
-      'Content-Type': 'application/json; charset=UTF-8',
-      'Accept': 'application/json',
-    };
-
-    final secret = clientSecret ?? ApiConstants.clientSecret;
-    if (secret.isNotEmpty) {
-      headers['x-client-secret'] = secret;
-    }
-
-    if (accessToken != null && accessToken.isNotEmpty) {
-      headers['Authorization'] = 'Bearer $accessToken';
-    }
-
-    return headers;
-  }
+  final ApiClient _client;
 
   /// POST /ondemand/auth/login
   Future<AuthResponse> login({
@@ -39,38 +40,12 @@ class AuthApiService {
     required String password,
     String? clientSecret,
   }) async {
-    final uri = Uri.parse('${ApiConstants.effectiveBaseUrl}${ApiConstants.loginEndpoint}');
-    final headers = _buildHeaders(clientSecret: clientSecret);
-    final body = jsonEncode({
-      'email': email,
-      'password': password,
-    });
-
-    try {
-      final response = await _httpClient
-          .post(uri, headers: headers, body: body)
-          .timeout(ApiConstants.connectTimeout);
-
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body) as Map<String, dynamic>;
-        return AuthResponse.fromJson(data);
-      } else {
-        throw AuthException.fromResponseBody(response.body, response.statusCode);
-      }
-    } on SocketException catch (_) {
-      throw AuthException.network('Cannot reach Plodyo. Check the network connection.');
-    } on TimeoutException catch (_) {
-      throw AuthException.network('Connection timed out. Plodyo server took too long to respond.');
-    } on http.ClientException catch (e) {
-      throw AuthException.network('Network request failed: ${e.message}');
-    } on AuthException {
-      rethrow;
-    } catch (e) {
-      throw AuthException(
-        message: 'An unexpected error occurred during sign in.',
-        error: e.toString(),
-      );
-    }
+    final res = await _client.post(
+      ApiConstants.loginEndpoint,
+      body: {'email': email, 'password': password},
+      clientSecret: clientSecret,
+    );
+    return AuthResponse.fromJson(res as Map<String, dynamic>);
   }
 
   /// POST /ondemand/auth/refresh
@@ -78,30 +53,12 @@ class AuthApiService {
     required String refreshToken,
     String? clientSecret,
   }) async {
-    final uri = Uri.parse('${ApiConstants.effectiveBaseUrl}${ApiConstants.refreshEndpoint}');
-    final headers = _buildHeaders(clientSecret: clientSecret);
-    final body = jsonEncode({'refresh_token': refreshToken});
-
-    try {
-      final response = await _httpClient
-          .post(uri, headers: headers, body: body)
-          .timeout(ApiConstants.connectTimeout);
-
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body) as Map<String, dynamic>;
-        return AuthResponse.fromJson(data);
-      } else {
-        throw AuthException.fromResponseBody(response.body, response.statusCode);
-      }
-    } on SocketException {
-      throw AuthException.network();
-    } on TimeoutException {
-      throw AuthException.network('Connection timed out.');
-    } on AuthException {
-      rethrow;
-    } catch (e) {
-      throw AuthException(message: 'Failed to refresh token.', error: e.toString());
-    }
+    final res = await _client.post(
+      ApiConstants.refreshEndpoint,
+      body: {'refresh_token': refreshToken},
+      clientSecret: clientSecret,
+    );
+    return AuthResponse.fromJson(res as Map<String, dynamic>);
   }
 
   /// POST /ondemand/auth/logout
@@ -109,54 +66,118 @@ class AuthApiService {
     required String refreshToken,
     String? clientSecret,
   }) async {
-    final uri = Uri.parse('${ApiConstants.effectiveBaseUrl}${ApiConstants.logoutEndpoint}');
-    final headers = _buildHeaders(clientSecret: clientSecret);
-    final body = jsonEncode({'refresh_token': refreshToken});
-
     try {
-      final response = await _httpClient
-          .post(uri, headers: headers, body: body)
-          .timeout(ApiConstants.connectTimeout);
-
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body) as Map<String, dynamic>;
-        return data['message'] as String? ?? 'Signed out.';
-      } else {
-        throw AuthException.fromResponseBody(response.body, response.statusCode);
+      final res = await _client.post(
+        ApiConstants.logoutEndpoint,
+        body: {'refresh_token': refreshToken},
+        clientSecret: clientSecret,
+      );
+      if (res is Map<String, dynamic>) {
+        return res['message'] as String? ?? 'Signed out.';
       }
+      return 'Signed out.';
     } catch (_) {
-      // Logout always succeeds from client perspective
       return 'Signed out.';
     }
   }
 
+  /// POST /ondemand/auth/forgot-password
+  Future<String> forgotPassword({
+    required String email,
+    String? clientSecret,
+  }) async {
+    final res = await _client.post(
+      ApiConstants.forgotPasswordEndpoint,
+      body: {'email': email},
+      clientSecret: clientSecret,
+    );
+    final map = res as Map<String, dynamic>?;
+    return map?['message'] as String? ?? 'If that email is registered, a reset link has been sent.';
+  }
+
+  /// POST /ondemand/auth/reset-password
+  Future<String> resetPassword({
+    required String token,
+    required String password,
+    String? clientSecret,
+  }) async {
+    final res = await _client.post(
+      ApiConstants.resetPasswordEndpoint,
+      body: {'token': token, 'password': password},
+      clientSecret: clientSecret,
+    );
+    final map = res as Map<String, dynamic>?;
+    return map?['message'] as String? ?? 'Password updated.';
+  }
+
   /// GET /ondemand/auth/me
-  Future<Actor> getMe({
+  Future<AuthMeResponse> getMe({
     required String accessToken,
     String? clientSecret,
   }) async {
-    final uri = Uri.parse('${ApiConstants.effectiveBaseUrl}${ApiConstants.meEndpoint}');
-    final headers = _buildHeaders(clientSecret: clientSecret, accessToken: accessToken);
+    final res = await _client.get(
+      ApiConstants.meEndpoint,
+      accessToken: accessToken,
+      clientSecret: clientSecret,
+    );
+    return AuthMeResponse.fromJson(res as Map<String, dynamic>);
+  }
 
-    try {
-      final response = await _httpClient
-          .get(uri, headers: headers)
-          .timeout(ApiConstants.connectTimeout);
+  /// GET /ondemand/public/invites/:token
+  Future<InviteModel> previewInvite({
+    required String token,
+    String? clientSecret,
+  }) async {
+    final res = await _client.get(
+      '${ApiConstants.publicInvitePreviewEndpoint}/$token',
+      clientSecret: clientSecret,
+    );
+    return InviteModel.fromJson(res as Map<String, dynamic>);
+  }
 
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body) as Map<String, dynamic>;
-        return Actor.fromJson((data['actor'] as Map<String, dynamic>?) ?? {});
-      } else {
-        throw AuthException.fromResponseBody(response.body, response.statusCode);
-      }
-    } on SocketException {
-      throw AuthException.network();
-    } on TimeoutException {
-      throw AuthException.network('Connection timed out.');
-    } on AuthException {
-      rethrow;
-    } catch (e) {
-      throw AuthException(message: 'Failed to fetch user profile.', error: e.toString());
-    }
+  /// POST /ondemand/public/invites/:token/accept
+  Future<String> acceptInvite({
+    required String token,
+    required String password,
+    String? fullName,
+    String? clientSecret,
+  }) async {
+    final body = <String, dynamic>{
+      'password': password,
+      if (fullName != null && fullName.isNotEmpty) 'full_name': fullName,
+    };
+
+    final res = await _client.post(
+      '${ApiConstants.publicInvitePreviewEndpoint}/$token/accept',
+      body: body,
+      clientSecret: clientSecret,
+    );
+    final map = res as Map<String, dynamic>?;
+    return map?['message'] as String? ?? 'Invite accepted. You can now sign in.';
+  }
+
+  /// POST /ondemand/public/registrations
+  Future<Map<String, dynamic>> registerVenue({
+    required String name,
+    required String partnerType, // "INDEPENDENT" | "HOST"
+    required String contactEmail,
+    String? contactName,
+    String? phone,
+    String? clientSecret,
+  }) async {
+    final body = <String, dynamic>{
+      'name': name,
+      'partner_type': partnerType,
+      'contact_email': contactEmail,
+      if (contactName != null && contactName.isNotEmpty) 'contact_name': contactName,
+      if (phone != null && phone.isNotEmpty) 'phone': phone,
+    };
+
+    final res = await _client.post(
+      ApiConstants.publicRegistrationsEndpoint,
+      body: body,
+      clientSecret: clientSecret,
+    );
+    return (res as Map<String, dynamic>?) ?? {};
   }
 }

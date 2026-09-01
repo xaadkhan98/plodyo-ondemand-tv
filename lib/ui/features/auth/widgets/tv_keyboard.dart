@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-/// D-Pad and remote navigable on-screen virtual keyboard for TV.
+/// D-Pad and remote navigable on-screen virtual keyboard for TV with special characters support.
 class TvKeyboard extends StatefulWidget {
   const TvKeyboard({
     super.key,
@@ -9,7 +9,8 @@ class TvKeyboard extends StatefulWidget {
     required this.onBackspace,
     required this.onSpace,
     required this.onClear,
-    this.statusText = 'Entering email address',
+    this.statusText = 'Entering password',
+    this.showSpecialCharacters = true,
   });
 
   final ValueChanged<String> onKeyPress;
@@ -17,6 +18,7 @@ class TvKeyboard extends StatefulWidget {
   final VoidCallback onSpace;
   final VoidCallback onClear;
   final String statusText;
+  final bool showSpecialCharacters;
 
   @override
   State<TvKeyboard> createState() => _TvKeyboardState();
@@ -25,35 +27,47 @@ class TvKeyboard extends StatefulWidget {
 class _TvKeyboardState extends State<TvKeyboard> {
   bool _isUpperCase = false;
 
-  final List<List<String>> _keyRows = const [
+  final List<List<String>> _standardKeyRows = const [
     ['a', 'b', 'c', 'd', 'e', 'f'],
     ['g', 'h', 'i', 'j', 'k', 'l'],
     ['m', 'n', 'o', 'p', 'q', 'r'],
     ['s', 't', 'u', 'v', 'w', 'x'],
     ['y', 'z', '0', '1', '2', '3'],
     ['4', '5', '6', '7', '8', '9'],
-    ['@', '.', '-', '_'],
+    ['@', '.', '_', '-', '!', '#'],
   ];
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        // Status header text (e.g. "Entering email address")
-        Text(
-          widget.statusText,
-          style: const TextStyle(
-            fontSize: 15,
-            fontWeight: FontWeight.w500,
-            color: Color(0xFF71717A),
-          ),
-        ),
-        const SizedBox(height: 14),
+    final keyRows = widget.showSpecialCharacters
+        ? _standardKeyRows
+        : _standardKeyRows.sublist(0, 6);
 
-        // Grid Rows
-        ..._keyRows.map((row) => Padding(
+    return FittedBox(
+      fit: BoxFit.scaleDown,
+      alignment: Alignment.topLeft,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Status header text (e.g. "Entering password")
+          if (widget.statusText.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(left: 2, bottom: 12),
+              child: Text(
+                widget.statusText,
+                style: const TextStyle(
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.w400,
+                  color: Color(0xFF71717A),
+                  letterSpacing: 0.1,
+                ),
+              ),
+            ),
+
+          // Grid Rows (6 columns)
+          ...keyRows.map(
+            (row) => Padding(
               padding: const EdgeInsets.only(bottom: 8),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -63,57 +77,68 @@ class _TvKeyboardState extends State<TvKeyboard> {
                     padding: const EdgeInsets.only(right: 8),
                     child: _TvKeyButton(
                       label: displayChar,
+                      width: 44,
+                      height: 44,
                       onPressed: () => widget.onKeyPress(displayChar),
                     ),
                   );
                 }).toList(),
               ),
-            )),
+            ),
+          ),
 
-        // Bottom Action Keys Row (Shift/Caps, Space, Backspace, Clear)
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Shift / Caps toggle
-            Padding(
-              padding: const EdgeInsets.only(right: 8),
-              child: _TvKeyButton(
-                label: _isUpperCase ? '↑ ABC' : '↑ abc',
-                width: 68,
-                onPressed: () {
-                  setState(() {
-                    _isUpperCase = !_isUpperCase;
-                  });
-                },
+          // Bottom Action Keys Row (Shift/Caps, Space, Backspace, Clear)
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Shift / Caps toggle
+              Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: _TvKeyButton(
+                  label: _isUpperCase ? '↑ ABC' : '↑ abc',
+                  width: 66,
+                  height: 44,
+                  fontSize: 12.5,
+                  onPressed: () {
+                    setState(() {
+                      _isUpperCase = !_isUpperCase;
+                    });
+                  },
+                ),
               ),
-            ),
-            // Space key
-            Padding(
-              padding: const EdgeInsets.only(right: 8),
-              child: _TvKeyButton(
-                label: '␣ Space',
-                width: 88,
-                onPressed: widget.onSpace,
+              // Space key
+              Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: _TvKeyButton(
+                  label: '— Space',
+                  width: 82,
+                  height: 44,
+                  fontSize: 12.5,
+                  onPressed: widget.onSpace,
+                ),
               ),
-            ),
-            // Backspace key
-            Padding(
-              padding: const EdgeInsets.only(right: 8),
-              child: _TvKeyButton(
-                icon: Icons.backspace_outlined,
-                width: 48,
-                onPressed: widget.onBackspace,
+              // Backspace key
+              Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: _TvKeyButton(
+                  icon: Icons.backspace_outlined,
+                  width: 50,
+                  height: 44,
+                  onPressed: widget.onBackspace,
+                ),
               ),
-            ),
-            // Clear key
-            _TvKeyButton(
-              label: 'Clear',
-              width: 58,
-              onPressed: widget.onClear,
-            ),
-          ],
-        ),
-      ],
+              // Clear key
+              _TvKeyButton(
+                label: 'Clear',
+                width: 56,
+                height: 44,
+                fontSize: 12.5,
+                onPressed: widget.onClear,
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }
@@ -122,13 +147,17 @@ class _TvKeyButton extends StatefulWidget {
   const _TvKeyButton({
     this.label,
     this.icon,
-    this.width = 46,
+    this.width = 44,
+    this.height = 44,
+    this.fontSize = 15,
     required this.onPressed,
   });
 
   final String? label;
   final IconData? icon;
   final double width;
+  final double height;
+  final double fontSize;
   final VoidCallback onPressed;
 
   @override
@@ -165,24 +194,26 @@ class _TvKeyButtonState extends State<_TvKeyButton> {
         onTap: widget.onPressed,
         child: AnimatedScale(
           scale: _isFocused ? 1.12 : 1.0,
-          duration: const Duration(milliseconds: 180),
+          duration: const Duration(milliseconds: 160),
           curve: Curves.easeOutCubic,
           child: AnimatedContainer(
-            duration: const Duration(milliseconds: 180),
+            duration: const Duration(milliseconds: 160),
             curve: Curves.easeOutCubic,
             width: widget.width,
-            height: 46,
+            height: widget.height,
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(8),
               border: Border.all(
-                color: _isFocused ? const Color(0xFFC084FC) : const Color(0xFFF1F5F9),
-                width: _isFocused ? 2.2 : 1.0,
+                color: _isFocused
+                    ? const Color(0xFFC084FC)
+                    : const Color(0xFFF1F5F9),
+                width: _isFocused ? 2.0 : 1.0,
               ),
               boxShadow: [
                 if (_isFocused)
                   BoxShadow(
-                    color: const Color(0xFFC084FC).withValues(alpha: 0.6),
+                    color: const Color(0xFFC084FC).withValues(alpha: 0.55),
                     blurRadius: 14,
                     spreadRadius: 2,
                   )
@@ -190,7 +221,7 @@ class _TvKeyButtonState extends State<_TvKeyButton> {
                   BoxShadow(
                     color: Colors.black.withValues(alpha: 0.04),
                     blurRadius: 4,
-                    offset: const Offset(0, 2),
+                    offset: const Offset(0, 1.5),
                   ),
               ],
             ),
@@ -198,15 +229,19 @@ class _TvKeyButtonState extends State<_TvKeyButton> {
               child: widget.icon != null
                   ? Icon(
                       widget.icon,
-                      size: 18,
-                      color: _isFocused ? const Color(0xFF7E22CE) : const Color(0xFF27272A),
+                      size: 17,
+                      color: _isFocused
+                          ? const Color(0xFF7E22CE)
+                          : const Color(0xFF27272A),
                     )
                   : Text(
                       widget.label ?? '',
                       style: TextStyle(
-                        fontSize: widget.label != null && widget.label!.length > 2 ? 13 : 17,
+                        fontSize: widget.fontSize,
                         fontWeight: _isFocused ? FontWeight.w700 : FontWeight.w500,
-                        color: _isFocused ? const Color(0xFF7E22CE) : const Color(0xFF27272A),
+                        color: _isFocused
+                            ? const Color(0xFF7E22CE)
+                            : const Color(0xFF27272A),
                       ),
                     ),
             ),

@@ -39,6 +39,22 @@ class AuthResponse extends Equatable {
     };
   }
 
+  AuthResponse copyWith({
+    String? accessToken,
+    String? refreshToken,
+    String? tokenType,
+    int? expiresIn,
+    Actor? actor,
+  }) {
+    return AuthResponse(
+      accessToken: accessToken ?? this.accessToken,
+      refreshToken: refreshToken ?? this.refreshToken,
+      tokenType: tokenType ?? this.tokenType,
+      expiresIn: expiresIn ?? this.expiresIn,
+      actor: actor ?? this.actor,
+    );
+  }
+
   @override
   List<Object?> get props => [
         accessToken,

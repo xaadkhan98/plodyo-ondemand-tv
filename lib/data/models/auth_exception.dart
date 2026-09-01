@@ -14,6 +14,9 @@ class AuthException implements Exception {
   final String? error;
   final List<String> validationErrors;
 
+  /// Check if the exception was caused by a connection or network failure.
+  bool get isNetworkError => statusCode == 0 || error == 'NetworkError';
+
   /// Factory to parse NestJS error responses.
   factory AuthException.fromResponseBody(String body, int statusCode) {
     try {

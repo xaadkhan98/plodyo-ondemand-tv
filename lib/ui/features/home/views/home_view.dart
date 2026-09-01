@@ -1,213 +1,100 @@
 import 'package:flutter/material.dart';
-import '../../../../core/theme/tv_colors.dart';
-import '../../../../core/theme/tv_typography.dart';
-import '../../../../core/constants/app_constants.dart';
-import '../../../../core/widgets/tv_row.dart';
-import '../../../../core/widgets/tv_card.dart';
-import '../../../../core/widgets/tv_button.dart';
-import '../../../../data/models/media_item.dart';
-import '../view_models/home_view_model.dart';
+import '../../../../core/widgets/shimmer_box.dart';
+import '../../../../core/widgets/plodyo_header.dart';
 
-/// Main Home View for TV Screen displaying Hero and Content Rails.
+/// Shimmer Skeleton Home View matching Plodyo UI design.
 class HomeView extends StatelessWidget {
   const HomeView({
     super.key,
-    required this.viewModel,
-    required this.onMediaSelected,
+    this.viewModel,
+    this.onMediaSelected,
   });
 
-  final HomeViewModel viewModel;
-  final ValueChanged<MediaItem> onMediaSelected;
+  final dynamic viewModel;
+  final dynamic onMediaSelected;
 
   @override
   Widget build(BuildContext context) {
-    return ListenableBuilder(
-      listenable: viewModel,
-      builder: (context, _) {
-        if (viewModel.isLoading) {
-          return const Center(
-            child: CircularProgressIndicator(
-              valueColor: AlwaysStoppedAnimation<Color>(TvColors.primary),
+    final screenWidth = MediaQuery.sizeOf(context).width;
+    final horizontalSpacing = screenWidth * 0.10;
+
+    return Scaffold(
+      backgroundColor: const Color(0xFFFAF7FC),
+      body: SingleChildScrollView(
+        physics: const BouncingScrollPhysics(),
+        padding: const EdgeInsets.symmetric(vertical: 20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Top Header: Logo + "Plodyo" Name (kept at default padding)
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 32),
+              child: PlodyoHeader(),
             ),
-          );
-        }
 
-        final hero = viewModel.featuredHero;
+            // Main Section UI with 10% horizontal screen spacing
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: horizontalSpacing),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Big Hero Banner Shimmer Placeholder
+                  const ShimmerBox(
+                    width: double.infinity,
+                    height: 250,
+                    borderRadius: BorderRadius.all(Radius.circular(18)),
+                  ),
 
-        return SingleChildScrollView(
-          physics: const BouncingScrollPhysics(),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Hero Featured Section
-              if (hero != null) _buildHeroBanner(context, hero),
+                  const SizedBox(height: 24),
 
-              const SizedBox(height: 12),
+                  // Section Header: "| New this week"
+                  Row(
+                    children: [
+                      Container(
+                        width: 3.5,
+                        height: 18,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF9333EA),
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      const Text(
+                        'New this week',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w800,
+                          color: Color(0xFF18181B),
+                          letterSpacing: -0.2,
+                        ),
+                      ),
+                    ],
+                  ),
 
-              // Continue Watching Rail
-              if (viewModel.continueWatching.isNotEmpty)
-                TvRow(
-                  title: 'Continue Watching',
-                  items: viewModel.continueWatching,
-                  variant: TvCardVariant.backdrop,
-                  onItemTap: onMediaSelected,
-                ),
+                  const SizedBox(height: 14),
 
-              const SizedBox(height: 16),
-
-              // Trending Movies Rail
-              TvRow(
-                title: 'Trending Movies',
-                items: viewModel.trendingMovies,
-                variant: TvCardVariant.poster,
-                onItemTap: onMediaSelected,
-              ),
-
-              const SizedBox(height: 16),
-
-              // Popular TV Shows Rail
-              TvRow(
-                title: 'Popular TV Series',
-                items: viewModel.popularSeries,
-                variant: TvCardVariant.poster,
-                onItemTap: onMediaSelected,
-              ),
-
-              const SizedBox(height: 16),
-
-              // Sci-Fi Rail
-              TvRow(
-                title: 'Sci-Fi & Cyberpunk',
-                items: viewModel.sciFiCatalog,
-                variant: TvCardVariant.backdrop,
-                onItemTap: onMediaSelected,
-              ),
-
-              const SizedBox(height: 48),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildHeroBanner(BuildContext context, MediaItem hero) {
-    return SizedBox(
-      height: AppConstants.heroHeight,
-      width: double.infinity,
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          // Hero Backdrop image
-          Image.network(
-            hero.backdropUrl,
-            fit: BoxFit.cover,
-            errorBuilder: (context, error, stackTrace) => Container(
-              color: TvColors.surfaceElevated,
-            ),
-          ),
-
-          // Cinematic Vignette & Gradients
-          Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.centerLeft,
-                end: Alignment.centerRight,
-                colors: [
-                  TvColors.background,
-                  Color(0xCC0D0F12),
-                  Colors.transparent,
+                  // Horizontal Story Cards Shimmer Rail
+                  SizedBox(
+                    height: 170,
+                    child: ListView.separated(
+                      scrollDirection: Axis.horizontal,
+                      physics: const BouncingScrollPhysics(),
+                      itemCount: 8,
+                      separatorBuilder: (context, index) => const SizedBox(width: 14),
+                      itemBuilder: (context, index) {
+                        return const ShimmerBox(
+                          width: 115,
+                          height: 170,
+                          borderRadius: BorderRadius.all(Radius.circular(14)),
+                        );
+                      },
+                    ),
+                  ),
                 ],
-                stops: [0.0, 0.45, 1.0],
               ),
             ),
-          ),
-          Container(
-            decoration: const BoxDecoration(
-              gradient: TvColors.heroGradient,
-            ),
-          ),
-
-          // Hero Content Details
-          Positioned(
-            left: 36,
-            bottom: 24,
-            width: 580,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Category & Rating Row
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                      decoration: BoxDecoration(
-                        color: TvColors.primary,
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Text(
-                        'FEATURED',
-                        style: TvTypography.badge.copyWith(color: Colors.black),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Text(
-                      '★ ${hero.rating}',
-                      style: TvTypography.cardSubtitle.copyWith(
-                        color: TvColors.ratingBadge,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Text(
-                      '${hero.releaseYear} • ${hero.duration}',
-                      style: TvTypography.cardSubtitle,
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-
-                // Hero Title
-                Text(
-                  hero.title,
-                  style: TvTypography.heroTitle,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 8),
-
-                // Synopsis
-                Text(
-                  hero.description,
-                  style: TvTypography.body,
-                  maxLines: 3,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 20),
-
-                // Action Buttons
-                Row(
-                  children: [
-                    TvButton(
-                      label: 'Play Now',
-                      icon: Icons.play_arrow_rounded,
-                      autofocus: true,
-                      onPressed: () => onMediaSelected(hero),
-                    ),
-                    const SizedBox(width: 14),
-                    TvButton(
-                      label: 'Details',
-                      icon: Icons.info_outline_rounded,
-                      style: TvButtonStyle.secondary,
-                      onPressed: () => onMediaSelected(hero),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

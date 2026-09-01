@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:plodyo_ondemand_tv/data/models/auth_exception.dart';
 import 'package:plodyo_ondemand_tv/data/repositories/auth_repository.dart';
+import 'package:plodyo_ondemand_tv/data/services/api_client.dart';
 import 'package:plodyo_ondemand_tv/data/services/auth_api_service.dart';
 
 void main() {
@@ -36,7 +37,7 @@ void main() {
         );
       });
 
-      final service = AuthApiService(httpClient: mockClient);
+      final service = AuthApiService(apiClient: ApiClient(httpClient: mockClient));
       final response = await service.login(
         email: 'ops@grandhotel.com',
         password: 'secret123',
@@ -60,7 +61,7 @@ void main() {
         );
       });
 
-      final service = AuthApiService(httpClient: mockClient);
+      final service = AuthApiService(apiClient: ApiClient(httpClient: mockClient));
 
       expect(
         () => service.login(email: 'bad@user.com', password: 'wrong'),
@@ -85,7 +86,7 @@ void main() {
         );
       });
 
-      final service = AuthApiService(httpClient: mockClient);
+      final service = AuthApiService(apiClient: ApiClient(httpClient: mockClient));
 
       expect(
         () => service.login(email: 'test@user.com', password: '123'),
@@ -121,7 +122,7 @@ void main() {
       });
 
       final repo = AuthRepositoryImpl(
-        apiService: AuthApiService(httpClient: mockClient),
+        apiService: AuthApiService(apiClient: ApiClient(httpClient: mockClient)),
       );
 
       expect(repo.isAuthenticated, isFalse);
