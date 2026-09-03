@@ -166,6 +166,7 @@ class _TvKeyButton extends StatefulWidget {
 
 class _TvKeyButtonState extends State<_TvKeyButton> {
   bool _isFocused = false;
+  bool _isHovered = false;
 
   KeyEventResult _handleKeyEvent(FocusNode node, KeyEvent event) {
     if (event is KeyDownEvent) {
@@ -183,6 +184,8 @@ class _TvKeyButtonState extends State<_TvKeyButton> {
 
   @override
   Widget build(BuildContext context) {
+    final isHighlighted = _isFocused || _isHovered;
+
     return Focus(
       onFocusChange: (focused) {
         setState(() {
@@ -190,60 +193,82 @@ class _TvKeyButtonState extends State<_TvKeyButton> {
         });
       },
       onKeyEvent: _handleKeyEvent,
-      child: GestureDetector(
-        onTap: widget.onPressed,
-        child: AnimatedScale(
-          scale: _isFocused ? 1.12 : 1.0,
-          duration: const Duration(milliseconds: 160),
-          curve: Curves.easeOutCubic,
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 160),
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        onEnter: (_) {
+          setState(() {
+            _isHovered = true;
+          });
+        },
+        onExit: (_) {
+          setState(() {
+            _isHovered = false;
+          });
+        },
+        child: GestureDetector(
+          onTap: widget.onPressed,
+          child: AnimatedScale(
+            scale: isHighlighted ? 1.08 : 1.0,
+            duration: const Duration(milliseconds: 140),
             curve: Curves.easeOutCubic,
-            width: widget.width,
-            height: widget.height,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(
-                color: _isFocused
-                    ? const Color(0xFFC084FC)
-                    : const Color(0xFFF1F5F9),
-                width: _isFocused ? 2.0 : 1.0,
-              ),
-              boxShadow: [
-                if (_isFocused)
-                  BoxShadow(
-                    color: const Color(0xFFC084FC).withValues(alpha: 0.55),
-                    blurRadius: 14,
-                    spreadRadius: 2,
-                  )
-                else
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.04),
-                    blurRadius: 4,
-                    offset: const Offset(0, 1.5),
-                  ),
-              ],
-            ),
-            child: Center(
-              child: widget.icon != null
-                  ? Icon(
-                      widget.icon,
-                      size: 17,
-                      color: _isFocused
-                          ? const Color(0xFF7E22CE)
-                          : const Color(0xFF27272A),
-                    )
-                  : Text(
-                      widget.label ?? '',
-                      style: TextStyle(
-                        fontSize: widget.fontSize,
-                        fontWeight: _isFocused ? FontWeight.w700 : FontWeight.w500,
-                        color: _isFocused
-                            ? const Color(0xFF7E22CE)
-                            : const Color(0xFF27272A),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 140),
+              curve: Curves.easeOutCubic,
+              width: widget.width,
+              height: widget.height,
+              decoration: BoxDecoration(
+                gradient: isHighlighted
+                    ? const LinearGradient(
+                        colors: [
+                          Color(0xFFD946EF),
+                          Color(0xFF9333EA),
+                        ],
+                      )
+                    : null,
+                color: isHighlighted ? null : Colors.white,
+                borderRadius: BorderRadius.circular(9),
+                border: isHighlighted
+                    ? null
+                    : Border.all(
+                        color: const Color(0xFFE4E4E7),
+                        width: 1.0,
                       ),
-                    ),
+                boxShadow: isHighlighted
+                    ? [
+                        BoxShadow(
+                          color: const Color(0xFFD946EF).withValues(alpha: 0.45),
+                          blurRadius: 10,
+                          offset: const Offset(0, 3),
+                        ),
+                      ]
+                    : [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.03),
+                          blurRadius: 4,
+                          offset: const Offset(0, 1.5),
+                        ),
+                      ],
+              ),
+              child: Center(
+                child: widget.icon != null
+                    ? Icon(
+                        widget.icon,
+                        size: 18,
+                        color: isHighlighted
+                            ? Colors.white
+                            : const Color(0xFF27272A),
+                      )
+                    : Text(
+                        widget.label ?? '',
+                        style: TextStyle(
+                          fontSize: widget.fontSize,
+                          fontWeight: isHighlighted ? FontWeight.w700 : FontWeight.w500,
+                          color: isHighlighted
+                              ? Colors.white
+                              : const Color(0xFF18181B),
+                        ),
+                      ),
+              ),
             ),
           ),
         ),

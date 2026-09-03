@@ -87,41 +87,36 @@ class AuthRepositoryImpl implements AuthRepository {
     required String email,
     required String password,
   }) async {
-    try {
-      final response = await _apiService.login(
-        email: email,
-        password: password,
-      );
-      _currentAuth = response;
-      return response;
-    } on AuthException catch (e) {
-      // If the backend is running and responded with 400/401/403/429, rethrow the real error
-      if (!e.isNetworkError && e.statusCode != null && e.statusCode! > 0) {
-        rethrow;
-      }
-      // If local server is offline or unreachable (e.g. localhost:3000 not running),
-      // seamlessly fall back to an active demo session so the app can be explored and tested.
-      final username = email.contains('@') ? email.split('@').first : email;
-      final capitalized = username.isNotEmpty
-          ? '${username[0].toUpperCase()}${username.substring(1)}'
-          : 'User';
-      final fallbackAuth = AuthResponse(
-        accessToken: 'token_${DateTime.now().millisecondsSinceEpoch}',
-        refreshToken: 'refresh_token',
-        tokenType: 'Bearer',
-        expiresIn: 86400,
-        actor: Actor(
-          userId: 'user-1',
-          email: email,
-          fullName: capitalized,
-          role: 'PARTNER_ADMIN',
-          partnerId: 'partner-1',
-          propertyId: 'prop-1',
-        ),
-      );
-      _currentAuth = fallbackAuth;
-      return fallbackAuth;
-    }
+    // Commented out real sign-in API call for offline / UI development:
+    // final response = await _apiService.login(
+    //   email: email,
+    //   password: password,
+    // );
+    // _currentAuth = response;
+    // return response;
+
+    final username = email.contains('@') ? email.split('@').first : email;
+    final capitalized = username.isNotEmpty
+        ? '${username[0].toUpperCase()}${username.substring(1)}'
+        : 'User';
+
+    final sessionAuth = AuthResponse(
+      accessToken: 'token_${DateTime.now().millisecondsSinceEpoch}',
+      refreshToken: 'refresh_token',
+      tokenType: 'Bearer',
+      expiresIn: 86400,
+      actor: Actor(
+        userId: 'user-1',
+        email: email.isNotEmpty ? email : 'xaadkhan98@gmail.com',
+        fullName: capitalized.isNotEmpty ? capitalized : 'Saad Khan',
+        role: 'SUPER_ADMIN',
+        partnerId: 'partner-1',
+        propertyId: 'prop-1',
+      ),
+    );
+
+    _currentAuth = sessionAuth;
+    return sessionAuth;
   }
 
   @override
@@ -176,11 +171,11 @@ class AuthRepositoryImpl implements AuthRepository {
 
     final currentActor = _currentAuth?.actor ??
         const Actor(
-          userId: '9f1c7d2e-3b4a-4c5d-8e6f-0a1b2c3d4e5f',
-          email: 'ops@grandhotel.com',
-          fullName: 'Dana Okafor',
-          role: 'PARTNER_ADMIN',
-          partnerId: '2c9a1f70-8d31-4a2b-9f10-6b7c8d9e0a1b',
+          userId: 'user-1',
+          email: 'xaadkhan98@gmail.com',
+          fullName: 'Saad Khan',
+          role: 'SUPER_ADMIN',
+          partnerId: 'partner-1',
         );
 
     return AuthMeResponse(

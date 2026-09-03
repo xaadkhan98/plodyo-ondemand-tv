@@ -18,14 +18,39 @@ class AuthResponse extends Equatable {
   final Actor actor;
 
   factory AuthResponse.fromJson(Map<String, dynamic> json) {
+    final data = (json['data'] is Map<String, dynamic>)
+        ? json['data'] as Map<String, dynamic>
+        : json;
+
+    final accessToken = data['access_token'] as String? ??
+        data['accessToken'] as String? ??
+        data['token'] as String? ??
+        '';
+
+    final refreshToken = data['refresh_token'] as String? ??
+        data['refreshToken'] as String? ??
+        '';
+
+    final tokenType = data['token_type'] as String? ??
+        data['tokenType'] as String? ??
+        'Bearer';
+
+    final expiresIn = (data['expires_in'] ?? data['expiresIn']) as int? ?? 0;
+
+    final actorMap = (data['actor'] is Map<String, dynamic>)
+        ? data['actor'] as Map<String, dynamic>
+        : (data['user'] is Map<String, dynamic>)
+            ? data['user'] as Map<String, dynamic>
+            : (data['profile'] is Map<String, dynamic>)
+                ? data['profile'] as Map<String, dynamic>
+                : <String, dynamic>{};
+
     return AuthResponse(
-      accessToken: json['access_token'] as String? ?? '',
-      refreshToken: json['refresh_token'] as String? ?? '',
-      tokenType: json['token_type'] as String? ?? 'Bearer',
-      expiresIn: json['expires_in'] as int? ?? 0,
-      actor: Actor.fromJson(
-        (json['actor'] as Map<String, dynamic>?) ?? {},
-      ),
+      accessToken: accessToken,
+      refreshToken: refreshToken,
+      tokenType: tokenType,
+      expiresIn: expiresIn,
+      actor: Actor.fromJson(actorMap),
     );
   }
 

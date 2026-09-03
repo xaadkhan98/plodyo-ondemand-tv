@@ -25,12 +25,24 @@ class Actor extends Equatable {
 
   factory Actor.fromJson(Map<String, dynamic> json) {
     return Actor(
-      userId: json['user_id'] as String? ?? '',
+      userId: json['user_id'] as String? ??
+          json['userId'] as String? ??
+          json['id'] as String? ??
+          json['_id'] as String? ??
+          '',
       email: json['email'] as String? ?? '',
-      fullName: json['full_name'] as String? ?? '',
-      role: json['role'] as String? ?? '',
-      partnerId: json['partner_id'] as String?,
-      propertyId: json['property_id'] as String?,
+      fullName: json['full_name'] as String? ??
+          json['fullName'] as String? ??
+          json['name'] as String? ??
+          '',
+      role: json['role'] as String? ??
+          json['role_name'] as String? ??
+          json['roleName'] as String? ??
+          '',
+      partnerId: json['partner_id'] as String? ??
+          json['partnerId'] as String?,
+      propertyId: json['property_id'] as String? ??
+          json['propertyId'] as String?,
     );
   }
 

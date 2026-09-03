@@ -1,15 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 
 class TvNavigationItem {
   const TvNavigationItem({
-    required this.icon,
+    this.icon,
+    this.svgAsset,
     required this.label,
     required this.path,
-  });
+  }) : assert(icon != null || svgAsset != null, 'Must provide either icon or svgAsset');
 
-  final IconData icon;
+  final IconData? icon;
+  final String? svgAsset;
   final String label;
   final String path;
 }
@@ -29,15 +32,51 @@ class TvSidebar extends StatefulWidget {
   final ValueChanged<String>? onItemSelected;
 
   static const List<TvNavigationItem> navItems = [
-    TvNavigationItem(icon: Icons.home_rounded, label: 'Home', path: '/home'),
-    TvNavigationItem(icon: Icons.search_rounded, label: 'Search', path: '/search'),
-    TvNavigationItem(icon: Icons.grid_view_rounded, label: 'Categories', path: '/categories'),
-    TvNavigationItem(icon: Icons.bar_chart_rounded, label: 'All stories', path: '/stories'),
-    TvNavigationItem(icon: Icons.apartment_rounded, label: 'Partners', path: '/partners'),
-    TvNavigationItem(icon: Icons.mail_outline_rounded, label: 'Invites', path: '/invites'),
-    TvNavigationItem(icon: Icons.account_balance_outlined, label: 'Properties', path: '/properties'),
-    TvNavigationItem(icon: Icons.meeting_room_outlined, label: 'Rooms', path: '/rooms'),
-    TvNavigationItem(icon: Icons.settings_outlined, label: 'Settings', path: '/settings'),
+    TvNavigationItem(
+      svgAsset: 'assets/icons/home.svg',
+      label: 'Home',
+      path: '/home',
+    ),
+    TvNavigationItem(
+      svgAsset: 'assets/icons/search.svg',
+      label: 'Search',
+      path: '/search',
+    ),
+    TvNavigationItem(
+      svgAsset: 'assets/icons/categories.svg',
+      label: 'Categories',
+      path: '/categories',
+    ),
+    TvNavigationItem(
+      icon: Icons.bar_chart_rounded,
+      label: 'All stories',
+      path: '/stories',
+    ),
+    TvNavigationItem(
+      icon: Icons.apartment_rounded,
+      label: 'Partners',
+      path: '/partners',
+    ),
+    TvNavigationItem(
+      icon: Icons.mail_outline_rounded,
+      label: 'Invites',
+      path: '/invites',
+    ),
+    TvNavigationItem(
+      icon: Icons.account_balance_outlined,
+      label: 'Properties',
+      path: '/properties',
+    ),
+    TvNavigationItem(
+      icon: Icons.meeting_room_outlined,
+      label: 'Rooms',
+      path: '/rooms',
+    ),
+    TvNavigationItem(
+      icon: Icons.settings_outlined,
+      label: 'Settings',
+      path: '/settings',
+    ),
   ];
 
   @override
@@ -187,9 +226,29 @@ class _TvSidebarItemWidgetState extends State<_TvSidebarItemWidget> {
   bool _isFocused = false;
   bool _isHovered = false;
 
+  Widget _buildIcon(Color color, double size) {
+    if (widget.item.svgAsset != null) {
+      return SvgPicture.asset(
+        widget.item.svgAsset!,
+        width: size,
+        height: size,
+        colorFilter: ColorFilter.mode(
+          color,
+          BlendMode.srcIn,
+        ),
+      );
+    }
+    return Icon(
+      widget.item.icon,
+      size: size,
+      color: color,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final active = _isFocused || _isHovered;
+    final isHighlighted = widget.isSelected || active;
 
     return Focus(
       onFocusChange: (focused) {
@@ -227,7 +286,7 @@ class _TvSidebarItemWidgetState extends State<_TvSidebarItemWidget> {
           child: GestureDetector(
             onTap: widget.onTap,
             child: AnimatedScale(
-              scale: active ? 1.05 : 1.0,
+              scale: active ? 1.04 : 1.0,
               duration: const Duration(milliseconds: 150),
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 150),
@@ -237,7 +296,7 @@ class _TvSidebarItemWidgetState extends State<_TvSidebarItemWidget> {
                   horizontal: widget.isExpanded ? 8 : 0,
                 ),
                 decoration: BoxDecoration(
-                  gradient: widget.isSelected
+                  gradient: isHighlighted
                       ? const LinearGradient(
                           colors: [
                             Color(0xFFD946EF),
@@ -245,16 +304,9 @@ class _TvSidebarItemWidgetState extends State<_TvSidebarItemWidget> {
                           ],
                         )
                       : null,
-                  color: widget.isSelected
-                      ? null
-                      : (active
-                          ? const Color(0xFF9333EA).withValues(alpha: 0.12)
-                          : Colors.transparent),
+                  color: isHighlighted ? null : Colors.transparent,
                   borderRadius: BorderRadius.circular(10),
-                  border: active && !widget.isSelected
-                      ? Border.all(color: const Color(0xFFC084FC), width: 1.5)
-                      : null,
-                  boxShadow: widget.isSelected
+                  boxShadow: isHighlighted
                       ? [
                           BoxShadow(
                             color: const Color(0xFFD946EF).withValues(alpha: 0.4),
@@ -275,14 +327,11 @@ class _TvSidebarItemWidgetState extends State<_TvSidebarItemWidget> {
                               SizedBox(
                                 width: 26,
                                 child: Center(
-                                  child: Icon(
-                                    widget.item.icon,
-                                    size: 20,
-                                    color: widget.isSelected
+                                  child: _buildIcon(
+                                    isHighlighted
                                         ? Colors.white
-                                        : (active
-                                            ? const Color(0xFF9333EA)
-                                            : const Color(0xFF374151)),
+                                        : const Color(0xFF374151),
+                                    20,
                                   ),
                                 ),
                               ),
@@ -292,14 +341,12 @@ class _TvSidebarItemWidgetState extends State<_TvSidebarItemWidget> {
                                   widget.item.label,
                                   style: TextStyle(
                                     fontSize: 13,
-                                    fontWeight: widget.isSelected
+                                    fontWeight: isHighlighted
                                         ? FontWeight.w700
                                         : FontWeight.w500,
-                                    color: widget.isSelected
+                                    color: isHighlighted
                                         ? Colors.white
-                                        : (active
-                                            ? const Color(0xFF9333EA)
-                                            : const Color(0xFF374151)),
+                                        : const Color(0xFF374151),
                                   ),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
@@ -310,14 +357,11 @@ class _TvSidebarItemWidgetState extends State<_TvSidebarItemWidget> {
                         ),
                       )
                     : Center(
-                        child: Icon(
-                          widget.item.icon,
-                          size: 20,
-                          color: widget.isSelected
+                        child: _buildIcon(
+                          isHighlighted
                               ? Colors.white
-                              : (active
-                                  ? const Color(0xFF9333EA)
-                                  : const Color(0xFF374151)),
+                              : const Color(0xFF374151),
+                          20,
                         ),
                       ),
               ),
