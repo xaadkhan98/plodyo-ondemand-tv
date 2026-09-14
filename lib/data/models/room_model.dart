@@ -5,6 +5,7 @@ class RoomModel extends Equatable {
   const RoomModel({
     required this.id,
     required this.propertyId,
+    this.propertyName,
     required this.roomLabel,
     required this.status,
     this.defaultLanguage,
@@ -16,6 +17,7 @@ class RoomModel extends Equatable {
 
   final String id;
   final String propertyId;
+  final String? propertyName;
   final String roomLabel;
   final String status; // "UNPROVISIONED" | "ACTIVE" | "REVOKED"
   final String? defaultLanguage;
@@ -32,6 +34,7 @@ class RoomModel extends Equatable {
     return RoomModel(
       id: json['id'] as String? ?? '',
       propertyId: json['property_id'] as String? ?? '',
+      propertyName: json['property_name'] as String?,
       roomLabel: json['room_label'] as String? ?? '',
       status: json['status'] as String? ?? 'UNPROVISIONED',
       defaultLanguage: json['default_language'] as String?,
@@ -46,6 +49,7 @@ class RoomModel extends Equatable {
     return {
       'id': id,
       'property_id': propertyId,
+      'property_name': propertyName,
       'room_label': roomLabel,
       'status': status,
       'default_language': defaultLanguage,
@@ -59,6 +63,7 @@ class RoomModel extends Equatable {
   RoomModel copyWith({
     String? id,
     String? propertyId,
+    String? propertyName,
     String? roomLabel,
     String? status,
     String? defaultLanguage,
@@ -70,6 +75,7 @@ class RoomModel extends Equatable {
     return RoomModel(
       id: id ?? this.id,
       propertyId: propertyId ?? this.propertyId,
+      propertyName: propertyName ?? this.propertyName,
       roomLabel: roomLabel ?? this.roomLabel,
       status: status ?? this.status,
       defaultLanguage: defaultLanguage ?? this.defaultLanguage,
@@ -84,6 +90,7 @@ class RoomModel extends Equatable {
   List<Object?> get props => [
         id,
         propertyId,
+        propertyName,
         roomLabel,
         status,
         defaultLanguage,
@@ -92,4 +99,55 @@ class RoomModel extends Equatable {
         createdAt,
         updatedAt,
       ];
+}
+
+/// Response payload from POST /ondemand/admin/rooms/:id/provision
+class ProvisionRoomResponse extends Equatable {
+  const ProvisionRoomResponse({
+    required this.pairingCode,
+    required this.expiresAt,
+  });
+
+  final String pairingCode;
+  final String expiresAt;
+
+  factory ProvisionRoomResponse.fromJson(Map<String, dynamic> json) {
+    return ProvisionRoomResponse(
+      pairingCode: json['pairing_code'] as String? ?? '',
+      expiresAt: json['expires_at'] as String? ?? '',
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'pairing_code': pairingCode,
+        'expires_at': expiresAt,
+      };
+
+  @override
+  List<Object?> get props => [pairingCode, expiresAt];
+}
+
+/// Response payload from POST /ondemand/admin/rooms/bulk
+class BulkCreateRoomsResponse extends Equatable {
+  const BulkCreateRoomsResponse({
+    required this.created,
+    required this.rooms,
+  });
+
+  final int created;
+  final List<RoomModel> rooms;
+
+  factory BulkCreateRoomsResponse.fromJson(Map<String, dynamic> json) {
+    final rawRooms = (json['rooms'] as List<dynamic>?) ?? [];
+    return BulkCreateRoomsResponse(
+      created: json['created'] as int? ?? rawRooms.length,
+      rooms: rawRooms
+          .whereType<Map<String, dynamic>>()
+          .map(RoomModel.fromJson)
+          .toList(),
+    );
+  }
+
+  @override
+  List<Object?> get props => [created, rooms];
 }

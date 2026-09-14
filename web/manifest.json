@@ -1,6 +1,6 @@
 {
-    "name": "plodyo_ondemand_tv",
-    "short_name": "plodyo_ondemand_tv",
+    "name": "Plodyo TV",
+    "short_name": "Plodyo TV",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

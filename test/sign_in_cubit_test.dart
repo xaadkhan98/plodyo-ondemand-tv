@@ -83,7 +83,7 @@ class FakeAuthRepository implements AuthRepository {
   }
 
   @override
-  Future<AuthMeResponse> getMe() async {
+  Future<AuthMeResponse> getMe({String? accessToken}) async {
     return AuthMeResponse(
       actor: _currentAuth?.actor ??
           const Actor(userId: 'u1', email: 'a@b.com', fullName: 'A', role: 'SUPER_ADMIN'),

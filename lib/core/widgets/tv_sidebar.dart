@@ -17,40 +17,51 @@ class TvNavigationItem {
   final String path;
 }
 
-/// Dynamic Expandable 10-foot TV Sidebar Navigation Rail.
-///
-/// Overlays on top of the main screen, expanding from 58px to 175px when focused/hovered
-/// to reveal tab names without causing layout shifts to the main screen.
+/// Dynamic Expandable 10-foot TV Sidebar Navigation Rail matching Plodyo Console design.
 class TvSidebar extends StatefulWidget {
   const TvSidebar({
     super.key,
     required this.currentPath,
     this.onItemSelected,
+    this.initialExpanded = false,
   });
 
   final String currentPath;
   final ValueChanged<String>? onItemSelected;
+  final bool initialExpanded;
 
   static const List<TvNavigationItem> navItems = [
+    // ---------------------------------------------------------
+    // Previous consumer/VOD sections (commented out as requested)
+    // ---------------------------------------------------------
+    // TvNavigationItem(
+    //   svgAsset: 'assets/icons/home.svg',
+    //   label: 'Home',
+    //   path: '/home',
+    // ),
+    // TvNavigationItem(
+    //   svgAsset: 'assets/icons/search.svg',
+    //   label: 'Search',
+    //   path: '/search',
+    // ),
+    // TvNavigationItem(
+    //   svgAsset: 'assets/icons/categories.svg',
+    //   label: 'Categories',
+    //   path: '/categories',
+    // ),
+    // TvNavigationItem(
+    //   icon: Icons.bar_chart_rounded,
+    //   label: 'All stories',
+    //   path: '/stories',
+    // ),
+
+    // ---------------------------------------------------------
+    // Console Management Navigation Sections (shown in design)
+    // ---------------------------------------------------------
     TvNavigationItem(
-      svgAsset: 'assets/icons/home.svg',
-      label: 'Home',
-      path: '/home',
-    ),
-    TvNavigationItem(
-      svgAsset: 'assets/icons/search.svg',
-      label: 'Search',
-      path: '/search',
-    ),
-    TvNavigationItem(
-      svgAsset: 'assets/icons/categories.svg',
-      label: 'Categories',
-      path: '/categories',
-    ),
-    TvNavigationItem(
-      icon: Icons.bar_chart_rounded,
-      label: 'All stories',
-      path: '/stories',
+      icon: Icons.grid_view_rounded,
+      label: 'Overview',
+      path: '/overview',
     ),
     TvNavigationItem(
       icon: Icons.apartment_rounded,
@@ -73,8 +84,13 @@ class TvSidebar extends StatefulWidget {
       path: '/rooms',
     ),
     TvNavigationItem(
+      icon: Icons.people_outline_rounded,
+      label: 'People',
+      path: '/people',
+    ),
+    TvNavigationItem(
       icon: Icons.settings_outlined,
-      label: 'Settings',
+      label: 'Account',
       path: '/settings',
     ),
   ];
@@ -84,13 +100,19 @@ class TvSidebar extends StatefulWidget {
 }
 
 class _TvSidebarState extends State<TvSidebar> {
-  bool _isSidebarFocused = false;
+  late bool _isSidebarFocused;
   bool _isSidebarHovered = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _isSidebarFocused = widget.initialExpanded;
+  }
 
   @override
   Widget build(BuildContext context) {
     final isExpanded = _isSidebarFocused || _isSidebarHovered;
-    final width = isExpanded ? 175.0 : 58.0;
+    final width = isExpanded ? 220.0 : 74.0;
 
     return FocusScope(
       onFocusChange: (hasAnyChildFocus) {
@@ -110,7 +132,7 @@ class _TvSidebarState extends State<TvSidebar> {
           });
         },
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
+          duration: const Duration(milliseconds: 220),
           curve: Curves.easeOutCubic,
           width: width,
           height: double.infinity,
@@ -124,38 +146,44 @@ class _TvSidebarState extends State<TvSidebar> {
             ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: isExpanded ? 0.08 : 0.04),
-                blurRadius: isExpanded ? 22 : 12,
+                color: Colors.black.withValues(alpha: isExpanded ? 0.08 : 0.03),
+                blurRadius: isExpanded ? 20 : 10,
                 spreadRadius: isExpanded ? 2 : 1,
-                offset: Offset(isExpanded ? 5 : 3, 0),
+                offset: Offset(isExpanded ? 5 : 2, 0),
               ),
               BoxShadow(
-                color: const Color(0xFF9333EA).withValues(alpha: isExpanded ? 0.08 : 0.03),
-                blurRadius: isExpanded ? 20 : 10,
-                offset: Offset(isExpanded ? 3 : 2, 0),
+                color: const Color(0xFF9333EA)
+                    .withValues(alpha: isExpanded ? 0.08 : 0.02),
+                blurRadius: isExpanded ? 18 : 8,
+                offset: Offset(isExpanded ? 3 : 1, 0),
               ),
             ],
           ),
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Fixed constant top spacing so tabs never jump vertically
-              const SizedBox(height: 120),
+              // Top spacing aligned with the first card in Overview
+              const SizedBox(height: 180),
 
-              // Navigation items list with stable vertical spacing
+              // Navigation items list
               Expanded(
                 child: ListView.separated(
                   itemCount: TvSidebar.navItems.length,
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  physics: const NeverScrollableScrollPhysics(),
                   separatorBuilder: (context, index) =>
                       const SizedBox(height: 8),
                   itemBuilder: (context, index) {
                     final item = TvSidebar.navItems[index];
-                    final isSelected = widget.currentPath.startsWith(item.path);
+                    final isSelected = widget.currentPath == item.path ||
+                        (item.path != '/' &&
+                            widget.currentPath.startsWith(item.path));
 
                     return _TvSidebarItemWidget(
                       item: item,
                       isSelected: isSelected,
                       isExpanded: isExpanded,
+                      autofocus: index == 0 && widget.initialExpanded,
                       onTap: () {
                         if (widget.onItemSelected != null) {
                           widget.onItemSelected!(item.path);
@@ -165,36 +193,6 @@ class _TvSidebarState extends State<TvSidebar> {
                       },
                     );
                   },
-                ),
-              ),
-
-              // User Profile Avatar Footer (Circle with 'N')
-              Padding(
-                padding: const EdgeInsets.only(bottom: 20),
-                child: Container(
-                  width: 36,
-                  height: 36,
-                  decoration: const BoxDecoration(
-                    color: Color(0xFF18181B),
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black12,
-                        blurRadius: 6,
-                        offset: Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: const Center(
-                    child: Text(
-                      'N',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                  ),
                 ),
               ),
             ],
@@ -211,12 +209,14 @@ class _TvSidebarItemWidget extends StatefulWidget {
     required this.isSelected,
     required this.isExpanded,
     required this.onTap,
+    this.autofocus = false,
   });
 
   final TvNavigationItem item;
   final bool isSelected;
   final bool isExpanded;
   final VoidCallback onTap;
+  final bool autofocus;
 
   @override
   State<_TvSidebarItemWidget> createState() => _TvSidebarItemWidgetState();
@@ -248,9 +248,24 @@ class _TvSidebarItemWidgetState extends State<_TvSidebarItemWidget> {
   @override
   Widget build(BuildContext context) {
     final active = _isFocused || _isHovered;
-    final isHighlighted = widget.isSelected || active;
+    final isSelected = widget.isSelected;
+
+    // Color tokens matching the design image:
+    // Selected item in collapsed/expanded mode uses lavender box + purple icon & text
+    final backgroundColor = isSelected
+        ? const Color(0xFFF3E8FF)
+        : (active ? const Color(0xFFFAF5FF) : Colors.transparent);
+
+    final borderColor = isSelected
+        ? const Color(0xFFDDD6FE)
+        : (active ? const Color(0xFFE9D5FF) : Colors.transparent);
+
+    final foregroundColor = isSelected || active
+        ? const Color(0xFF9333EA)
+        : const Color(0xFF1E293B);
 
     return Focus(
+      autofocus: widget.autofocus,
       onFocusChange: (focused) {
         setState(() {
           _isFocused = focused;
@@ -286,32 +301,31 @@ class _TvSidebarItemWidgetState extends State<_TvSidebarItemWidget> {
           child: GestureDetector(
             onTap: widget.onTap,
             child: AnimatedScale(
-              scale: active ? 1.04 : 1.0,
-              duration: const Duration(milliseconds: 150),
+              scale: active ? 1.03 : 1.0,
+              duration: const Duration(milliseconds: 140),
+              curve: Curves.easeOutCubic,
               child: AnimatedContainer(
-                duration: const Duration(milliseconds: 150),
-                width: widget.isExpanded ? double.infinity : 42,
-                height: 42,
+                duration: const Duration(milliseconds: 140),
+                curve: Curves.easeOutCubic,
+                width: widget.isExpanded ? double.infinity : 52,
+                height: 52,
                 padding: EdgeInsets.symmetric(
-                  horizontal: widget.isExpanded ? 8 : 0,
+                  horizontal: widget.isExpanded ? 14 : 0,
                 ),
                 decoration: BoxDecoration(
-                  gradient: isHighlighted
-                      ? const LinearGradient(
-                          colors: [
-                            Color(0xFFD946EF),
-                            Color(0xFF9333EA),
-                          ],
-                        )
-                      : null,
-                  color: isHighlighted ? null : Colors.transparent,
-                  borderRadius: BorderRadius.circular(10),
-                  boxShadow: isHighlighted
+                  color: backgroundColor,
+                  borderRadius: BorderRadius.circular(13),
+                  border: Border.all(
+                    color: borderColor,
+                    width: 1.2,
+                  ),
+                  boxShadow: isSelected
                       ? [
                           BoxShadow(
-                            color: const Color(0xFFD946EF).withValues(alpha: 0.4),
-                            blurRadius: 10,
-                            offset: const Offset(0, 3),
+                            color: const Color(0xFF9333EA)
+                                .withValues(alpha: 0.16),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
                           ),
                         ]
                       : null,
@@ -321,32 +335,31 @@ class _TvSidebarItemWidgetState extends State<_TvSidebarItemWidget> {
                         scrollDirection: Axis.horizontal,
                         physics: const NeverScrollableScrollPhysics(),
                         child: SizedBox(
-                          width: 140,
+                          width: 180,
                           child: Row(
                             children: [
                               SizedBox(
-                                width: 26,
+                                width: 32,
                                 child: Center(
                                   child: _buildIcon(
-                                    isHighlighted
-                                        ? Colors.white
-                                        : const Color(0xFF374151),
-                                    20,
+                                    foregroundColor,
+                                    27,
                                   ),
                                 ),
                               ),
-                              const SizedBox(width: 8),
+                              const SizedBox(width: 12),
                               Expanded(
                                 child: Text(
                                   widget.item.label,
                                   style: TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: isHighlighted
-                                        ? FontWeight.w700
-                                        : FontWeight.w500,
-                                    color: isHighlighted
-                                        ? Colors.white
-                                        : const Color(0xFF374151),
+                                    fontSize: 16.5,
+                                    fontWeight: isSelected
+                                        ? FontWeight.w800
+                                        : (active
+                                            ? FontWeight.w700
+                                            : FontWeight.w600),
+                                    color: foregroundColor,
+                                    letterSpacing: -0.2,
                                   ),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
@@ -358,10 +371,8 @@ class _TvSidebarItemWidgetState extends State<_TvSidebarItemWidget> {
                       )
                     : Center(
                         child: _buildIcon(
-                          isHighlighted
-                              ? Colors.white
-                              : const Color(0xFF374151),
-                          20,
+                          foregroundColor,
+                          27,
                         ),
                       ),
               ),

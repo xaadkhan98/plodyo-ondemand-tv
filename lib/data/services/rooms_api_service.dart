@@ -101,6 +101,59 @@ class RoomsApiService {
     return RoomModel.fromJson(res as Map<String, dynamic>);
   }
 
+  /// POST /ondemand/admin/rooms/bulk
+  Future<BulkCreateRoomsResponse> createRoomsBulk({
+    required String accessToken,
+    required String propertyId,
+    required List<Map<String, dynamic>> rooms,
+    String? defaultLanguage,
+    String? clientSecret,
+  }) async {
+    final body = <String, dynamic>{
+      'property_id': propertyId,
+      'rooms': rooms,
+      if (defaultLanguage != null && defaultLanguage.isNotEmpty)
+        'default_language': defaultLanguage,
+    };
+
+    final res = await _client.post(
+      ApiConstants.adminRoomsBulkEndpoint,
+      body: body,
+      accessToken: accessToken,
+      clientSecret: clientSecret,
+    );
+    return BulkCreateRoomsResponse.fromJson(res as Map<String, dynamic>);
+  }
+
+  /// POST /ondemand/admin/rooms/:id/provision
+  Future<ProvisionRoomResponse> provisionRoom({
+    required String accessToken,
+    required String roomId,
+    String? clientSecret,
+  }) async {
+    final res = await _client.post(
+      '${ApiConstants.adminRoomsEndpoint}/$roomId/provision',
+      accessToken: accessToken,
+      clientSecret: clientSecret,
+    );
+    return ProvisionRoomResponse.fromJson(res as Map<String, dynamic>);
+  }
+
+  /// POST /ondemand/admin/rooms/:id/revoke
+  Future<String> revokeRoom({
+    required String accessToken,
+    required String roomId,
+    String? clientSecret,
+  }) async {
+    final res = await _client.post(
+      '${ApiConstants.adminRoomsEndpoint}/$roomId/revoke',
+      accessToken: accessToken,
+      clientSecret: clientSecret,
+    );
+    final map = res as Map<String, dynamic>?;
+    return map?['message'] as String? ?? 'Device revoked.';
+  }
+
   /// DELETE /ondemand/admin/rooms/:id
   Future<String> deleteRoom({
     required String accessToken,

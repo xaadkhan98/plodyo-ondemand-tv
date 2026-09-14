@@ -42,7 +42,7 @@ class AuthApiService {
   }) async {
     final res = await _client.post(
       ApiConstants.loginEndpoint,
-      body: {'email': email, 'password': password},
+      body: {'email': email.trim(), 'password': password},
       clientSecret: clientSecret,
     );
     return AuthResponse.fromJson(res as Map<String, dynamic>);

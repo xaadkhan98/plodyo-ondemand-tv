@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/widgets/plodyo_header.dart';
+import '../../../../core/widgets/plodyo_loading.dart';
+import '../../../../core/widgets/tv_section_badge.dart';
 import '../../../../data/models/auth_exception.dart';
 import '../../../../data/models/invite_model.dart';
-import '../../../../data/models/partner_model.dart';
-import '../../../../data/models/property_model.dart';
 import '../../../../data/repositories/auth_repository.dart';
 import '../../../../data/repositories/invites_repository.dart';
-import '../../../../data/repositories/partners_repository.dart';
-import '../../../../data/repositories/properties_repository.dart';
 
 enum InviteFilter {
   all,
@@ -18,20 +18,19 @@ enum InviteFilter {
   revoked,
 }
 
-/// Invites View with filter pills, "+ Invite someone" action, real API data, and interactive cards.
+/// Invites View matching the refined Plodyo TV specification.
+/// Features angled floating badge icon animation, custom filter pills,
+/// styled invite cards with status badges and Resend/Revoke actions,
+/// and direct navigation to dedicated Invite Someone screen.
 class InvitesView extends StatefulWidget {
   const InvitesView({
     super.key,
     this.invitesRepository,
-    this.partnersRepository,
-    this.propertiesRepository,
     this.authRepository,
     this.onInviteAction,
   });
 
   final InvitesRepository? invitesRepository;
-  final PartnersRepository? partnersRepository;
-  final PropertiesRepository? propertiesRepository;
   final AuthRepository? authRepository;
   final ValueChanged<String>? onInviteAction;
 
@@ -41,8 +40,6 @@ class InvitesView extends StatefulWidget {
 
 class _InvitesViewState extends State<InvitesView> {
   late final InvitesRepository _invitesRepository;
-  late final PartnersRepository _partnersRepository;
-  late final PropertiesRepository _propertiesRepository;
   late final AuthRepository _authRepository;
 
   InviteFilter _selectedFilter = InviteFilter.all;
@@ -54,10 +51,14 @@ class _InvitesViewState extends State<InvitesView> {
   void initState() {
     super.initState();
     _invitesRepository = widget.invitesRepository ?? sharedInvitesRepository;
-    _partnersRepository = widget.partnersRepository ?? sharedPartnersRepository;
-    _propertiesRepository = widget.propertiesRepository ?? sharedPropertiesRepository;
     _authRepository = widget.authRepository ?? sharedAuthRepository;
+
     _loadInvites();
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
   }
 
   String? get _apiStatusQuery {
@@ -73,6 +74,26 @@ class _InvitesViewState extends State<InvitesView> {
       case InviteFilter.all:
         return null;
     }
+  }
+
+  List<InviteModel> get _filteredInvites {
+    if (_selectedFilter == InviteFilter.all) {
+      return _invites;
+    }
+    return _invites.where((inv) {
+      switch (_selectedFilter) {
+        case InviteFilter.pending:
+          return inv.status.toUpperCase() == 'PENDING';
+        case InviteFilter.accepted:
+          return inv.status.toUpperCase() == 'ACCEPTED';
+        case InviteFilter.expired:
+          return inv.status.toUpperCase() == 'EXPIRED';
+        case InviteFilter.revoked:
+          return inv.status.toUpperCase() == 'REVOKED';
+        case InviteFilter.all:
+          return true;
+      }
+    }).toList();
   }
 
   Future<void> _loadInvites() async {
@@ -163,7 +184,9 @@ class _InvitesViewState extends State<InvitesView> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(msg.isNotEmpty ? msg : 'Invitation revoked for ${invite.email}'),
+            content: Text(msg.isNotEmpty
+                ? msg
+                : 'Invitation revoked for ${invite.email}'),
             backgroundColor: const Color(0xFFDC2626),
             behavior: SnackBarBehavior.floating,
             duration: const Duration(seconds: 2),
@@ -184,334 +207,91 @@ class _InvitesViewState extends State<InvitesView> {
     }
   }
 
-  Future<void> _showInviteDialog() async {
-    final emailController = TextEditingController();
-    String selectedRole = 'PARTNER_ADMIN';
-    String? selectedPartnerId;
-    String? selectedPropertyId;
-
-    final token = _authRepository.currentAuth?.accessToken ?? '';
-    final actor = _authRepository.currentUser;
-
-    List<PartnerModel> availablePartners = [];
-    List<PropertyModel> availableProperties = [];
-
-    try {
-      final partnersRes = await _partnersRepository.getPartners(accessToken: token, status: 'ACTIVE');
-      availablePartners = partnersRes.data;
-      if (actor?.partnerId != null && actor!.partnerId!.isNotEmpty) {
-        selectedPartnerId = actor.partnerId;
-      } else if (availablePartners.isNotEmpty) {
-        selectedPartnerId = availablePartners.first.id;
-      }
-
-      final propertiesRes = await _propertiesRepository.getProperties(
-        accessToken: token,
-        partnerId: selectedPartnerId,
-        status: 'ACTIVE',
-      );
-      availableProperties = propertiesRes.data;
-      if (availableProperties.isNotEmpty) {
-        selectedPropertyId = availableProperties.first.id;
-      }
-    } catch (_) {}
-
-    if (!mounted) return;
-
-    showDialog<void>(
-      context: context,
-      builder: (dialogCtx) => StatefulBuilder(
-        builder: (dialogContentCtx, setDialogState) => AlertDialog(
-          backgroundColor: Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: const Text(
-            'Invite someone',
-            style: TextStyle(
-              color: Color(0xFF18181B),
-              fontWeight: FontWeight.w800,
-              fontSize: 20,
-            ),
-          ),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Enter the email address and role of the person you want to invite.',
-                  style: TextStyle(
-                    color: Color(0xFF71717A),
-                    fontSize: 13.5,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: emailController,
-                  autofocus: true,
-                  keyboardType: TextInputType.emailAddress,
-                  decoration: InputDecoration(
-                    labelText: 'Email Address',
-                    hintText: 'name@example.com',
-                    prefixIcon: const Icon(Icons.mail_outline_rounded, size: 20),
-                    filled: true,
-                    fillColor: const Color(0xFFFAF7FC),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(0xFFE4E4E7)),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(0xFF9333EA), width: 1.8),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 14),
-                DropdownButtonFormField<String>(
-                  initialValue: selectedRole,
-                  decoration: InputDecoration(
-                    labelText: 'Role',
-                    filled: true,
-                    fillColor: const Color(0xFFFAF7FC),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(0xFFE4E4E7)),
-                    ),
-                  ),
-                  items: const [
-                    DropdownMenuItem(
-                      value: 'PARTNER_ADMIN',
-                      child: Text('Partner admin'),
-                    ),
-                    DropdownMenuItem(
-                      value: 'PROPERTY_ADMIN',
-                      child: Text('Property admin'),
-                    ),
-                  ],
-                  onChanged: (val) {
-                    if (val != null) {
-                      setDialogState(() => selectedRole = val);
-                    }
-                  },
-                ),
-                if (availablePartners.isNotEmpty && actor?.partnerId == null) ...[
-                  const SizedBox(height: 14),
-                  DropdownButtonFormField<String>(
-                    initialValue: selectedPartnerId,
-                    decoration: InputDecoration(
-                      labelText: 'Partner',
-                      filled: true,
-                      fillColor: const Color(0xFFFAF7FC),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(color: Color(0xFFE4E4E7)),
-                      ),
-                    ),
-                    items: availablePartners.map((p) {
-                      return DropdownMenuItem(
-                        value: p.id,
-                        child: Text(p.name),
-                      );
-                    }).toList(),
-                    onChanged: (val) async {
-                      if (val != null) {
-                        setDialogState(() => selectedPartnerId = val);
-                        try {
-                          final props = await _propertiesRepository.getProperties(
-                            accessToken: token,
-                            partnerId: val,
-                            status: 'ACTIVE',
-                          );
-                          setDialogState(() {
-                            availableProperties = props.data;
-                            selectedPropertyId = availableProperties.isNotEmpty
-                                ? availableProperties.first.id
-                                : null;
-                          });
-                        } catch (_) {}
-                      }
-                    },
-                  ),
-                ],
-                if (selectedRole == 'PROPERTY_ADMIN') ...[
-                  const SizedBox(height: 14),
-                  DropdownButtonFormField<String>(
-                    initialValue: selectedPropertyId,
-                    decoration: InputDecoration(
-                      labelText: 'Property (Required for Property admin)',
-                      filled: true,
-                      fillColor: const Color(0xFFFAF7FC),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(color: Color(0xFFE4E4E7)),
-                      ),
-                    ),
-                    items: availableProperties.map((prop) {
-                      return DropdownMenuItem(
-                        value: prop.id,
-                        child: Text(prop.name),
-                      );
-                    }).toList(),
-                    onChanged: (val) {
-                      setDialogState(() => selectedPropertyId = val);
-                    },
-                  ),
-                ],
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogCtx).pop(),
-              child: const Text(
-                'Cancel',
-                style: TextStyle(color: Color(0xFF71717A)),
-              ),
-            ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF9333EA),
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              ),
-              onPressed: () async {
-                final email = emailController.text.trim();
-                if (email.isEmpty) {
-                  if (dialogCtx.mounted) {
-                    ScaffoldMessenger.of(dialogCtx).showSnackBar(
-                      const SnackBar(
-                        content: Text('Please enter an email address.'),
-                        backgroundColor: Color(0xFFDC2626),
-                        behavior: SnackBarBehavior.floating,
-                      ),
-                    );
-                  }
-                  return;
-                }
-
-                final partnerId = selectedPartnerId ?? actor?.partnerId ?? '2c9a1f70-8d31-4a2b-9f10-6b7c8d9e0a1b';
-
-                if (selectedRole == 'PROPERTY_ADMIN' &&
-                    (selectedPropertyId == null || selectedPropertyId!.isEmpty)) {
-                  if (dialogCtx.mounted) {
-                    ScaffoldMessenger.of(dialogCtx).showSnackBar(
-                      const SnackBar(
-                        content: Text('Please select a property for this Property admin invite.'),
-                        backgroundColor: Color(0xFFDC2626),
-                        behavior: SnackBarBehavior.floating,
-                      ),
-                    );
-                  }
-                  return;
-                }
-
-                Navigator.of(dialogCtx).pop();
-
-                try {
-                  await _invitesRepository.createInvite(
-                    accessToken: token,
-                    email: email,
-                    role: selectedRole,
-                    partnerId: partnerId,
-                    propertyId: selectedRole == 'PROPERTY_ADMIN' ? selectedPropertyId : null,
-                  );
-
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Invitation sent to $email'),
-                        backgroundColor: const Color(0xFF9333EA),
-                        behavior: SnackBarBehavior.floating,
-                      ),
-                    );
-                    _loadInvites();
-                  }
-                } catch (e) {
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Error sending invite: $e'),
-                        backgroundColor: const Color(0xFFDC2626),
-                        behavior: SnackBarBehavior.floating,
-                      ),
-                    );
-                  }
-                }
-              },
-              child: const Text('Send Invite'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
-    final screenWidth = MediaQuery.sizeOf(context).width;
-    final horizontalSpacing = screenWidth * 0.10;
+    final invitesToDisplay = _filteredInvites;
 
     return Scaffold(
       backgroundColor: const Color(0xFFFAF7FC),
-      body: SingleChildScrollView(
-        physics: const BouncingScrollPhysics(),
-        padding: const EdgeInsets.symmetric(vertical: 22),
+      body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Top App Bar Branding: Logo + "Plodyo"
+            // Top Plodyo Logo Header (Sticky)
             const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 36),
-              child: PlodyoHeader(padding: EdgeInsets.only(bottom: 12)),
+              padding: EdgeInsets.only(left: 48, right: 48, top: 20, bottom: 8),
+              child: PlodyoHeader(padding: EdgeInsets.zero),
             ),
 
-            // Main Section UI
+            // Title Row & Filter Controls Section (Sticky)
             Padding(
-              padding: EdgeInsets.symmetric(horizontal: horizontalSpacing),
+              padding: const EdgeInsets.symmetric(horizontal: 48),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Header Row: Title & Subtitle on Left, "+ Invite someone" on Right
+                  // Title Row: Angled Floating Badge Icon + "Invites" Title + "+ Invite someone" Action Button
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Expanded(
-                        child: Column(
+                        child: Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            // Title: "Invites"
-                            const Text(
-                              'Invites',
-                              style: TextStyle(
-                                fontSize: 32,
-                                fontWeight: FontWeight.w800,
-                                color: Color(0xFF18181B),
-                                letterSpacing: -0.6,
-                              ),
+                            // Angled Floating Mail Badge Icon
+                            const TvSectionBadge(
+                              icon: Icons.mail_rounded,
+                              gradientColors: [
+                                Color(0xFFD946EF), // Vibrant Magenta
+                                Color(0xFF9333EA), // Royal Purple
+                              ],
                             ),
-                            const SizedBox(height: 4),
+                            const SizedBox(width: 18),
 
-                            // Subtitle
-                            const Text(
-                              'People invited to administer a partner or one of its properties. Invites expire after seven days.',
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w400,
-                                color: Color(0xFF71717A),
+                            // Title & Subtitle Column
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Invites',
+                                    style: GoogleFonts.baloo2(
+                                      fontSize: 36,
+                                      fontWeight: FontWeight.w900,
+                                      color: const Color(0xFF9333EA),
+                                      letterSpacing: -0.5,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    'People invited to administer a partner or one of its properties. Invites expire after seven days.',
+                                    style: GoogleFonts.nunito(
+                                      fontSize: 15.5,
+                                      fontWeight: FontWeight.w400,
+                                      color: const Color(0xFF4B5563),
+                                      height: 1.4,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                           ],
                         ),
                       ),
-                      const SizedBox(width: 16),
+                      const SizedBox(width: 20),
 
-                      // "+ Invite someone" Pill Button
-                      _InviteSomeoneButton(onPressed: _showInviteDialog),
+                      // Right "+ Invite someone" Action Button
+                      _InviteSomeoneButton(
+                        onPressed: () async {
+                          await context.push('/invites/add');
+                          _loadInvites();
+                        },
+                      ),
                     ],
                   ),
-
                   const SizedBox(height: 18),
 
-                  // Filter Pills Row
+                  // Filter Chips / Tabs Row
                   Row(
                     children: [
                       _FilterPill(
@@ -519,25 +299,25 @@ class _InvitesViewState extends State<InvitesView> {
                         isSelected: _selectedFilter == InviteFilter.all,
                         onTap: () => _onFilterChanged(InviteFilter.all),
                       ),
-                      const SizedBox(width: 8),
+                      const SizedBox(width: 10),
                       _FilterPill(
                         label: 'Pending',
                         isSelected: _selectedFilter == InviteFilter.pending,
                         onTap: () => _onFilterChanged(InviteFilter.pending),
                       ),
-                      const SizedBox(width: 8),
+                      const SizedBox(width: 10),
                       _FilterPill(
                         label: 'Accepted',
                         isSelected: _selectedFilter == InviteFilter.accepted,
                         onTap: () => _onFilterChanged(InviteFilter.accepted),
                       ),
-                      const SizedBox(width: 8),
+                      const SizedBox(width: 10),
                       _FilterPill(
                         label: 'Expired',
                         isSelected: _selectedFilter == InviteFilter.expired,
                         onTap: () => _onFilterChanged(InviteFilter.expired),
                       ),
-                      const SizedBox(width: 8),
+                      const SizedBox(width: 10),
                       _FilterPill(
                         label: 'Revoked',
                         isSelected: _selectedFilter == InviteFilter.revoked,
@@ -545,81 +325,83 @@ class _InvitesViewState extends State<InvitesView> {
                       ),
                     ],
                   ),
-
-                  const SizedBox(height: 20),
-
-                  // Loading, Error, or Invites List
-                  if (_isLoading)
-                    const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 48),
-                      child: Center(
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2.5,
-                          valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF9333EA)),
-                        ),
-                      ),
-                    )
-                  else if (_errorMessage != null)
-                    Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 40),
-                      child: Center(
-                        child: Column(
-                          children: [
-                            const Icon(Icons.error_outline_rounded, color: Color(0xFFDC2626), size: 36),
-                            const SizedBox(height: 12),
-                            Text(
-                              _errorMessage!,
-                              style: const TextStyle(color: Color(0xFF71717A), fontSize: 14),
-                              textAlign: TextAlign.center,
-                            ),
-                            const SizedBox(height: 16),
-                            ElevatedButton(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF9333EA),
-                                foregroundColor: Colors.white,
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                              ),
-                              onPressed: _loadInvites,
-                              child: const Text('Retry'),
-                            ),
-                          ],
-                        ),
-                      ),
-                    )
-                  else if (_invites.isEmpty)
-                    Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 40),
-                      child: Center(
-                        child: Text(
-                          'No ${_selectedFilter.name} invites found.',
-                          style: const TextStyle(
-                            fontSize: 15,
-                            color: Color(0xFF71717A),
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ),
-                    )
-                  else
-                    ListView.separated(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemCount: _invites.length,
-                      separatorBuilder: (context, index) => const SizedBox(height: 12),
-                      itemBuilder: (context, index) {
-                        final invite = _invites[index];
-                        return _InviteCard(
-                          invite: invite,
-                          onResend: () => _handleResend(invite),
-                          onRevoke: () => _handleRevoke(invite),
-                        );
-                      },
-                    ),
+                  const SizedBox(height: 16),
                 ],
               ),
             ),
 
-            const SizedBox(height: 30),
+            // Scrollable Content: Loading, Error, or Invites List
+            Expanded(
+              child: _isLoading
+                  ? const Center(
+                      child: PlodyoPageLoading(),
+                    )
+                  : _errorMessage != null
+                      ? Center(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.error_outline_rounded,
+                                  color: Color(0xFFDC2626), size: 36),
+                              const SizedBox(height: 12),
+                              Text(
+                                _errorMessage!,
+                                style: const TextStyle(
+                                    color: Color(0xFF71717A), fontSize: 14),
+                                textAlign: TextAlign.center,
+                              ),
+                              const SizedBox(height: 16),
+                              ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF9333EA),
+                                  foregroundColor: Colors.white,
+                                  shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12)),
+                                ),
+                                onPressed: _loadInvites,
+                                child: const Text('Retry'),
+                              ),
+                            ],
+                          ),
+                        )
+                      : invitesToDisplay.isEmpty
+                          ? Center(
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.mark_email_unread_outlined,
+                                    size: 48,
+                                    color: const Color(0xFF9333EA).withValues(alpha: 0.6),
+                                  ),
+                                  const SizedBox(height: 12),
+                                  Text(
+                                    'No ${_selectedFilter == InviteFilter.all ? "" : "${_selectedFilter.name} "}invites found.',
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                      color: Color(0xFF18181B),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            )
+                          : ListView.separated(
+                              physics: const BouncingScrollPhysics(),
+                              padding: const EdgeInsets.only(left: 48, right: 48, bottom: 32),
+                              itemCount: invitesToDisplay.length,
+                              separatorBuilder: (context, index) =>
+                                  const SizedBox(height: 14),
+                              itemBuilder: (context, index) {
+                                final invite = invitesToDisplay[index];
+                                return _InviteCard(
+                                  invite: invite,
+                                  onResend: () => _handleResend(invite),
+                                  onRevoke: () => _handleRevoke(invite),
+                                );
+                              },
+                            ),
+            ),
           ],
         ),
       ),
@@ -627,6 +409,7 @@ class _InvitesViewState extends State<InvitesView> {
   }
 }
 
+/// "+ Invite someone" Action Button
 class _InviteSomeoneButton extends StatefulWidget {
   const _InviteSomeoneButton({required this.onPressed});
 
@@ -637,27 +420,37 @@ class _InviteSomeoneButton extends StatefulWidget {
 }
 
 class _InviteSomeoneButtonState extends State<_InviteSomeoneButton> {
-  bool _isFocused = false;
+  final FocusNode _focusNode = FocusNode();
   bool _isHovered = false;
 
   @override
+  void dispose() {
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  KeyEventResult _handleKeyEvent(FocusNode node, KeyEvent event) {
+    if (event is KeyDownEvent) {
+      final key = event.logicalKey;
+      if (key == LogicalKeyboardKey.select ||
+          key == LogicalKeyboardKey.enter ||
+          key == LogicalKeyboardKey.space ||
+          key == LogicalKeyboardKey.gameButtonA) {
+        widget.onPressed();
+        return KeyEventResult.handled;
+      }
+    }
+    return KeyEventResult.ignored;
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final active = _isFocused || _isHovered;
+    final isHighlighted = _focusNode.hasFocus || _isHovered;
 
     return Focus(
-      onFocusChange: (focused) => setState(() => _isFocused = focused),
-      onKeyEvent: (node, event) {
-        if (event is KeyDownEvent) {
-          final key = event.logicalKey;
-          if (key == LogicalKeyboardKey.select ||
-              key == LogicalKeyboardKey.enter ||
-              key == LogicalKeyboardKey.gameButtonA) {
-            widget.onPressed();
-            return KeyEventResult.handled;
-          }
-        }
-        return KeyEventResult.ignored;
-      },
+      focusNode: _focusNode,
+      onKeyEvent: _handleKeyEvent,
+      onFocusChange: (_) => setState(() {}),
       child: MouseRegion(
         cursor: SystemMouseCursors.click,
         onEnter: (_) => setState(() => _isHovered = true),
@@ -665,45 +458,43 @@ class _InviteSomeoneButtonState extends State<_InviteSomeoneButton> {
         child: GestureDetector(
           onTap: widget.onPressed,
           child: AnimatedScale(
-            scale: active ? 1.05 : 1.0,
-            duration: const Duration(milliseconds: 150),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 150),
-              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+            scale: isHighlighted ? 1.05 : 1.0,
+            duration: const Duration(milliseconds: 140),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 26, vertical: 14),
               decoration: BoxDecoration(
-                color: const Color(0xFF18181B),
+                gradient: const LinearGradient(
+                  colors: [
+                    Color(0xFFD946EF),
+                    Color(0xFF9333EA),
+                  ],
+                ),
                 borderRadius: BorderRadius.circular(24),
-                border: active
-                    ? Border.all(color: const Color(0xFFC084FC), width: 2.0)
-                    : null,
                 boxShadow: [
-                  if (active)
-                    BoxShadow(
-                      color: const Color(0xFF9333EA).withValues(alpha: 0.35),
-                      blurRadius: 14,
-                      spreadRadius: 1,
-                      offset: const Offset(0, 3),
-                    )
-                  else
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.15),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
+                  BoxShadow(
+                    color: const Color(0xFF9333EA)
+                        .withValues(alpha: isHighlighted ? 0.55 : 0.38),
+                    blurRadius: isHighlighted ? 18 : 12,
+                    offset: const Offset(0, 4),
+                  ),
                 ],
               ),
               child: const Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.add, color: Colors.white, size: 16),
-                  SizedBox(width: 6),
+                  Icon(
+                    Icons.add_rounded,
+                    color: Colors.white,
+                    size: 20,
+                  ),
+                  SizedBox(width: 8),
                   Text(
                     'Invite someone',
                     style: TextStyle(
                       color: Colors.white,
-                      fontSize: 13.5,
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: -0.1,
+                      fontSize: 15.5,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.1,
                     ),
                   ),
                 ],
@@ -716,6 +507,7 @@ class _InviteSomeoneButtonState extends State<_InviteSomeoneButton> {
   }
 }
 
+/// Filter Pill Chip with subtle hover and selection styles matching Plodyo TV
 class _FilterPill extends StatefulWidget {
   const _FilterPill({
     required this.label,
@@ -732,20 +524,41 @@ class _FilterPill extends StatefulWidget {
 }
 
 class _FilterPillState extends State<_FilterPill> {
-  bool _isFocused = false;
+  final FocusNode _focusNode = FocusNode();
   bool _isHovered = false;
 
   @override
+  void dispose() {
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final active = _isFocused || _isHovered;
+    final isFocused = _focusNode.hasFocus;
+    final active = isFocused || _isHovered;
+
+    final backgroundColor = widget.isSelected
+        ? const Color(0xFFFAF5FF)
+        : (active ? const Color(0xFFFBF8FF) : Colors.white);
+
+    final borderColor = widget.isSelected
+        ? const Color(0xFF8B5CF6)
+        : (active ? const Color(0xFF8B5CF6) : const Color(0xFFCBD5E1));
+
+    final textColor = widget.isSelected || active
+        ? const Color(0xFF8B5CF6)
+        : const Color(0xFF1E293B);
 
     return Focus(
-      onFocusChange: (focused) => setState(() => _isFocused = focused),
+      focusNode: _focusNode,
+      onFocusChange: (_) => setState(() {}),
       onKeyEvent: (node, event) {
         if (event is KeyDownEvent) {
           final key = event.logicalKey;
           if (key == LogicalKeyboardKey.select ||
               key == LogicalKeyboardKey.enter ||
+              key == LogicalKeyboardKey.space ||
               key == LogicalKeyboardKey.gameButtonA) {
             widget.onTap();
             return KeyEventResult.handled;
@@ -759,45 +572,55 @@ class _FilterPillState extends State<_FilterPill> {
         onExit: (_) => setState(() => _isHovered = false),
         child: GestureDetector(
           onTap: widget.onTap,
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 150),
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7.5),
-            decoration: BoxDecoration(
-              color: widget.isSelected
-                  ? const Color(0xFF9333EA).withValues(alpha: 0.08)
-                  : Colors.white,
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(
-                color: widget.isSelected
-                    ? const Color(0xFF9333EA)
+          child: AnimatedScale(
+            scale: active ? 1.05 : 1.0,
+            duration: const Duration(milliseconds: 140),
+            curve: Curves.easeOutCubic,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 140),
+              curve: Curves.easeOutCubic,
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+              decoration: BoxDecoration(
+                color: backgroundColor,
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(
+                  color: borderColor,
+                  width: widget.isSelected ? 1.6 : 1.2,
+                ),
+                boxShadow: widget.isSelected
+                    ? [
+                        BoxShadow(
+                          color:
+                              const Color(0xFF8B5CF6).withValues(alpha: 0.22),
+                          blurRadius: 10,
+                          offset: const Offset(0, 3),
+                        ),
+                      ]
                     : (active
-                        ? const Color(0xFFC084FC)
-                        : const Color(0xFFE4E4E7)),
-                width: widget.isSelected ? 1.6 : 1.0,
+                        ? [
+                            BoxShadow(
+                              color:
+                                  const Color(0xFF8B5CF6).withValues(alpha: 0.2),
+                              blurRadius: 8,
+                              offset: const Offset(0, 2),
+                            ),
+                          ]
+                        : [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.03),
+                              blurRadius: 5,
+                              offset: const Offset(0, 1.5),
+                            ),
+                          ]),
               ),
-              boxShadow: [
-                if (widget.isSelected)
-                  BoxShadow(
-                    color: const Color(0xFF9333EA).withValues(alpha: 0.15),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  )
-                else if (active)
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.04),
-                    blurRadius: 6,
-                    offset: const Offset(0, 2),
-                  ),
-              ],
-            ),
-            child: Text(
-              widget.label,
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: widget.isSelected ? FontWeight.w700 : FontWeight.w500,
-                color: widget.isSelected
-                    ? const Color(0xFF9333EA)
-                    : const Color(0xFF3F3F46),
+              child: Text(
+                widget.label,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight:
+                      widget.isSelected ? FontWeight.w700 : FontWeight.w500,
+                  color: textColor,
+                ),
               ),
             ),
           ),
@@ -807,6 +630,7 @@ class _FilterPillState extends State<_FilterPill> {
   }
 }
 
+/// Invite List Card Item matching design screenshot
 class _InviteCard extends StatefulWidget {
   const _InviteCard({
     required this.invite,
@@ -823,117 +647,170 @@ class _InviteCard extends StatefulWidget {
 }
 
 class _InviteCardState extends State<_InviteCard> {
-  bool _isFocused = false;
+  final FocusNode _focusNode = FocusNode();
   bool _isHovered = false;
 
   @override
+  void dispose() {
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  String _formatDate(String? isoString) {
+    if (isoString == null || isoString.isEmpty) return '';
+    try {
+      final date = DateTime.parse(isoString);
+      const months = [
+        'Jan',
+        'Feb',
+        'Mar',
+        'Apr',
+        'May',
+        'Jun',
+        'Jul',
+        'Aug',
+        'Sep',
+        'Oct',
+        'Nov',
+        'Dec'
+      ];
+      return '${date.day} ${months[date.month - 1]} ${date.year}';
+    } catch (_) {
+      return isoString;
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final active = _isFocused || _isHovered;
+    final isFocused = _focusNode.hasFocus;
+    final isHighlighted = isFocused || _isHovered;
 
-    final roleLabel = widget.invite.role == 'PROPERTY_ADMIN'
-        ? 'Property admin'
-        : 'Partner admin';
-
-    final expiryText = widget.invite.expiresAt != null
-        ? 'Expires ${_formatDate(widget.invite.expiresAt!)}'
-        : 'Expires in 7 days';
+    String subtitleText = 'Partner admin';
+    if (widget.invite.isPending) {
+      if (widget.invite.expiresAt != null) {
+        subtitleText =
+            'Partner admin \u00B7 Expires ${_formatDate(widget.invite.expiresAt)}';
+      } else {
+        subtitleText = 'Partner admin \u00B7 Expires in 7 days';
+      }
+    } else if (widget.invite.isAccepted) {
+      final date = widget.invite.acceptedAt ?? widget.invite.createdAt;
+      subtitleText =
+          'Partner admin \u00B7 Accepted ${_formatDate(date)}';
+    } else if (widget.invite.isRevoked) {
+      final date = widget.invite.sentAt ?? widget.invite.createdAt;
+      subtitleText =
+          'Partner admin \u00B7 Sent ${_formatDate(date)}';
+    } else if (widget.invite.isExpired) {
+      final date = widget.invite.expiresAt ?? widget.invite.createdAt;
+      subtitleText =
+          'Partner admin \u00B7 Expired ${_formatDate(date)}';
+    }
 
     return Focus(
-      onFocusChange: (focused) => setState(() => _isFocused = focused),
+      focusNode: _focusNode,
+      onFocusChange: (_) => setState(() {}),
       child: MouseRegion(
         onEnter: (_) => setState(() => _isHovered = true),
         onExit: (_) => setState(() => _isHovered = false),
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 160),
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+          duration: const Duration(milliseconds: 140),
+          curve: Curves.easeOutCubic,
+          padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 20),
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: active
-                  ? const Color(0xFFC084FC)
-                  : const Color(0xFFF1EBF5),
-              width: active ? 1.8 : 1.0,
+              color: isHighlighted
+                  ? const Color(0xFF8B5CF6)
+                  : const Color(0xFFCBD5E1),
+              width: isHighlighted ? 2.0 : 1.4,
             ),
-            boxShadow: [
-              if (active)
-                BoxShadow(
-                  color: const Color(0xFF9333EA).withValues(alpha: 0.12),
-                  blurRadius: 16,
-                  spreadRadius: 1,
-                  offset: const Offset(0, 3),
-                )
-              else
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.03),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
-            ],
+            boxShadow: isHighlighted
+                ? [
+                    BoxShadow(
+                      color: const Color(0xFF9333EA).withValues(alpha: 0.38),
+                      blurRadius: 20,
+                      spreadRadius: 2,
+                      offset: const Offset(0, 5),
+                    ),
+                  ]
+                : [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.04),
+                      blurRadius: 8,
+                      offset: const Offset(0, 3),
+                    ),
+                    BoxShadow(
+                      color: const Color(0xFF9333EA).withValues(alpha: 0.02),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
           ),
           child: Row(
             children: [
-              // Mail envelope icon
-              const Icon(
-                Icons.mail_outline_rounded,
-                size: 20,
-                color: Color(0xFF52525B),
+              // Left mail envelope icon container
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF1F5F9),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(
+                  Icons.mail_outline_rounded,
+                  size: 24,
+                  color: Color(0xFF475569),
+                ),
               ),
+              const SizedBox(width: 18),
 
-              const SizedBox(width: 16),
-
-              // Main Details (Email, Status Pill, Role and Expiry)
+              // Email + Status Badge + Subtitle Column
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    // Email + Status Badge Row
                     Row(
                       children: [
-                        Text(
-                          widget.invite.email,
-                          style: const TextStyle(
-                            fontSize: 15.5,
-                            fontWeight: FontWeight.w700,
-                            color: Color(0xFF18181B),
-                            letterSpacing: -0.2,
+                        Flexible(
+                          child: Text(
+                            widget.invite.email,
+                            style: const TextStyle(
+                              fontSize: 17.5,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF18181B),
+                              letterSpacing: -0.2,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
-                        const SizedBox(width: 10),
+                        const SizedBox(width: 12),
                         _InviteStatusBadge(status: widget.invite.status),
                       ],
                     ),
-
-                    const SizedBox(height: 4),
-
-                    // Subtitle: Role - Expiry
+                    const SizedBox(height: 6),
                     Text(
-                      '$roleLabel - $expiryText',
+                      subtitleText,
                       style: const TextStyle(
-                        fontSize: 12.5,
-                        color: Color(0xFF71717A),
-                        fontWeight: FontWeight.w500,
+                        fontSize: 14,
+                        color: Color(0xFF64748B),
+                        fontWeight: FontWeight.w400,
                       ),
                     ),
                   ],
                 ),
               ),
 
-              const SizedBox(width: 12),
+              const SizedBox(width: 16),
 
-              // Action Buttons: "Resend" and "Revoke" (only if pending)
+              // Action buttons (Resend & Revoke) only for Pending invites
               if (widget.invite.isPending) ...[
-                _ActionPillButton(
-                  icon: Icons.sync_rounded,
-                  label: 'Resend',
-                  onPressed: widget.onResend,
-                ),
-                const SizedBox(width: 8),
-                _ActionPillButton(
-                  icon: Icons.block_rounded,
-                  label: 'Revoke',
-                  onPressed: widget.onRevoke,
-                ),
+                _ResendPillButton(onPressed: widget.onResend),
+                const SizedBox(width: 10),
+                _RevokePillButton(onPressed: widget.onRevoke),
               ],
             ],
           ),
@@ -941,51 +818,41 @@ class _InviteCardState extends State<_InviteCard> {
       ),
     );
   }
-
-  String _formatDate(String isoString) {
-    try {
-      final date = DateTime.parse(isoString);
-      final months = [
-        'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-        'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
-      ];
-      return '${date.day} ${months[date.month - 1]} ${date.year}';
-    } catch (_) {
-      return isoString;
-    }
-  }
 }
 
-class _ActionPillButton extends StatefulWidget {
-  const _ActionPillButton({
-    required this.icon,
-    required this.label,
-    required this.onPressed,
-  });
+/// "Resend" Action Pill Button
+class _ResendPillButton extends StatefulWidget {
+  const _ResendPillButton({required this.onPressed});
 
-  final IconData icon;
-  final String label;
   final VoidCallback onPressed;
 
   @override
-  State<_ActionPillButton> createState() => _ActionPillButtonState();
+  State<_ResendPillButton> createState() => _ResendPillButtonState();
 }
 
-class _ActionPillButtonState extends State<_ActionPillButton> {
-  bool _isFocused = false;
+class _ResendPillButtonState extends State<_ResendPillButton> {
+  final FocusNode _focusNode = FocusNode();
   bool _isHovered = false;
 
   @override
+  void dispose() {
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final active = _isFocused || _isHovered;
+    final isHighlighted = _focusNode.hasFocus || _isHovered;
 
     return Focus(
-      onFocusChange: (focused) => setState(() => _isFocused = focused),
+      focusNode: _focusNode,
+      onFocusChange: (_) => setState(() {}),
       onKeyEvent: (node, event) {
         if (event is KeyDownEvent) {
           final key = event.logicalKey;
           if (key == LogicalKeyboardKey.select ||
               key == LogicalKeyboardKey.enter ||
+              key == LogicalKeyboardKey.space ||
               key == LogicalKeyboardKey.gameButtonA) {
             widget.onPressed();
             return KeyEventResult.handled;
@@ -1000,52 +867,49 @@ class _ActionPillButtonState extends State<_ActionPillButton> {
         child: GestureDetector(
           onTap: widget.onPressed,
           child: AnimatedScale(
-            scale: active ? 1.05 : 1.0,
+            scale: isHighlighted ? 1.05 : 1.0,
             duration: const Duration(milliseconds: 140),
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 140),
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
               decoration: BoxDecoration(
-                color: active
-                    ? const Color(0xFF9333EA).withValues(alpha: 0.08)
-                    : Colors.white,
+                color: isHighlighted ? const Color(0xFFFAF5FF) : Colors.white,
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(
-                  color: active
-                      ? const Color(0xFF9333EA)
-                      : const Color(0xFFE4E4E7),
-                  width: active ? 1.5 : 1.0,
+                  color: const Color(0xFF8B5CF6),
+                  width: 1.5,
                 ),
-                boxShadow: [
-                  if (active)
-                    BoxShadow(
-                      color: const Color(0xFF9333EA).withValues(alpha: 0.15),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    )
-                  else
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.02),
-                      blurRadius: 4,
-                      offset: const Offset(0, 1),
-                    ),
-                ],
+                boxShadow: isHighlighted
+                    ? [
+                        BoxShadow(
+                          color: const Color(0xFF8B5CF6).withValues(alpha: 0.25),
+                          blurRadius: 10,
+                          offset: const Offset(0, 2),
+                        ),
+                      ]
+                    : [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.03),
+                          blurRadius: 4,
+                          offset: const Offset(0, 1),
+                        ),
+                      ],
               ),
-              child: Row(
+              child: const Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(
-                    widget.icon,
-                    size: 14,
-                    color: active ? const Color(0xFF9333EA) : const Color(0xFF52525B),
+                    Icons.refresh_rounded,
+                    size: 18,
+                    color: Color(0xFF18181B),
                   ),
-                  const SizedBox(width: 5),
+                  SizedBox(width: 8),
                   Text(
-                    widget.label,
+                    'Resend',
                     style: TextStyle(
-                      fontSize: 12.5,
+                      fontSize: 14,
                       fontWeight: FontWeight.w600,
-                      color: active ? const Color(0xFF9333EA) : const Color(0xFF3F3F46),
+                      color: Color(0xFF18181B),
                     ),
                   ),
                 ],
@@ -1058,6 +922,109 @@ class _ActionPillButtonState extends State<_ActionPillButton> {
   }
 }
 
+/// "Revoke" Action Pill Button
+class _RevokePillButton extends StatefulWidget {
+  const _RevokePillButton({required this.onPressed});
+
+  final VoidCallback onPressed;
+
+  @override
+  State<_RevokePillButton> createState() => _RevokePillButtonState();
+}
+
+class _RevokePillButtonState extends State<_RevokePillButton> {
+  final FocusNode _focusNode = FocusNode();
+  bool _isHovered = false;
+
+  @override
+  void dispose() {
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isHighlighted = _focusNode.hasFocus || _isHovered;
+
+    return Focus(
+      focusNode: _focusNode,
+      onFocusChange: (_) => setState(() {}),
+      onKeyEvent: (node, event) {
+        if (event is KeyDownEvent) {
+          final key = event.logicalKey;
+          if (key == LogicalKeyboardKey.select ||
+              key == LogicalKeyboardKey.enter ||
+              key == LogicalKeyboardKey.space ||
+              key == LogicalKeyboardKey.gameButtonA) {
+            widget.onPressed();
+            return KeyEventResult.handled;
+          }
+        }
+        return KeyEventResult.ignored;
+      },
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        onEnter: (_) => setState(() => _isHovered = true),
+        onExit: (_) => setState(() => _isHovered = false),
+        child: GestureDetector(
+          onTap: widget.onPressed,
+          child: AnimatedScale(
+            scale: isHighlighted ? 1.05 : 1.0,
+            duration: const Duration(milliseconds: 140),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 140),
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+              decoration: BoxDecoration(
+                color: isHighlighted ? const Color(0xFFFEF2F2) : Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: const Color(0xFFFCA5A5),
+                  width: 1.5,
+                ),
+                boxShadow: isHighlighted
+                    ? [
+                        BoxShadow(
+                          color: const Color(0xFFEF4444).withValues(alpha: 0.25),
+                          blurRadius: 10,
+                          offset: const Offset(0, 2),
+                        ),
+                      ]
+                    : [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.03),
+                          blurRadius: 4,
+                          offset: const Offset(0, 1),
+                        ),
+                      ],
+              ),
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.delete_outline_rounded,
+                    size: 18,
+                    color: Color(0xFFEF4444),
+                  ),
+                  SizedBox(width: 8),
+                  Text(
+                    'Revoke',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFFEF4444),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Status Badge (Pending, Accepted, Revoked, Expired)
 class _InviteStatusBadge extends StatelessWidget {
   const _InviteStatusBadge({required this.status});
 
@@ -1081,20 +1048,20 @@ class _InviteStatusBadge extends StatelessWidget {
         text = 'Accepted';
         break;
       case 'EXPIRED':
-        bgColor = const Color(0xFFF3F4F6);
-        textColor = const Color(0xFF6B7280);
+        bgColor = const Color(0xFFF4F4F5);
+        textColor = const Color(0xFF71717A);
         text = 'Expired';
         break;
       case 'REVOKED':
       default:
         bgColor = const Color(0xFFFEE2E2);
-        textColor = const Color(0xFFB91C1C);
+        textColor = const Color(0xFFEF4444);
         text = 'Revoked';
         break;
     }
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 2.5),
+      padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 4),
       decoration: BoxDecoration(
         color: bgColor,
         borderRadius: BorderRadius.circular(12),
@@ -1102,9 +1069,10 @@ class _InviteStatusBadge extends StatelessWidget {
       child: Text(
         text,
         style: TextStyle(
-          fontSize: 11.5,
-          fontWeight: FontWeight.w700,
           color: textColor,
+          fontSize: 12.5,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 0.1,
         ),
       ),
     );

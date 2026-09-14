@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 /// Reusable Top Header with the Plodyo icon logo and "Plodyo" text name.
 class PlodyoHeader extends StatelessWidget {
@@ -18,24 +19,24 @@ class PlodyoHeader extends StatelessWidget {
         children: [
           Image.asset(
             'assets/images/logo.png',
-            width: 28,
-            height: 28,
+            width: 34,
+            height: 34,
             errorBuilder: (context, error, stackTrace) => Container(
-              width: 28,
-              height: 28,
+              width: 34,
+              height: 34,
               decoration: const BoxDecoration(
                 color: Color(0xFF9333EA),
                 shape: BoxShape.circle,
               ),
             ),
           ),
-          const SizedBox(width: 8),
-          const Text(
-            'Plodyo',
-            style: TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.w800,
-              color: Color(0xFF9333EA),
+          const SizedBox(width: 10),
+          Text(
+            'Plodyo TV',
+            style: GoogleFonts.baloo2(
+              fontSize: 24,
+              fontWeight: FontWeight.w900,
+              color: const Color(0xFF9333EA),
               letterSpacing: -0.4,
             ),
           ),

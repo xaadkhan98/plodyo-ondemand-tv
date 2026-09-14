@@ -74,7 +74,7 @@ void main() {
       final service = AuthApiService(apiClient: ApiClient(httpClient: mockClient));
       final repo = AuthRepositoryImpl(apiService: service);
 
-      final res = await repo.getMe();
+      final res = await repo.getMe(accessToken: 'test_token');
       expect(res.actor.fullName, 'Dana Okafor');
       expect(res.memberships.length, 1);
       expect(res.memberships.first.role, 'PARTNER_ADMIN');

@@ -5,7 +5,7 @@ import '../../../../core/widgets/tv_button.dart';
 import '../../../../core/widgets/tv_row.dart';
 import '../../../../core/widgets/tv_card.dart';
 import '../../../../data/models/media_item.dart';
-import '../../../../data/repositories/mock_vod_repository.dart';
+import '../../../../data/repositories/device_repository.dart';
 
 /// Full-screen VOD Details View with remote back handler and action buttons.
 class DetailsView extends StatefulWidget {
@@ -46,7 +46,7 @@ class _DetailsViewState extends State<DetailsView> {
     setState(() {
       _isLoadingSimilar = true;
     });
-    final items = await MockVodRepository().getTrendingMovies();
+    final items = await sharedDeviceRepository.getTrendingMovies();
     if (mounted) {
       setState(() {
         _similarItems = items.where((i) => i.id != widget.item.id).toList();
@@ -142,7 +142,7 @@ class _DetailsViewState extends State<DetailsView> {
                             color: TvColors.hdBadge,
                             borderRadius: BorderRadius.circular(4),
                           ),
-                          child: const Text('4K ULTRA HD', style: TvTypography.badge),
+                          child: Text('4K ULTRA HD', style: TvTypography.badge),
                         ),
                         const SizedBox(width: 12),
                         Text(

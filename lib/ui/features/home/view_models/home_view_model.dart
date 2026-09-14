@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import '../../../../data/models/media_item.dart';
-import '../../../../data/repositories/mock_vod_repository.dart';
+import '../../../../data/repositories/device_repository.dart';
+import '../../../../data/repositories/vod_repository.dart';
 
 /// ViewModel for Home TV Screen managing state and catalog sections.
 class HomeViewModel extends ChangeNotifier {
   HomeViewModel({VodRepository? repository})
-      : _repository = repository ?? MockVodRepository();
+      : _repository = repository ?? sharedDeviceRepository;
 
   final VodRepository _repository;
 

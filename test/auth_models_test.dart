@@ -122,7 +122,7 @@ void main() {
 
     test('creates network error with fallback message', () {
       final exception = AuthException.network();
-      expect(exception.message, 'Cannot reach Plodyo. Check the network connection.');
+      expect(exception.message, 'Cannot reach Plodyo TV. Check the network connection.');
       expect(exception.statusCode, 0);
     });
   });

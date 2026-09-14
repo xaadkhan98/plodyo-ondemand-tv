@@ -1,33 +1,68 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../../ui/features/splash/views/unpaired_splash_view.dart';
+import '../../ui/features/splash/views/tv_pairing_view.dart';
 import '../../ui/features/auth/views/sign_in_view.dart';
+import '../../ui/features/auth/views/forgot_password_view.dart';
+import '../../ui/features/auth/views/register_venue_view.dart';
 import '../../ui/features/main_layout.dart';
-import '../../ui/features/home/views/home_view.dart';
-import '../../ui/features/home/view_models/home_view_model.dart';
-import '../../ui/features/search/views/search_view.dart';
-import '../../ui/features/categories/views/categories_view.dart';
+import '../../ui/features/home/views/console_overview_view.dart';
 import '../../ui/features/partners/views/partners_view.dart';
+import '../../ui/features/partners/views/partner_details_view.dart';
+import '../../ui/features/partners/views/add_partner_view.dart';
 import '../../ui/features/invites/views/invites_view.dart';
+import '../../ui/features/invites/views/invite_someone_view.dart';
 import '../../ui/features/properties/views/properties_view.dart';
+import '../../ui/features/properties/views/add_property_view.dart';
 import '../../ui/features/rooms/views/rooms_view.dart';
+import '../../ui/features/rooms/views/add_room_view.dart';
+import '../../ui/features/rooms/views/add_many_rooms_view.dart';
 import '../../ui/features/settings/views/settings_view.dart';
+import '../../ui/features/people/views/people_view.dart';
+import '../../ui/features/people/views/person_details_view.dart';
 import '../../ui/features/details/views/details_view.dart';
-import '../../data/repositories/mock_vod_repository.dart';
 import '../../data/repositories/auth_repository.dart';
 import '../../data/models/media_item.dart';
-import '../widgets/plodyo_header.dart';
+import '../../data/models/partner_model.dart';
+import '../../data/models/person_model.dart';
 
 final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>();
 final GlobalKey<NavigatorState> _shellNavigatorKey = GlobalKey<NavigatorState>();
 
-final VodRepository _sharedRepository = MockVodRepository();
-final HomeViewModel _sharedHomeViewModel = HomeViewModel(repository: _sharedRepository)..loadCatalog();
-
 /// Declarative GoRouter configuration for the TV app
 final GoRouter appRouter = GoRouter(
   navigatorKey: _rootNavigatorKey,
-  initialLocation: '/sign-in',
+  initialLocation: '/splash',
   routes: [
+    // Unpaired TV Splash Screen (Initial startup screen)
+    GoRoute(
+      path: '/splash',
+      name: 'splash',
+      builder: (context, state) => UnpairedSplashView(
+        onSignInConsole: () {
+          context.push('/sign-in');
+        },
+      ),
+    ),
+
+    // Pair TV Screen (Enter Pairing Code)
+    GoRoute(
+      path: '/pair-tv',
+      name: 'pairTv',
+      builder: (context, state) => TvPairingView(
+        onPaired: () {
+          context.go('/home');
+        },
+        onBack: () {
+          if (context.canPop()) {
+            context.pop();
+          } else {
+            context.go('/splash');
+          }
+        },
+      ),
+    ),
+
     // Standalone Sign In Route
     GoRoute(
       path: '/sign-in',
@@ -35,6 +70,43 @@ final GoRouter appRouter = GoRouter(
       builder: (context, state) => SignInView(
         onSignedIn: () {
           context.go('/home');
+        },
+        onBack: () {
+          if (context.canPop()) {
+            context.pop();
+          } else {
+            context.go('/splash');
+          }
+        },
+      ),
+    ),
+
+    // Forgot Password Route
+    GoRoute(
+      path: '/forgot-password',
+      name: 'forgotPassword',
+      builder: (context, state) => ForgotPasswordView(
+        onBack: () {
+          if (context.canPop()) {
+            context.pop();
+          } else {
+            context.go('/sign-in');
+          }
+        },
+      ),
+    ),
+
+    // Register Venue Route
+    GoRoute(
+      path: '/register-venue',
+      name: 'registerVenue',
+      builder: (context, state) => RegisterVenueView(
+        onBack: () {
+          if (context.canPop()) {
+            context.pop();
+          } else {
+            context.go('/sign-in');
+          }
         },
       ),
     ),
@@ -79,59 +151,121 @@ final GoRouter appRouter = GoRouter(
       routes: [
         GoRoute(
           path: '/',
-          redirect: (context, state) => '/home',
+          redirect: (context, state) => '/overview',
         ),
         GoRoute(
           path: '/home',
-          name: 'home',
-          builder: (context, state) => HomeView(
-            viewModel: _sharedHomeViewModel,
-            onMediaSelected: (item) {
-              context.push('/details', extra: item);
-            },
-          ),
+          redirect: (context, state) => '/overview',
         ),
         GoRoute(
-          path: '/search',
-          name: 'search',
-          builder: (context, state) => SearchView(
-            onMediaSelected: (item) {
-              context.push('/details', extra: item);
-            },
-          ),
-        ),
-        GoRoute(
-          path: '/categories',
-          name: 'categories',
-          builder: (context, state) => const CategoriesView(),
-        ),
-        GoRoute(
-          path: '/stories',
-          name: 'stories',
-          builder: (context, state) => const _PlaceholderScreen(
-            title: 'All stories',
-            icon: Icons.bar_chart_rounded,
-          ),
+          path: '/overview',
+          name: 'overview',
+          builder: (context, state) => const ConsoleOverviewView(),
         ),
         GoRoute(
           path: '/partners',
           name: 'partners',
-          builder: (context, state) => const PartnersView(),
+          builder: (context, state) => PartnersView(
+            onPartnerSelected: (partner) {
+              context.push('/partners/details', extra: partner);
+            },
+          ),
+          routes: [
+            GoRoute(
+              path: 'details',
+              name: 'partnerDetails',
+              builder: (context, state) {
+                final partner = state.extra as PartnerModel? ??
+                    const PartnerModel(
+                      id: 'p2',
+                      name: 'HotelA1',
+                      partnerType: 'INDEPENDENT',
+                      contactEmail: 'mudsr3@gmail.com',
+                      contactName: 'Ali',
+                      phone: null,
+                      roomLimit: 0,
+                      status: 'PENDING_APPROVAL',
+                      createdAt: '10 Sept 2026, 21:33',
+                    );
+                return PartnerDetailsView(partner: partner);
+              },
+            ),
+            GoRoute(
+              path: 'add',
+              name: 'addPartner',
+              builder: (context, state) => const AddPartnerView(),
+            ),
+          ],
         ),
         GoRoute(
           path: '/invites',
           name: 'invites',
           builder: (context, state) => const InvitesView(),
+          routes: [
+            GoRoute(
+              path: 'add',
+              name: 'addInvite',
+              builder: (context, state) => const InviteSomeoneView(),
+            ),
+          ],
         ),
         GoRoute(
           path: '/properties',
           name: 'properties',
           builder: (context, state) => const PropertiesView(),
+          routes: [
+            GoRoute(
+              path: 'add',
+              name: 'addProperty',
+              builder: (context, state) => const AddPropertyView(),
+            ),
+          ],
         ),
         GoRoute(
           path: '/rooms',
           name: 'rooms',
           builder: (context, state) => const RoomsView(),
+          routes: [
+            GoRoute(
+              path: 'add',
+              name: 'addRoom',
+              builder: (context, state) => const AddRoomView(),
+            ),
+            GoRoute(
+              path: 'add-many',
+              name: 'addManyRooms',
+              builder: (context, state) => const AddManyRoomsView(),
+            ),
+          ],
+        ),
+        GoRoute(
+          path: '/people',
+          name: 'people',
+          builder: (context, state) => PeopleView(
+            onPersonSelected: (person) {
+              context.push('/people/details', extra: person);
+            },
+          ),
+          routes: [
+            GoRoute(
+              path: 'details',
+              name: 'personDetails',
+              builder: (context, state) {
+                final person = state.extra as PersonModel? ??
+                    const PersonModel(
+                      id: 'person-1',
+                      fullName: 'Super Admin',
+                      email: 'superadmin@email.com',
+                      role: 'SUPER_ADMIN',
+                      status: 'ACTIVE',
+                      lastLoginAt: '12 Sept 2026, 16:13',
+                      createdAt: '10 Sept 2026, 23:56',
+                      isCurrentUser: false,
+                    );
+                return PersonDetailsView(person: person);
+              },
+            ),
+          ],
         ),
         GoRoute(
           path: '/settings',
@@ -144,69 +278,3 @@ final GoRouter appRouter = GoRouter(
     ),
   ],
 );
-
-class _PlaceholderScreen extends StatelessWidget {
-  const _PlaceholderScreen({
-    required this.title,
-    required this.icon,
-  });
-
-  final String title;
-  final IconData icon;
-
-  @override
-  Widget build(BuildContext context) {
-    final screenWidth = MediaQuery.sizeOf(context).width;
-    final horizontalSpacing = screenWidth * 0.10;
-
-    return Scaffold(
-      backgroundColor: const Color(0xFFFAF7FC),
-      body: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 32),
-              child: PlodyoHeader(),
-            ),
-            Expanded(
-              child: Padding(
-                padding: EdgeInsets.symmetric(horizontal: horizontalSpacing),
-                child: Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        icon,
-                        size: 56,
-                        color: const Color(0xFF9333EA).withValues(alpha: 0.7),
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        title,
-                        style: const TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.w800,
-                          color: Color(0xFF18181B),
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      const Text(
-                        'This screen will be populated in an upcoming update.',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Color(0xFF71717A),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}

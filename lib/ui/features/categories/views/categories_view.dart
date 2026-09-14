@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/widgets/plodyo_header.dart';
+import '../../../../core/widgets/tv_section_badge.dart';
 
 class CategoryItemData {
   const CategoryItemData({
@@ -138,84 +140,115 @@ class _CategoriesViewState extends State<CategoriesView> {
 
     return Scaffold(
       backgroundColor: const Color(0xFFFAF7FC),
-      body: SingleChildScrollView(
-        physics: const BouncingScrollPhysics(),
-        padding: const EdgeInsets.symmetric(vertical: 22),
+      body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Top App Bar Branding: Logo + "Plodyo" (kept at default padding)
+            // Sticky Top App Bar Branding: Logo + "Plodyo"
             const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 36),
-              child: PlodyoHeader(padding: EdgeInsets.only(bottom: 12)),
+              padding: EdgeInsets.fromLTRB(36, 16, 36, 8),
+              child: PlodyoHeader(padding: EdgeInsets.zero),
             ),
 
-            // Main Section UI with 20% horizontal screen spacing
+            // Sticky Screen Name Section (Title + Subtitle)
             Padding(
-              padding: EdgeInsets.symmetric(horizontal: horizontalSpacing),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              padding: EdgeInsets.symmetric(
+                horizontal: horizontalSpacing,
+                vertical: 6,
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  // Title: "Categories"
-                  const Text(
-                    'Categories',
-                    style: TextStyle(
-                      fontSize: 32,
-                      fontWeight: FontWeight.w800,
-                      color: Color(0xFF18181B),
-                      letterSpacing: -0.6,
-                    ),
+                  const TvSectionBadge(
+                    icon: Icons.category_rounded,
+                    size: 54,
+                    iconSize: 28,
+                    gradientColors: [
+                      Color(0xFFF472B6),
+                      Color(0xFFD946EF),
+                      Color(0xFF9333EA),
+                    ],
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Title: "Categories"
+                        Text(
+                          'Categories',
+                          style: GoogleFonts.baloo2(
+                            fontSize: 32,
+                            fontWeight: FontWeight.w800,
+                            color: const Color(0xFF18181B),
+                            letterSpacing: -0.6,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
 
-                  // Subtitle: "Pick a theme to explore."
-                  const Text(
-                    'Pick a theme to explore.',
-                    style: TextStyle(
-                      fontSize: 14.5,
-                      fontWeight: FontWeight.w400,
-                      color: Color(0xFF71717A),
+                        // Subtitle: "Pick a theme to explore."
+                        Text(
+                          'Pick a theme to explore.',
+                          style: GoogleFonts.nunito(
+                            fontSize: 14.5,
+                            fontWeight: FontWeight.w400,
+                            color: const Color(0xFF71717A),
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-
-                  const SizedBox(height: 22),
-
-                  // 4-Column Responsive Grid of Category Cards
-                  LayoutBuilder(
-                    builder: (context, constraints) {
-                      const crossAxisCount = 4;
-                      final totalSpacing = 16.0 * (crossAxisCount - 1);
-                      final cardWidth = (constraints.maxWidth - totalSpacing) / crossAxisCount;
-                      final cardHeight = cardWidth * 0.72;
-
-                      return Wrap(
-                        spacing: 16,
-                        runSpacing: 16,
-                        children: CategoriesView.categories.map((category) {
-                          final isSelected = _selectedId == category.id;
-
-                          return SizedBox(
-                            width: cardWidth,
-                            height: cardHeight,
-                            child: _CategoryCard(
-                              category: category,
-                              isSelected: isSelected,
-                              onSelected: () {
-                                setState(() {
-                                  _selectedId = category.id;
-                                });
-                                widget.onCategorySelected?.call(category);
-                              },
-                            ),
-                          );
-                        }).toList(),
-                      );
-                    },
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: 30),
+            const SizedBox(height: 12),
+
+            // Scrollable 4-Column Responsive Grid of Category Cards
+            Expanded(
+              child: SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
+                padding: EdgeInsets.symmetric(horizontal: horizontalSpacing),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    LayoutBuilder(
+                      builder: (context, constraints) {
+                        const crossAxisCount = 4;
+                        final totalSpacing = 16.0 * (crossAxisCount - 1);
+                        final cardWidth =
+                            (constraints.maxWidth - totalSpacing) /
+                                crossAxisCount;
+                        final cardHeight = cardWidth * 0.72;
+
+                        return Wrap(
+                          spacing: 16,
+                          runSpacing: 16,
+                          children: CategoriesView.categories.map((category) {
+                            final isSelected = _selectedId == category.id;
+
+                            return SizedBox(
+                              width: cardWidth,
+                              height: cardHeight,
+                              child: _CategoryCard(
+                                category: category,
+                                isSelected: isSelected,
+                                onSelected: () {
+                                  setState(() {
+                                    _selectedId = category.id;
+                                  });
+                                  widget.onCategorySelected?.call(category);
+                                },
+                              ),
+                            );
+                          }).toList(),
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 30),
+                  ],
+                ),
+              ),
+            ),
           ],
         ),
       ),
@@ -350,7 +383,7 @@ class _CategoryCardState extends State<_CategoryCard> {
                         // Title and Subtitle
                         Text(
                           widget.category.title,
-                          style: const TextStyle(
+                          style: GoogleFonts.baloo2(
                             fontSize: 18,
                             fontWeight: FontWeight.w800,
                             color: Colors.white,
@@ -362,7 +395,7 @@ class _CategoryCardState extends State<_CategoryCard> {
                         const SizedBox(height: 2),
                         Text(
                           widget.category.subtitle,
-                          style: TextStyle(
+                          style: GoogleFonts.nunito(
                             fontSize: 13,
                             fontWeight: FontWeight.w400,
                             color: Colors.white.withValues(alpha: 0.88),

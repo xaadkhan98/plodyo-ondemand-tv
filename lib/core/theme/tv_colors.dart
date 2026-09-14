@@ -56,4 +56,40 @@ class TvColors {
       Color(0xFF80D8FF),
     ],
   );
+
+  /// Luminous Purple / Magenta Gradient for Screen Badges
+  static const LinearGradient badgeGradient = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [
+      Color(0xFFF472B6), // Soft vibrant pink / magenta
+      Color(0xFFA855F7), // Rich royal purple
+      Color(0xFF7E22CE), // Deep purple
+    ],
+  );
+
+  /// Dynamic Action Pill Gradient for Primary Buttons
+  static const LinearGradient actionButtonGradient = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [
+      Color(0xFFE879F9),
+      Color(0xFFA855F7),
+      Color(0xFF9333EA),
+    ],
+  );
+
+  /// Ambient multi-stop card shadow
+  static const List<BoxShadow> ambientCardShadow = [
+    BoxShadow(
+      color: Color(0x0A000000),
+      blurRadius: 10,
+      offset: Offset(0, 3),
+    ),
+    BoxShadow(
+      color: Color(0x069333EA),
+      blurRadius: 14,
+      offset: Offset(0, 4),
+    ),
+  ];
 }

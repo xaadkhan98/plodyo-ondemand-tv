@@ -106,4 +106,92 @@ class PartnersApiService {
     );
     return PartnerModel.fromJson(res as Map<String, dynamic>);
   }
+
+  /// POST /ondemand/admin/partners
+  Future<PartnerModel> createPartner({
+    required String accessToken,
+    required String name,
+    required String partnerType,
+    required String contactEmail,
+    String? contactName,
+    String? phone,
+    String? contractReference,
+    required int roomLimit,
+    String? clientSecret,
+  }) async {
+    final body = <String, dynamic>{
+      'name': name,
+      'partner_type': partnerType,
+      'contact_email': contactEmail,
+      if (contactName != null && contactName.isNotEmpty) 'contact_name': contactName,
+      if (phone != null && phone.isNotEmpty) 'phone': phone,
+      if (contractReference != null && contractReference.isNotEmpty)
+        'contract_reference': contractReference,
+      'room_limit': roomLimit,
+    };
+
+    final res = await _client.post(
+      ApiConstants.adminPartnersEndpoint,
+      body: body,
+      accessToken: accessToken,
+      clientSecret: clientSecret,
+    );
+    return PartnerModel.fromJson(res as Map<String, dynamic>);
+  }
+  Future<PartnerModel> updatePartner({
+    required String accessToken,
+    required String partnerId,
+    String? name,
+    String? contactName,
+    String? contactEmail,
+    String? phone,
+    String? contractReference,
+    String? clientSecret,
+  }) async {
+    final body = <String, dynamic>{
+      if (name != null && name.isNotEmpty) 'name': name,
+      if (contactName != null && contactName.isNotEmpty) 'contact_name': contactName,
+      if (contactEmail != null && contactEmail.isNotEmpty) 'contact_email': contactEmail,
+      if (phone != null && phone.isNotEmpty) 'phone': phone,
+      if (contractReference != null && contractReference.isNotEmpty)
+        'contract_reference': contractReference,
+    };
+
+    final res = await _client.patch(
+      '${ApiConstants.adminPartnersEndpoint}/$partnerId',
+      body: body,
+      accessToken: accessToken,
+      clientSecret: clientSecret,
+    );
+    return PartnerModel.fromJson(res as Map<String, dynamic>);
+  }
+
+  /// POST /ondemand/admin/partners/:id/suspend
+  Future<PartnerModel> suspendPartner({
+    required String accessToken,
+    required String partnerId,
+    String? clientSecret,
+  }) async {
+    final res = await _client.post(
+      '${ApiConstants.adminPartnersEndpoint}/$partnerId/suspend',
+      accessToken: accessToken,
+      clientSecret: clientSecret,
+    );
+    return PartnerModel.fromJson(res as Map<String, dynamic>);
+  }
+
+  /// POST /ondemand/admin/partners/:id/activate
+  Future<PartnerModel> activatePartner({
+    required String accessToken,
+    required String partnerId,
+    String? clientSecret,
+  }) async {
+    final res = await _client.post(
+      '${ApiConstants.adminPartnersEndpoint}/$partnerId/activate',
+      accessToken: accessToken,
+      clientSecret: clientSecret,
+    );
+    return PartnerModel.fromJson(res as Map<String, dynamic>);
+  }
 }
+

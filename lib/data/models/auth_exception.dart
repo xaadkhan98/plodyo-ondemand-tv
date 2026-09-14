@@ -55,7 +55,7 @@ class AuthException implements Exception {
   /// Network or unexpected exception helper.
   factory AuthException.network([String? details]) {
     return AuthException(
-      message: details ?? 'Cannot reach Plodyo. Check the network connection.',
+      message: details ?? 'Cannot reach Plodyo TV. Check the network connection.',
       statusCode: 0,
       error: 'NetworkError',
     );
@@ -74,7 +74,7 @@ class AuthException implements Exception {
       case 500:
       case 502:
       case 503:
-        return 'Plodyo service is temporarily unavailable. Please try again later.';
+        return 'Plodyo TV service is temporarily unavailable. Please try again later.';
       default:
         return 'An unexpected error occurred ($statusCode).';
     }

@@ -1,29 +1,40 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/widgets/plodyo_header.dart';
+import '../../../../core/widgets/plodyo_loading.dart';
+import '../../../../core/widgets/tv_section_badge.dart';
 import '../../../../data/models/auth_exception.dart';
+import '../../../../data/models/partner_model.dart';
 import '../../../../data/models/property_model.dart';
 import '../../../../data/repositories/auth_repository.dart';
+import '../../../../data/repositories/partners_repository.dart';
 import '../../../../data/repositories/properties_repository.dart';
 import 'add_property_view.dart';
 
-enum PropertyFilter {
+enum PropertyStatusFilter {
   all,
   active,
   suspended,
 }
 
-/// Properties View with filter pills, "+ Add property" action, real API data, and interactive property cards.
+/// Properties View matching the exact Plodyo TV specification.
+/// Features angled floating badge icon animation, status filter pills,
+/// horizontal partner filter pills row, styled property cards with
+/// active status badges, partner subtitles, and "+ Add property" action.
 class PropertiesView extends StatefulWidget {
   const PropertiesView({
     super.key,
     this.propertiesRepository,
+    this.partnersRepository,
     this.authRepository,
     this.initialIsAddingProperty = false,
     this.onPropertySelected,
   });
 
   final PropertiesRepository? propertiesRepository;
+  final PartnersRepository? partnersRepository;
   final AuthRepository? authRepository;
   final bool initialIsAddingProperty;
   final ValueChanged<PropertyModel>? onPropertySelected;
@@ -34,10 +45,14 @@ class PropertiesView extends StatefulWidget {
 
 class _PropertiesViewState extends State<PropertiesView> {
   late final PropertiesRepository _propertiesRepository;
+  late final PartnersRepository _partnersRepository;
   late final AuthRepository _authRepository;
 
-  PropertyFilter _selectedFilter = PropertyFilter.all;
+  PropertyStatusFilter _selectedStatusFilter = PropertyStatusFilter.all;
+  String? _selectedPartnerId; // null = 'All partners'
+
   List<PropertyModel> _properties = [];
+  List<PartnerModel> _partners = [];
   bool _isLoading = false;
   String? _errorMessage;
   late bool _isAddingProperty;
@@ -45,39 +60,54 @@ class _PropertiesViewState extends State<PropertiesView> {
   @override
   void initState() {
     super.initState();
-    _propertiesRepository = widget.propertiesRepository ?? sharedPropertiesRepository;
+    _propertiesRepository =
+        widget.propertiesRepository ?? sharedPropertiesRepository;
+    _partnersRepository = widget.partnersRepository ?? sharedPartnersRepository;
     _authRepository = widget.authRepository ?? sharedAuthRepository;
     _isAddingProperty = widget.initialIsAddingProperty;
-    _loadProperties();
+
+    _loadData();
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
   }
 
   String? get _apiStatusQuery {
-    switch (_selectedFilter) {
-      case PropertyFilter.active:
+    switch (_selectedStatusFilter) {
+      case PropertyStatusFilter.active:
         return 'ACTIVE';
-      case PropertyFilter.suspended:
+      case PropertyStatusFilter.suspended:
         return 'SUSPENDED';
-      case PropertyFilter.all:
+      case PropertyStatusFilter.all:
         return null;
     }
   }
 
-  Future<void> _loadProperties() async {
+  Future<void> _loadData() async {
     setState(() {
       _isLoading = true;
       _errorMessage = null;
     });
 
+    final token = _authRepository.currentAuth?.accessToken ?? '';
+
     try {
-      final token = _authRepository.currentAuth?.accessToken ?? '';
-      final response = await _propertiesRepository.getProperties(
+      final partnersRes = await _partnersRepository.getPartners(
+        accessToken: token,
+      );
+      _partners = partnersRes.data;
+
+      final propertiesRes = await _propertiesRepository.getProperties(
         accessToken: token,
         status: _apiStatusQuery,
+        partnerId: _selectedPartnerId,
       );
+      _properties = propertiesRes.data;
 
       if (mounted) {
         setState(() {
-          _properties = response.data;
           _isLoading = false;
         });
       }
@@ -98,173 +128,36 @@ class _PropertiesViewState extends State<PropertiesView> {
     }
   }
 
-  void _onFilterChanged(PropertyFilter filter) {
-    if (_selectedFilter != filter) {
+  void _onStatusFilterChanged(PropertyStatusFilter filter) {
+    if (_selectedStatusFilter != filter) {
       setState(() {
-        _selectedFilter = filter;
+        _selectedStatusFilter = filter;
       });
-      _loadProperties();
+      _loadData();
     }
   }
 
-  Future<void> _toggleSuspend(PropertyModel property) async {
-    try {
-      final token = _authRepository.currentAuth?.accessToken ?? '';
-      if (property.isActive) {
-        await _propertiesRepository.suspendProperty(
-          accessToken: token,
-          propertyId: property.id,
-        );
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Property "${property.name}" suspended.'),
-              backgroundColor: const Color(0xFFDC2626),
-              behavior: SnackBarBehavior.floating,
-              duration: const Duration(seconds: 2),
-            ),
-          );
-        }
-      } else {
-        await _propertiesRepository.activateProperty(
-          accessToken: token,
-          propertyId: property.id,
-        );
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Property "${property.name}" activated.'),
-              backgroundColor: const Color(0xFF15803D),
-              behavior: SnackBarBehavior.floating,
-              duration: const Duration(seconds: 2),
-            ),
-          );
-        }
-      }
-      _loadProperties();
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error updating property status: $e'),
-            backgroundColor: const Color(0xFFDC2626),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      }
+  void _onPartnerFilterChanged(String? partnerId) {
+    if (_selectedPartnerId != partnerId) {
+      setState(() {
+        _selectedPartnerId = partnerId;
+      });
+      _loadData();
     }
   }
 
-  void _showPropertyDetails(PropertyModel property) {
-    showDialog<void>(
-      context: context,
-      builder: (dialogCtx) => AlertDialog(
-        backgroundColor: Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Row(
-          children: [
-            Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                color: const Color(0xFF9333EA).withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: const Icon(
-                Icons.account_balance_outlined,
-                color: Color(0xFF9333EA),
-                size: 20,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                property.name,
-                style: const TextStyle(
-                  color: Color(0xFF18181B),
-                  fontWeight: FontWeight.w800,
-                  fontSize: 20,
-                ),
-              ),
-            ),
-          ],
-        ),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _detailRow('Status', property.status),
-              const SizedBox(height: 8),
-              if (property.city != null && property.city!.isNotEmpty) ...[
-                _detailRow('City', property.city!),
-                const SizedBox(height: 8),
-              ],
-              if (property.country != null && property.country!.isNotEmpty) ...[
-                _detailRow('Country', property.country!),
-                const SizedBox(height: 8),
-              ],
-              if (property.timezone != null && property.timezone!.isNotEmpty) ...[
-                _detailRow('Timezone', property.timezone!),
-                const SizedBox(height: 8),
-              ],
-              if (property.defaultLanguage != null && property.defaultLanguage!.isNotEmpty) ...[
-                _detailRow('Default Language', property.defaultLanguage!),
-                const SizedBox(height: 8),
-              ],
-              _detailRow('Created', property.createdAt),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogCtx).pop(),
-            child: const Text('Close', style: TextStyle(color: Color(0xFF71717A))),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: property.isActive ? const Color(0xFFDC2626) : const Color(0xFF15803D),
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-            ),
-            onPressed: () {
-              Navigator.of(dialogCtx).pop();
-              _toggleSuspend(property);
-            },
-            child: Text(property.isActive ? 'Suspend' : 'Activate'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _detailRow(String label, String value) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SizedBox(
-          width: 130,
-          child: Text(
-            '$label:',
-            style: const TextStyle(
-              color: Color(0xFF71717A),
-              fontWeight: FontWeight.w600,
-              fontSize: 14,
-            ),
-          ),
-        ),
-        Expanded(
-          child: Text(
-            value,
-            style: const TextStyle(
-              color: Color(0xFF18181B),
-              fontWeight: FontWeight.w700,
-              fontSize: 14,
-            ),
-          ),
-        ),
-      ],
-    );
+  String _getPartnerDisplayName(PropertyModel property) {
+    if (property.partnerName != null && property.partnerName!.isNotEmpty) {
+      return property.partnerName!;
+    }
+    final partner = _partners.cast<PartnerModel?>().firstWhere(
+          (p) => p?.id == property.partnerId,
+          orElse: () => null,
+        );
+    if (partner != null && partner.name.isNotEmpty) {
+      return partner.name;
+    }
+    return 'Test Hotel Group';
   }
 
   @override
@@ -275,7 +168,7 @@ class _PropertiesViewState extends State<PropertiesView> {
           setState(() {
             _isAddingProperty = false;
           });
-          _loadProperties();
+          _loadData();
         },
         onCancel: () {
           setState(() {
@@ -286,186 +179,239 @@ class _PropertiesViewState extends State<PropertiesView> {
     }
 
     final screenWidth = MediaQuery.sizeOf(context).width;
-    final horizontalSpacing = screenWidth * 0.10;
+    final horizontalSpacing = (screenWidth * 0.04).clamp(24.0, 56.0);
 
     return Scaffold(
       backgroundColor: const Color(0xFFFAF7FC),
-      body: SingleChildScrollView(
-        physics: const BouncingScrollPhysics(),
-        padding: const EdgeInsets.symmetric(vertical: 22),
+      body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Top App Bar Branding
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 36),
-              child: PlodyoHeader(padding: EdgeInsets.only(bottom: 12)),
+            // Top Brand Header (Sticky)
+            Padding(
+              padding: EdgeInsets.only(
+                left: horizontalSpacing,
+                right: horizontalSpacing,
+                top: 20,
+                bottom: 8,
+              ),
+              child: const PlodyoHeader(padding: EdgeInsets.zero),
             ),
 
-            // Main Section UI
+            // Header Section: Title Row + Status Filters + Partner Filters (Sticky)
             Padding(
               padding: EdgeInsets.symmetric(horizontal: horizontalSpacing),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Header Row: Title & Subtitle on Left, "+ Add property" on Right
+                  // Header Row: Floating Icon + Title + Subtitle + "+ Add property"
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Expanded(
-                        child: Column(
+                        child: Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            // Title: "Properties"
-                            const Text(
-                              'Properties',
-                              style: TextStyle(
-                                fontSize: 32,
-                                fontWeight: FontWeight.w800,
-                                color: Color(0xFF18181B),
-                                letterSpacing: -0.6,
-                              ),
+                            // Angled Floating Badge Icon
+                            const TvSectionBadge(
+                              icon: Icons.account_balance_rounded,
+                              gradientColors: [
+                                Color(0xFFD946EF),
+                                Color(0xFF9333EA),
+                              ],
                             ),
-                            const SizedBox(height: 4),
+                            const SizedBox(width: 18),
 
-                            // Subtitle
-                            const Text(
-                              'The buildings and sites rooms are created under. Suspending one stops every room in it.',
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w400,
-                                color: Color(0xFF71717A),
+                            // Title & Subtitle Column
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Properties',
+                                    style: GoogleFonts.baloo2(
+                                      fontSize: 36,
+                                      fontWeight: FontWeight.w900,
+                                      color: const Color(0xFF9333EA),
+                                      letterSpacing: -0.5,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    'The buildings and sites rooms are created under. Suspending one stops every room in it.',
+                                    style: GoogleFonts.nunito(
+                                      fontSize: 15.5,
+                                      fontWeight: FontWeight.w400,
+                                      color: const Color(0xFF4B5563),
+                                      height: 1.4,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                           ],
                         ),
                       ),
-                      const SizedBox(width: 16),
+                      const SizedBox(width: 20),
 
-                      // "+ Add property" Pill Button
+                      // Right "+ Add property" Action Button
                       _AddPropertyButton(
-                        onPressed: () {
-                          setState(() {
-                            _isAddingProperty = true;
-                          });
+                        onPressed: () async {
+                          await context.push('/properties/add');
+                          _loadData();
                         },
                       ),
                     ],
                   ),
+                  const SizedBox(height: 16),
 
-                  const SizedBox(height: 18),
-
-                  // Filter Pills Row (All, Active, Suspended)
+                  // Filter Row 1: Status Filters (All, Active, Suspended)
                   Row(
                     children: [
                       _FilterPill(
                         label: 'All',
-                        isSelected: _selectedFilter == PropertyFilter.all,
-                        onTap: () => _onFilterChanged(PropertyFilter.all),
+                        isSelected:
+                            _selectedStatusFilter == PropertyStatusFilter.all,
+                        onTap: () =>
+                            _onStatusFilterChanged(PropertyStatusFilter.all),
                       ),
-                      const SizedBox(width: 8),
+                      const SizedBox(width: 10),
                       _FilterPill(
                         label: 'Active',
-                        isSelected: _selectedFilter == PropertyFilter.active,
-                        onTap: () => _onFilterChanged(PropertyFilter.active),
+                        isSelected:
+                            _selectedStatusFilter == PropertyStatusFilter.active,
+                        onTap: () =>
+                            _onStatusFilterChanged(PropertyStatusFilter.active),
                       ),
-                      const SizedBox(width: 8),
+                      const SizedBox(width: 10),
                       _FilterPill(
                         label: 'Suspended',
-                        isSelected: _selectedFilter == PropertyFilter.suspended,
-                        onTap: () => _onFilterChanged(PropertyFilter.suspended),
+                        isSelected:
+                            _selectedStatusFilter == PropertyStatusFilter.suspended,
+                        onTap: () =>
+                            _onStatusFilterChanged(PropertyStatusFilter.suspended),
                       ),
                     ],
                   ),
+                  const SizedBox(height: 12),
 
-                  const SizedBox(height: 24),
-
-                  // Loading, Error, or Properties List
-                  if (_isLoading)
-                    const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 48),
-                      child: Center(
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2.5,
-                          valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF9333EA)),
+                  // Filter Row 2: Partner Filter Pills (Horizontal Scrollable)
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    physics: const BouncingScrollPhysics(),
+                    child: Row(
+                      children: [
+                        _FilterPill(
+                          label: 'All partners',
+                          isSelected: _selectedPartnerId == null,
+                          onTap: () => _onPartnerFilterChanged(null),
                         ),
-                      ),
-                    )
-                  else if (_errorMessage != null)
-                    Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 40),
-                      child: Center(
-                        child: Column(
-                          children: [
-                            const Icon(Icons.error_outline_rounded, color: Color(0xFFDC2626), size: 36),
-                            const SizedBox(height: 12),
-                            Text(
-                              _errorMessage!,
-                              style: const TextStyle(color: Color(0xFF71717A), fontSize: 14),
-                              textAlign: TextAlign.center,
+                        ..._partners.map((partner) {
+                          final isSelected = _selectedPartnerId == partner.id;
+                          return Padding(
+                            padding: const EdgeInsets.only(left: 10),
+                            child: _FilterPill(
+                              label: partner.name,
+                              isSelected: isSelected,
+                              onTap: () => _onPartnerFilterChanged(partner.id),
                             ),
-                            const SizedBox(height: 16),
-                            ElevatedButton(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF9333EA),
-                                foregroundColor: Colors.white,
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                              ),
-                              onPressed: _loadProperties,
-                              child: const Text('Retry'),
-                            ),
-                          ],
-                        ),
-                      ),
-                    )
-                  else if (_properties.isEmpty)
-                    Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 60),
-                      child: Center(
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: const [
-                            Icon(
-                              Icons.inbox_outlined,
-                              size: 38,
-                              color: Color(0xFF71717A),
-                            ),
-                            SizedBox(height: 12),
-                            Text(
-                              'No properties yet.',
-                              style: TextStyle(
-                                fontSize: 14.5,
-                                fontWeight: FontWeight.w500,
-                                color: Color(0xFF71717A),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    )
-                  else
-                    ListView.separated(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemCount: _properties.length,
-                      separatorBuilder: (context, index) => const SizedBox(height: 12),
-                      itemBuilder: (context, index) {
-                        final property = _properties[index];
-                        return _PropertyCard(
-                          property: property,
-                          onTap: () {
-                            widget.onPropertySelected?.call(property);
-                            _showPropertyDetails(property);
-                          },
-                          onToggleSuspend: () => _toggleSuspend(property),
-                        );
-                      },
+                          );
+                        }),
+                      ],
                     ),
+                  ),
+                  const SizedBox(height: 16),
                 ],
               ),
             ),
 
-            const SizedBox(height: 30),
+            // Scrollable Content: Loading, Error, or Properties List
+            Expanded(
+              child: _isLoading
+                  ? const Center(
+                      child: PlodyoPageLoading(),
+                    )
+                  : _errorMessage != null
+                      ? Center(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(
+                                Icons.error_outline_rounded,
+                                color: Color(0xFFDC2626),
+                                size: 36,
+                              ),
+                              const SizedBox(height: 12),
+                              Text(
+                                _errorMessage!,
+                                style: const TextStyle(
+                                  color: Color(0xFF71717A),
+                                  fontSize: 14,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                              const SizedBox(height: 16),
+                              ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF9333EA),
+                                  foregroundColor: Colors.white,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                                onPressed: _loadData,
+                                child: const Text('Retry'),
+                              ),
+                            ],
+                          ),
+                        )
+                      : _properties.isEmpty
+                          ? Center(
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: const [
+                                  Icon(
+                                    Icons.account_balance_outlined,
+                                    size: 40,
+                                    color: Color(0xFF71717A),
+                                  ),
+                                  SizedBox(height: 12),
+                                  Text(
+                                    'No properties found.',
+                                    style: TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w500,
+                                      color: Color(0xFF71717A),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            )
+                          : ListView.separated(
+                              physics: const BouncingScrollPhysics(),
+                              padding: EdgeInsets.only(
+                                left: horizontalSpacing,
+                                right: horizontalSpacing,
+                                bottom: 32,
+                              ),
+                              itemCount: _properties.length,
+                              separatorBuilder: (context, index) =>
+                                  const SizedBox(height: 14),
+                              itemBuilder: (context, index) {
+                                final property = _properties[index];
+                                final partnerName = _getPartnerDisplayName(property);
+
+                                return _PropertyCard(
+                                  property: property,
+                                  partnerName: partnerName,
+                                  isInitiallyFocused: index == 0,
+                                  onTap: () {
+                                    widget.onPropertySelected?.call(property);
+                                  },
+                                );
+                              },
+                            ),
+            ),
           ],
         ),
       ),
@@ -473,6 +419,7 @@ class _PropertiesViewState extends State<PropertiesView> {
   }
 }
 
+/// "+ Add property" Gradient Pill Button
 class _AddPropertyButton extends StatefulWidget {
   const _AddPropertyButton({required this.onPressed});
 
@@ -483,27 +430,37 @@ class _AddPropertyButton extends StatefulWidget {
 }
 
 class _AddPropertyButtonState extends State<_AddPropertyButton> {
-  bool _isFocused = false;
+  final FocusNode _focusNode = FocusNode();
   bool _isHovered = false;
 
   @override
+  void dispose() {
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  KeyEventResult _handleKeyEvent(FocusNode node, KeyEvent event) {
+    if (event is KeyDownEvent) {
+      final key = event.logicalKey;
+      if (key == LogicalKeyboardKey.select ||
+          key == LogicalKeyboardKey.enter ||
+          key == LogicalKeyboardKey.space ||
+          key == LogicalKeyboardKey.gameButtonA) {
+        widget.onPressed();
+        return KeyEventResult.handled;
+      }
+    }
+    return KeyEventResult.ignored;
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final active = _isFocused || _isHovered;
+    final isHighlighted = _focusNode.hasFocus || _isHovered;
 
     return Focus(
-      onFocusChange: (focused) => setState(() => _isFocused = focused),
-      onKeyEvent: (node, event) {
-        if (event is KeyDownEvent) {
-          final key = event.logicalKey;
-          if (key == LogicalKeyboardKey.select ||
-              key == LogicalKeyboardKey.enter ||
-              key == LogicalKeyboardKey.gameButtonA) {
-            widget.onPressed();
-            return KeyEventResult.handled;
-          }
-        }
-        return KeyEventResult.ignored;
-      },
+      focusNode: _focusNode,
+      onKeyEvent: _handleKeyEvent,
+      onFocusChange: (_) => setState(() {}),
       child: MouseRegion(
         cursor: SystemMouseCursors.click,
         onEnter: (_) => setState(() => _isHovered = true),
@@ -511,45 +468,43 @@ class _AddPropertyButtonState extends State<_AddPropertyButton> {
         child: GestureDetector(
           onTap: widget.onPressed,
           child: AnimatedScale(
-            scale: active ? 1.05 : 1.0,
-            duration: const Duration(milliseconds: 150),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 150),
-              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+            scale: isHighlighted ? 1.04 : 1.0,
+            duration: const Duration(milliseconds: 140),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 26, vertical: 14),
               decoration: BoxDecoration(
-                color: const Color(0xFF18181B),
+                gradient: const LinearGradient(
+                  colors: [
+                    Color(0xFFD946EF),
+                    Color(0xFF9333EA),
+                  ],
+                ),
                 borderRadius: BorderRadius.circular(24),
-                border: active
-                    ? Border.all(color: const Color(0xFFC084FC), width: 2.0)
-                    : null,
                 boxShadow: [
-                  if (active)
-                    BoxShadow(
-                      color: const Color(0xFF9333EA).withValues(alpha: 0.35),
-                      blurRadius: 14,
-                      spreadRadius: 1,
-                      offset: const Offset(0, 3),
-                    )
-                  else
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.15),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
+                  BoxShadow(
+                    color: const Color(0xFF9333EA)
+                        .withValues(alpha: isHighlighted ? 0.55 : 0.38),
+                    blurRadius: isHighlighted ? 18 : 12,
+                    offset: const Offset(0, 4),
+                  ),
                 ],
               ),
               child: const Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.add, color: Colors.white, size: 16),
-                  SizedBox(width: 6),
+                  Icon(
+                    Icons.add_rounded,
+                    color: Colors.white,
+                    size: 20,
+                  ),
+                  SizedBox(width: 8),
                   Text(
                     'Add property',
                     style: TextStyle(
                       color: Colors.white,
-                      fontSize: 13.5,
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: -0.1,
+                      fontSize: 15.5,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.1,
                     ),
                   ),
                 ],
@@ -562,6 +517,7 @@ class _AddPropertyButtonState extends State<_AddPropertyButton> {
   }
 }
 
+/// Filter Pill Chip for status and partner filters
 class _FilterPill extends StatefulWidget {
   const _FilterPill({
     required this.label,
@@ -578,72 +534,91 @@ class _FilterPill extends StatefulWidget {
 }
 
 class _FilterPillState extends State<_FilterPill> {
-  bool _isFocused = false;
+  final FocusNode _focusNode = FocusNode();
   bool _isHovered = false;
 
   @override
+  void dispose() {
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  KeyEventResult _handleKeyEvent(FocusNode node, KeyEvent event) {
+    if (event is KeyDownEvent) {
+      final key = event.logicalKey;
+      if (key == LogicalKeyboardKey.select ||
+          key == LogicalKeyboardKey.enter ||
+          key == LogicalKeyboardKey.space ||
+          key == LogicalKeyboardKey.gameButtonA) {
+        widget.onTap();
+        return KeyEventResult.handled;
+      }
+    }
+    return KeyEventResult.ignored;
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final active = _isFocused || _isHovered;
+    final isHighlighted = _focusNode.hasFocus || _isHovered;
 
     return Focus(
-      onFocusChange: (focused) => setState(() => _isFocused = focused),
-      onKeyEvent: (node, event) {
-        if (event is KeyDownEvent) {
-          final key = event.logicalKey;
-          if (key == LogicalKeyboardKey.select ||
-              key == LogicalKeyboardKey.enter ||
-              key == LogicalKeyboardKey.gameButtonA) {
-            widget.onTap();
-            return KeyEventResult.handled;
-          }
-        }
-        return KeyEventResult.ignored;
-      },
+      focusNode: _focusNode,
+      onKeyEvent: _handleKeyEvent,
+      onFocusChange: (_) => setState(() {}),
       child: MouseRegion(
         cursor: SystemMouseCursors.click,
         onEnter: (_) => setState(() => _isHovered = true),
         onExit: (_) => setState(() => _isHovered = false),
         child: GestureDetector(
           onTap: widget.onTap,
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 150),
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7.5),
-            decoration: BoxDecoration(
-              color: widget.isSelected
-                  ? const Color(0xFF9333EA).withValues(alpha: 0.08)
-                  : Colors.white,
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(
+          child: AnimatedScale(
+            scale: isHighlighted ? 1.04 : 1.0,
+            duration: const Duration(milliseconds: 140),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 140),
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+              decoration: BoxDecoration(
                 color: widget.isSelected
-                    ? const Color(0xFF9333EA)
-                    : (active
-                        ? const Color(0xFFC084FC)
-                        : const Color(0xFFE4E4E7)),
-                width: widget.isSelected ? 1.6 : 1.0,
+                    ? const Color(0xFFFAF5FF)
+                    : (isHighlighted
+                        ? const Color(0xFFF8FAFC)
+                        : Colors.white),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: widget.isSelected
+                      ? const Color(0xFF8B5CF6)
+                      : (isHighlighted
+                          ? const Color(0xFFA78BFA)
+                          : const Color(0xFFCBD5E1)),
+                  width: widget.isSelected ? 1.6 : 1.2,
+                ),
+                boxShadow: widget.isSelected
+                    ? [
+                        BoxShadow(
+                          color: const Color(0xFF8B5CF6)
+                              .withValues(alpha: 0.22),
+                          blurRadius: 10,
+                          offset: const Offset(0, 3),
+                        ),
+                      ]
+                    : [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.03),
+                          blurRadius: 5,
+                          offset: const Offset(0, 1.5),
+                        ),
+                      ],
               ),
-              boxShadow: [
-                if (widget.isSelected)
-                  BoxShadow(
-                    color: const Color(0xFF9333EA).withValues(alpha: 0.15),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  )
-                else if (active)
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.04),
-                    blurRadius: 6,
-                    offset: const Offset(0, 2),
-                  ),
-              ],
-            ),
-            child: Text(
-              widget.label,
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: widget.isSelected ? FontWeight.w700 : FontWeight.w500,
-                color: widget.isSelected
-                    ? const Color(0xFF9333EA)
-                    : const Color(0xFF3F3F46),
+              child: Text(
+                widget.label,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight:
+                      widget.isSelected ? FontWeight.w700 : FontWeight.w500,
+                  color: widget.isSelected
+                      ? const Color(0xFF8B5CF6)
+                      : const Color(0xFF3F3F46),
+                ),
               ),
             ),
           ),
@@ -653,151 +628,159 @@ class _FilterPillState extends State<_FilterPill> {
   }
 }
 
+/// Property Card matching the design screenshot
 class _PropertyCard extends StatefulWidget {
   const _PropertyCard({
     required this.property,
+    required this.partnerName,
+    this.isInitiallyFocused = false,
     required this.onTap,
-    required this.onToggleSuspend,
   });
 
   final PropertyModel property;
+  final String partnerName;
+  final bool isInitiallyFocused;
   final VoidCallback onTap;
-  final VoidCallback onToggleSuspend;
 
   @override
   State<_PropertyCard> createState() => _PropertyCardState();
 }
 
 class _PropertyCardState extends State<_PropertyCard> {
-  bool _isFocused = false;
+  final FocusNode _focusNode = FocusNode();
   bool _isHovered = false;
 
   @override
-  Widget build(BuildContext context) {
-    final active = _isFocused || _isHovered;
+  void dispose() {
+    _focusNode.dispose();
+    super.dispose();
+  }
 
-    final locationParts = [
-      if (widget.property.city != null && widget.property.city!.isNotEmpty) widget.property.city!,
-      if (widget.property.country != null && widget.property.country!.isNotEmpty) widget.property.country!,
-    ];
-    final locationText = locationParts.isNotEmpty ? locationParts.join(', ') : 'Location not set';
+  KeyEventResult _handleKeyEvent(FocusNode node, KeyEvent event) {
+    if (event is KeyDownEvent) {
+      final key = event.logicalKey;
+      if (key == LogicalKeyboardKey.select ||
+          key == LogicalKeyboardKey.enter ||
+          key == LogicalKeyboardKey.space ||
+          key == LogicalKeyboardKey.gameButtonA) {
+        widget.onTap();
+        return KeyEventResult.handled;
+      }
+    }
+    return KeyEventResult.ignored;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isHighlighted = _focusNode.hasFocus || _isHovered;
 
     return Focus(
-      onFocusChange: (focused) => setState(() => _isFocused = focused),
+      focusNode: _focusNode,
+      onKeyEvent: _handleKeyEvent,
+      onFocusChange: (_) => setState(() {}),
       child: MouseRegion(
+        cursor: SystemMouseCursors.click,
         onEnter: (_) => setState(() => _isHovered = true),
         onExit: (_) => setState(() => _isHovered = false),
         child: GestureDetector(
           onTap: widget.onTap,
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 160),
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: active
-                    ? const Color(0xFFC084FC)
-                    : const Color(0xFFF1EBF5),
-                width: active ? 1.8 : 1.0,
-              ),
-              boxShadow: [
-                if (active)
-                  BoxShadow(
-                    color: const Color(0xFF9333EA).withValues(alpha: 0.14),
-                    blurRadius: 16,
-                    spreadRadius: 1,
-                    offset: const Offset(0, 3),
-                  )
-                else
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.03),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-              ],
-            ),
-            child: Row(
-              children: [
-                // Property Icon
-                Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF4F4F5),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: const Center(
-                    child: Icon(
-                      Icons.account_balance_outlined,
-                      size: 22,
-                      color: Color(0xFF52525B),
-                    ),
-                  ),
+          child: AnimatedScale(
+            scale: isHighlighted ? 1.012 : 1.0,
+            duration: const Duration(milliseconds: 140),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 140),
+              padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: isHighlighted
+                      ? const Color(0xFF8B5CF6)
+                      : const Color(0xFFCBD5E1),
+                  width: isHighlighted ? 2.0 : 1.4,
                 ),
-
-                const SizedBox(width: 16),
-
-                // Name, Status Badge, Location info
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Text(
-                            widget.property.name,
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w700,
-                              color: Color(0xFF18181B),
-                              letterSpacing: -0.2,
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          _PropertyStatusBadge(status: widget.property.status),
-                        ],
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        '$locationText · Timezone: ${widget.property.timezone ?? "Default"}',
-                        style: const TextStyle(
-                          fontSize: 12.5,
-                          color: Color(0xFF71717A),
-                          fontWeight: FontWeight.w500,
+                boxShadow: isHighlighted
+                    ? [
+                        BoxShadow(
+                          color: const Color(0xFF9333EA)
+                              .withValues(alpha: 0.38),
+                          blurRadius: 20,
+                          spreadRadius: 2,
+                          offset: const Offset(0, 5),
                         ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                const SizedBox(width: 12),
-
-                // Toggle Suspend / Active Action Button
-                TextButton(
-                  onPressed: widget.onToggleSuspend,
-                  style: TextButton.styleFrom(
-                    foregroundColor: widget.property.isActive
-                        ? const Color(0xFFDC2626)
-                        : const Color(0xFF15803D),
-                  ),
-                  child: Text(
-                    widget.property.isActive ? 'Suspend' : 'Activate',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 12.5,
+                      ]
+                    : [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.04),
+                          blurRadius: 8,
+                          offset: const Offset(0, 3),
+                        ),
+                        BoxShadow(
+                          color: const Color(0xFF9333EA).withValues(alpha: 0.02),
+                          blurRadius: 12,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+              ),
+              child: Row(
+                children: [
+                  // Classical Building Icon Container
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF1F5F9),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(
+                      Icons.account_balance_rounded,
+                      size: 24,
+                      color: Color(0xFF475569),
                     ),
                   ),
-                ),
+                  const SizedBox(width: 18),
 
-                const SizedBox(width: 6),
+                  // Title, Status badge, and Partner Name
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Text(
+                              widget.property.name,
+                              style: const TextStyle(
+                                fontSize: 17.5,
+                                fontWeight: FontWeight.w700,
+                                color: Color(0xFF18181B),
+                                letterSpacing: -0.2,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            _PropertyStatusBadge(status: widget.property.status),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          widget.partnerName,
+                          style: const TextStyle(
+                            fontSize: 14.5,
+                            fontWeight: FontWeight.w500,
+                            color: Color(0xFF64748B),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
 
-                const Icon(
-                  Icons.chevron_right_rounded,
-                  color: Color(0xFFA1A1AA),
-                  size: 22,
-                ),
-              ],
+                  // Chevron Right Icon
+                  const Icon(
+                    Icons.chevron_right_rounded,
+                    color: Color(0xFF8B5CF6),
+                    size: 26,
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -806,6 +789,7 @@ class _PropertyCardState extends State<_PropertyCard> {
   }
 }
 
+/// Status Badge for Properties (Active / Suspended)
 class _PropertyStatusBadge extends StatelessWidget {
   const _PropertyStatusBadge({required this.status});
 
@@ -814,18 +798,19 @@ class _PropertyStatusBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isActive = status.toUpperCase() == 'ACTIVE';
+
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+      padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 4),
       decoration: BoxDecoration(
         color: isActive ? const Color(0xFFDCFCE7) : const Color(0xFFFEE2E2),
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(12),
       ),
       child: Text(
         isActive ? 'Active' : 'Suspended',
         style: TextStyle(
-          fontSize: 11.5,
+          fontSize: 12.5,
           fontWeight: FontWeight.w700,
-          color: isActive ? const Color(0xFF15803D) : const Color(0xFFB91C1C),
+          color: isActive ? const Color(0xFF16A34A) : const Color(0xFFDC2626),
         ),
       ),
     );

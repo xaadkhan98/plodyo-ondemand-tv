@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'tv_colors.dart';
 
 /// App theme configured for TV navigation and 10-ft viewing experience.
@@ -6,7 +7,7 @@ class TvTheme {
   TvTheme._();
 
   static ThemeData get darkTheme {
-    return ThemeData(
+    final baseTheme = ThemeData(
       brightness: Brightness.dark,
       scaffoldBackgroundColor: TvColors.background,
       primaryColor: TvColors.primary,
@@ -21,7 +22,10 @@ class TvTheme {
         secondary: TvColors.secondary,
         surface: TvColors.surface,
       ),
-      fontFamily: null, // Uses default system typography
+    );
+
+    return baseTheme.copyWith(
+      textTheme: GoogleFonts.nunitoTextTheme(baseTheme.textTheme),
     );
   }
 }

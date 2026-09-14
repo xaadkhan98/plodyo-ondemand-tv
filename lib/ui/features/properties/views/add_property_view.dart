@@ -1,7 +1,11 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/widgets/plodyo_header.dart';
+import '../../../../core/widgets/plodyo_loading.dart';
+import '../../../../core/widgets/tv_section_badge.dart';
 import '../../../../data/models/partner_model.dart';
 import '../../../../data/models/property_model.dart';
 import '../../../../data/repositories/auth_repository.dart';
@@ -13,10 +17,24 @@ enum PropertyFormField {
   country,
   city,
   timezone,
-  language,
 }
 
-/// Add a Property View matching Plodyo UI design with interactive TV keyboard and real API integration.
+class LanguageOption {
+  const LanguageOption({
+    required this.name,
+    required this.flag,
+    required this.code,
+  });
+
+  final String name;
+  final String flag;
+  final String code;
+}
+
+/// "Add a property" full-screen view matching the exact Plodyo TV specification.
+/// Features Partner Selection list, styled property inputs with active field indicator,
+/// 18-Language selection grid with "Not set" option, Create/Cancel action buttons,
+/// and an integrated 6-column on-screen TV virtual keyboard.
 class AddPropertyView extends StatefulWidget {
   const AddPropertyView({
     super.key,
@@ -44,42 +62,62 @@ class _AddPropertyViewState extends State<AddPropertyView> {
 
   PropertyFormField _activeField = PropertyFormField.name;
 
-  final TextEditingController _nameController = TextEditingController();
-  final TextEditingController _countryController = TextEditingController(text: 'US');
-  final TextEditingController _cityController = TextEditingController(text: 'Austin');
-  final TextEditingController _timezoneController = TextEditingController(text: 'America/Chicago');
-  final TextEditingController _languageController = TextEditingController(text: 'en');
+  final TextEditingController _nameController =
+      TextEditingController(text: 'Grand Plaza Downtown');
+  final TextEditingController _countryController =
+      TextEditingController(text: 'US');
+  final TextEditingController _cityController =
+      TextEditingController(text: 'Austin');
+  final TextEditingController _timezoneController =
+      TextEditingController(text: 'America/Chicago');
 
   List<PartnerModel> _availablePartners = [];
   String? _selectedPartnerId;
-  String _partnerDisplayName = 'Loading partner...';
-  bool _isLoadingPartner = true;
-  bool _isSubmitting = false;
+  String? _selectedLanguageCode; // null means "Not set"
 
-  bool _isUpperCase = false;
+  bool _isLoadingPartners = true;
+  bool _isCreating = false;
+  String? _errorMessage;
+
+  // Blinking cursor state
   bool _showCursor = true;
   Timer? _cursorTimer;
 
-  final FocusNode _screenFocusNode = FocusNode();
+  // Virtual keyboard state
+  bool _isUpperCase = false;
+  bool _showSymbols = false;
 
-  final List<List<String>> _keyboardRows = const [
-    ['a', 'b', 'c', 'd', 'e', 'f'],
-    ['g', 'h', 'i', 'j', 'k', 'l'],
-    ['m', 'n', 'o', 'p', 'q', 'r'],
-    ['s', 't', 'u', 'v', 'w', 'x'],
-    ['y', 'z', '0', '1', '2', '3'],
-    ['4', '5', '6', '7', '8', '9'],
-    ['-', '.', '\''],
+  static const List<LanguageOption> _languages = [
+    LanguageOption(name: 'English', flag: '🇬🇧', code: 'en'),
+    LanguageOption(name: 'Spanish', flag: '🇪🇸', code: 'es'),
+    LanguageOption(name: 'French', flag: '🇫🇷', code: 'fr'),
+    LanguageOption(name: 'German', flag: '🇩🇪', code: 'de'),
+    LanguageOption(name: 'Italian', flag: '🇮🇹', code: 'it'),
+    LanguageOption(name: 'Portuguese', flag: '🇵🇹', code: 'pt'),
+    LanguageOption(name: 'Dutch', flag: '🇳🇱', code: 'nl'),
+    LanguageOption(name: 'Polish', flag: '🇵🇱', code: 'pl'),
+    LanguageOption(name: 'Arabic', flag: '🇸🇦', code: 'ar'),
+    LanguageOption(name: 'Hindi', flag: '🇮🇳', code: 'hi'),
+    LanguageOption(name: 'Urdu', flag: '🇵🇰', code: 'ur'),
+    LanguageOption(name: 'Bengali', flag: '🇧🇩', code: 'bn'),
+    LanguageOption(name: 'Mandarin', flag: '🇨🇳', code: 'zh'),
+    LanguageOption(name: 'Japanese', flag: '🇯🇵', code: 'ja'),
+    LanguageOption(name: 'Korean', flag: '🇰🇷', code: 'ko'),
+    LanguageOption(name: 'Turkish', flag: '🇹🇷', code: 'tr'),
+    LanguageOption(name: 'Russian', flag: '🇷🇺', code: 'ru'),
+    LanguageOption(name: 'Swedish', flag: '🇸🇪', code: 'sv'),
   ];
 
   @override
   void initState() {
     super.initState();
-    _propertiesRepository = widget.propertiesRepository ?? sharedPropertiesRepository;
+    _propertiesRepository =
+        widget.propertiesRepository ?? sharedPropertiesRepository;
     _partnersRepository = widget.partnersRepository ?? sharedPartnersRepository;
     _authRepository = widget.authRepository ?? sharedAuthRepository;
 
-    _cursorTimer = Timer.periodic(const Duration(milliseconds: 530), (_) {
+    // Start cursor timer
+    _cursorTimer = Timer.periodic(const Duration(milliseconds: 550), (timer) {
       if (mounted) {
         setState(() {
           _showCursor = !_showCursor;
@@ -87,44 +125,16 @@ class _AddPropertyViewState extends State<AddPropertyView> {
       }
     });
 
+    _nameController.addListener(_onTextChanged);
+    _countryController.addListener(_onTextChanged);
+    _cityController.addListener(_onTextChanged);
+    _timezoneController.addListener(_onTextChanged);
+
     _loadPartners();
   }
 
-  Future<void> _loadPartners() async {
-    final token = _authRepository.currentAuth?.accessToken ?? '';
-    final actor = _authRepository.currentUser;
-
-    try {
-      final res = await _partnersRepository.getPartners(
-        accessToken: token,
-        status: 'ACTIVE',
-      );
-      if (mounted) {
-        setState(() {
-          _availablePartners = res.data;
-          if (actor?.partnerId != null && actor!.partnerId!.isNotEmpty) {
-            _selectedPartnerId = actor.partnerId;
-            final match = _availablePartners.where((p) => p.id == actor.partnerId).firstOrNull;
-            _partnerDisplayName = match?.name ?? 'Partner #${actor.partnerId}';
-          } else if (_availablePartners.isNotEmpty) {
-            _selectedPartnerId = _availablePartners.first.id;
-            _partnerDisplayName = _availablePartners.first.name;
-          } else {
-            _selectedPartnerId = '2c9a1f70-8d31-4a2b-9f10-6b7c8d9e0a1b';
-            _partnerDisplayName = 'Grand Hotel Downtown';
-          }
-          _isLoadingPartner = false;
-        });
-      }
-    } catch (_) {
-      if (mounted) {
-        setState(() {
-          _selectedPartnerId = actor?.partnerId ?? '2c9a1f70-8d31-4a2b-9f10-6b7c8d9e0a1b';
-          _partnerDisplayName = 'Grand Hotel Downtown';
-          _isLoadingPartner = false;
-        });
-      }
-    }
+  void _onTextChanged() {
+    if (mounted) setState(() {});
   }
 
   @override
@@ -134,9 +144,40 @@ class _AddPropertyViewState extends State<AddPropertyView> {
     _countryController.dispose();
     _cityController.dispose();
     _timezoneController.dispose();
-    _languageController.dispose();
-    _screenFocusNode.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadPartners() async {
+    setState(() {
+      _isLoadingPartners = true;
+      _errorMessage = null;
+    });
+
+    final token = _authRepository.currentAuth?.accessToken ?? '';
+    final actor = _authRepository.currentUser;
+
+    try {
+      final res = await _partnersRepository.getPartners(
+        accessToken: token,
+        status: 'ACTIVE',
+      );
+      _availablePartners = res.data;
+
+      if (_availablePartners.isNotEmpty) {
+        if (actor?.partnerId != null &&
+            _availablePartners.any((p) => p.id == actor!.partnerId)) {
+          _selectedPartnerId = actor!.partnerId;
+        } else {
+          _selectedPartnerId = _availablePartners.first.id;
+        }
+      }
+    } catch (_) {}
+
+    if (mounted) {
+      setState(() {
+        _isLoadingPartners = false;
+      });
+    }
   }
 
   TextEditingController get _activeController {
@@ -149,8 +190,6 @@ class _AddPropertyViewState extends State<AddPropertyView> {
         return _cityController;
       case PropertyFormField.timezone:
         return _timezoneController;
-      case PropertyFormField.language:
-        return _languageController;
     }
   }
 
@@ -164,150 +203,176 @@ class _AddPropertyViewState extends State<AddPropertyView> {
         return 'Entering City';
       case PropertyFormField.timezone:
         return 'Entering Timezone';
-      case PropertyFormField.language:
-        return 'Entering Default language';
     }
   }
 
-  void _handleVirtualKeyPress(String key) {
-    setState(() {
-      _activeController.text += key;
-    });
+  void _handleVirtualKeyPress(String char) {
+    final controller = _activeController;
+    final text = controller.text;
+    final selection = controller.selection;
+
+    final start = selection.start >= 0 ? selection.start : text.length;
+    final end = selection.end >= 0 ? selection.end : text.length;
+
+    final newText = text.replaceRange(start, end, char);
+    controller.value = TextEditingValue(
+      text: newText,
+      selection: TextSelection.collapsed(offset: start + char.length),
+    );
   }
 
-  void _handleBackspace() {
-    final text = _activeController.text;
-    if (text.isNotEmpty) {
-      setState(() {
-        _activeController.text = text.substring(0, text.length - 1);
-      });
-    }
-  }
+  void _handleVirtualBackspace() {
+    final controller = _activeController;
+    final text = controller.text;
+    final selection = controller.selection;
 
-  void _handleSpace() {
-    setState(() {
-      _activeController.text += ' ';
-    });
-  }
+    final start = selection.start >= 0 ? selection.start : text.length;
+    final end = selection.end >= 0 ? selection.end : text.length;
 
-  void _handleClear() {
-    setState(() {
-      _activeController.clear();
-    });
-  }
-
-  Future<void> _submit() async {
-    if (_isSubmitting) return;
-
-    final name = _nameController.text.trim();
-    if (name.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please enter a property name'),
-          backgroundColor: Color(0xFFDC2626),
-          behavior: SnackBarBehavior.floating,
-        ),
+    if (start != end) {
+      final newText = text.replaceRange(start, end, '');
+      controller.value = TextEditingValue(
+        text: newText,
+        selection: TextSelection.collapsed(offset: start),
       );
-      return;
+    } else if (start > 0) {
+      final newText = text.replaceRange(start - 1, start, '');
+      controller.value = TextEditingValue(
+        text: newText,
+        selection: TextSelection.collapsed(offset: start - 1),
+      );
     }
+  }
 
-    final partnerId = _selectedPartnerId ?? '2c9a1f70-8d31-4a2b-9f10-6b7c8d9e0a1b';
+  void _handleVirtualSpace() {
+    _handleVirtualKeyPress(' ');
+  }
+
+  void _handleVirtualClear() {
+    _activeController.value = const TextEditingValue(
+      text: '',
+      selection: TextSelection.collapsed(offset: 0),
+    );
+  }
+
+  void _handleNextField() {
+    final values = PropertyFormField.values;
+    final nextIndex = (_activeField.index + 1) % values.length;
+    setState(() {
+      _activeField = values[nextIndex];
+    });
+  }
+
+  void _handlePrevField() {
+    final values = PropertyFormField.values;
+    final prevIndex =
+        (_activeField.index - 1 + values.length) % values.length;
+    setState(() {
+      _activeField = values[prevIndex];
+    });
+  }
+
+  void _handleBack() {
+    if (widget.onCancel != null) {
+      widget.onCancel!();
+    } else if (context.canPop()) {
+      context.pop();
+    } else {
+      context.go('/properties');
+    }
+  }
+
+  Future<void> _handleCreateProperty() async {
+    final name = _nameController.text.trim();
     final country = _countryController.text.trim();
     final city = _cityController.text.trim();
     final timezone = _timezoneController.text.trim();
-    final defaultLanguage = _languageController.text.trim();
+
+    if (name.isEmpty) {
+      setState(() {
+        _errorMessage = 'Property name is required.';
+        _activeField = PropertyFormField.name;
+      });
+      return;
+    }
+
+    if (_selectedPartnerId == null && _availablePartners.isNotEmpty) {
+      _selectedPartnerId = _availablePartners.first.id;
+    }
 
     setState(() {
-      _isSubmitting = true;
+      _isCreating = true;
+      _errorMessage = null;
     });
 
     try {
       final token = _authRepository.currentAuth?.accessToken ?? '';
-      final created = await _propertiesRepository.createProperty(
+      final newProperty = await _propertiesRepository.createProperty(
         accessToken: token,
-        partnerId: partnerId,
+        partnerId: _selectedPartnerId ?? 'p-0',
         name: name,
         country: country.isNotEmpty ? country : null,
         city: city.isNotEmpty ? city : null,
         timezone: timezone.isNotEmpty ? timezone : null,
-        defaultLanguage: defaultLanguage.isNotEmpty ? defaultLanguage : null,
+        defaultLanguage: _selectedLanguageCode,
       );
 
       if (mounted) {
+        widget.onPropertyCreated?.call(newProperty);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Property "${created.name}" created successfully!'),
+            content: Text('Property "$name" created successfully!'),
             backgroundColor: const Color(0xFF15803D),
             behavior: SnackBarBehavior.floating,
           ),
         );
-        widget.onPropertyCreated?.call(created);
+        _handleBack();
       }
     } catch (e) {
       if (mounted) {
         setState(() {
-          _isSubmitting = false;
+          _isCreating = false;
+          _errorMessage = e.toString().replaceAll('Exception: ', '');
         });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to create property: $e'),
-            backgroundColor: const Color(0xFFDC2626),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
       }
     }
   }
 
-  KeyEventResult _handlePhysicalKey(FocusNode node, KeyEvent event) {
+  KeyEventResult _handleGlobalKeyEvent(FocusNode node, KeyEvent event) {
     if (event is KeyDownEvent) {
       final key = event.logicalKey;
 
+      if (key == LogicalKeyboardKey.escape) {
+        _handleBack();
+        return KeyEventResult.handled;
+      }
+
       if (key == LogicalKeyboardKey.tab) {
-        final isShift = HardwareKeyboard.instance.isShiftPressed;
-        final fields = PropertyFormField.values;
-        final currentIndex = fields.indexOf(_activeField);
-        final nextIndex = isShift
-            ? (currentIndex - 1 + fields.length) % fields.length
-            : (currentIndex + 1) % fields.length;
-        setState(() {
-          _activeField = fields[nextIndex];
-        });
+        if (HardwareKeyboard.instance.isShiftPressed) {
+          _handlePrevField();
+        } else {
+          _handleNextField();
+        }
         return KeyEventResult.handled;
-      } else if (key == LogicalKeyboardKey.arrowDown) {
-        final fields = PropertyFormField.values;
-        final currentIndex = fields.indexOf(_activeField);
-        if (currentIndex < fields.length - 1) {
-          setState(() {
-            _activeField = fields[currentIndex + 1];
-          });
+      }
+
+      // Handle direct character input from physical keyboard
+      if (event.character != null && event.character!.isNotEmpty) {
+        final char = event.character!;
+        if (char.codeUnitAt(0) >= 32 && char.codeUnitAt(0) != 127) {
+          _handleVirtualKeyPress(char);
           return KeyEventResult.handled;
         }
-      } else if (key == LogicalKeyboardKey.arrowUp) {
-        final fields = PropertyFormField.values;
-        final currentIndex = fields.indexOf(_activeField);
-        if (currentIndex > 0) {
-          setState(() {
-            _activeField = fields[currentIndex - 1];
-          });
-          return KeyEventResult.handled;
-        }
-      } else if (key == LogicalKeyboardKey.escape) {
-        widget.onCancel?.call();
+      }
+
+      if (key == LogicalKeyboardKey.backspace ||
+          key == LogicalKeyboardKey.delete) {
+        _handleVirtualBackspace();
         return KeyEventResult.handled;
-      } else if (key == LogicalKeyboardKey.backspace) {
-        _handleBackspace();
-        return KeyEventResult.handled;
-      } else if (key == LogicalKeyboardKey.space) {
-        _handleSpace();
-        return KeyEventResult.handled;
-      } else if (key == LogicalKeyboardKey.enter || key == LogicalKeyboardKey.numpadEnter) {
-        _submit();
-        return KeyEventResult.handled;
-      } else if (event.character != null &&
-          event.character!.isNotEmpty &&
-          event.character!.codeUnitAt(0) >= 32) {
-        _handleVirtualKeyPress(event.character!);
+      }
+
+      if (key == LogicalKeyboardKey.space) {
+        _handleVirtualSpace();
         return KeyEventResult.handled;
       }
     }
@@ -317,427 +382,1275 @@ class _AddPropertyViewState extends State<AddPropertyView> {
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.sizeOf(context).width;
-    final horizontalSpacing = screenWidth * 0.10;
+    final horizontalPadding = (screenWidth * 0.04).clamp(24.0, 56.0);
 
     return Focus(
-      focusNode: _screenFocusNode,
       autofocus: true,
-      onKeyEvent: _handlePhysicalKey,
+      onKeyEvent: _handleGlobalKeyEvent,
       child: Scaffold(
         backgroundColor: const Color(0xFFFAF7FC),
-        body: SingleChildScrollView(
-          physics: const BouncingScrollPhysics(),
-          padding: const EdgeInsets.symmetric(vertical: 22),
+        body: SafeArea(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Top App Bar Branding: Logo + "Plodyo"
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 36),
-                child: PlodyoHeader(padding: EdgeInsets.only(bottom: 12)),
+              // Top Brand Header (Sticky)
+              Padding(
+                padding: EdgeInsets.only(
+                  left: horizontalPadding,
+                  right: horizontalPadding,
+                  top: 20,
+                  bottom: 8,
+                ),
+                child: const PlodyoHeader(padding: EdgeInsets.zero),
               ),
 
-              // Main Section UI
-              Padding(
-                padding: EdgeInsets.symmetric(horizontal: horizontalSpacing),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Left Column: Form
-                    Expanded(
-                      flex: 6,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Title: "Add a property"
-                          const Text(
-                            'Add a property',
-                            style: TextStyle(
-                              fontSize: 32,
-                              fontWeight: FontWeight.w800,
-                              color: Color(0xFF18181B),
-                              letterSpacing: -0.6,
-                            ),
-                          ),
-                          const SizedBox(height: 6),
-
-                          // Subtitle
-                          const Text(
-                            'A property is one building or site. Rooms are created under it, and the room limit is shared across every property this partner owns.',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w400,
-                              color: Color(0xFF71717A),
-                              height: 1.4,
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-
-                          // Partner Section
-                          const Text(
-                            'Partner',
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w500,
-                              color: Color(0xFF71717A),
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-
-                          if (_isLoadingPartner)
+              // Main 2-Column Scrollable Body
+              Expanded(
+                child: SingleChildScrollView(
+                  physics: const BouncingScrollPhysics(),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: horizontalPadding,
+                    vertical: 8,
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // LEFT COLUMN: Form Content
+                      Expanded(
+                        flex: 12,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Header Row: TvSectionBadge + Title + Subtitle
                             Row(
-                              children: const [
-                                SizedBox(
-                                  width: 18,
-                                  height: 18,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF9333EA)),
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const TvSectionBadge(
+                                  icon: Icons.add_home_work_rounded,
+                                  gradientColors: [
+                                    Color(0xFFF472B6),
+                                    Color(0xFFD946EF),
+                                    Color(0xFF9333EA),
+                                  ],
+                                ),
+                                const SizedBox(width: 18),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Add a property',
+                                        style: GoogleFonts.baloo2(
+                                          fontSize: 34,
+                                          fontWeight: FontWeight.w900,
+                                          color: const Color(0xFF18181B),
+                                          letterSpacing: -0.6,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        'A property is one building or site. Rooms are created under it, and the room limit is shared across every property this partner owns.',
+                                        style: GoogleFonts.nunito(
+                                          fontSize: 14.5,
+                                          fontWeight: FontWeight.w400,
+                                          color: const Color(0xFF64748B),
+                                          height: 1.4,
+                                        ),
+                                      ),
+                                    ],
                                   ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 24),
+
+                            // Error Banner if present
+                            if (_errorMessage != null) ...[
+                              Container(
+                                width: double.infinity,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 12,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFFEF2F2),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: const Color(0xFFFCA5A5),
+                                  ),
+                                ),
+                                child: Row(
+                                  children: [
+                                    const Icon(
+                                      Icons.error_outline_rounded,
+                                      color: Color(0xFFDC2626),
+                                      size: 20,
+                                    ),
+                                    const SizedBox(width: 10),
+                                    Expanded(
+                                      child: Text(
+                                        _errorMessage!,
+                                        style: const TextStyle(
+                                          color: Color(0xFF991B1B),
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(height: 18),
+                            ],
+
+                            // SECTION 1: PARTNER SELECTION LIST
+                            const Text(
+                              'Partner',
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w700,
+                                color: Color(0xFF18181B),
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+
+                            if (_isLoadingPartners)
+                              const Padding(
+                                padding: EdgeInsets.symmetric(vertical: 24),
+                                child: Center(
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2.5,
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                      Color(0xFF9333EA),
+                                    ),
+                                  ),
+                                ),
+                              )
+                            else
+                              ..._availablePartners.map((partner) {
+                                final isSelected =
+                                    _selectedPartnerId == partner.id;
+                                return Padding(
+                                  padding: const EdgeInsets.only(bottom: 12),
+                                  child: _PartnerSelectCard(
+                                    name: partner.name,
+                                    subtitle: partner.contactEmail.isNotEmpty
+                                        ? partner.contactEmail
+                                        : 'partner@example.com',
+                                    isSelected: isSelected,
+                                    onTap: () {
+                                      setState(() {
+                                        _selectedPartnerId = partner.id;
+                                      });
+                                    },
+                                  ),
+                                );
+                              }),
+                            const SizedBox(height: 20),
+
+                            // SECTION 2: INPUT FIELDS (Property name, Country, City, Timezone)
+                            _PropertyInputField(
+                              icon: Icons.account_balance_rounded,
+                              label: 'Property name',
+                              controller: _nameController,
+                              isActive: _activeField == PropertyFormField.name,
+                              showCursor: _showCursor,
+                              onTap: () => setState(
+                                  () => _activeField = PropertyFormField.name),
+                            ),
+                            const SizedBox(height: 14),
+
+                            _PropertyInputField(
+                              icon: Icons.public_rounded,
+                              label: 'Country (optional)',
+                              controller: _countryController,
+                              isActive:
+                                  _activeField == PropertyFormField.country,
+                              showCursor: _showCursor,
+                              onTap: () => setState(() =>
+                                  _activeField = PropertyFormField.country),
+                            ),
+                            const SizedBox(height: 14),
+
+                            _PropertyInputField(
+                              icon: Icons.location_on_outlined,
+                              label: 'City (optional)',
+                              controller: _cityController,
+                              isActive: _activeField == PropertyFormField.city,
+                              showCursor: _showCursor,
+                              onTap: () => setState(
+                                  () => _activeField = PropertyFormField.city),
+                            ),
+                            const SizedBox(height: 14),
+
+                            _PropertyInputField(
+                              icon: Icons.public_rounded,
+                              label: 'Timezone (optional)',
+                              controller: _timezoneController,
+                              isActive:
+                                  _activeField == PropertyFormField.timezone,
+                              showCursor: _showCursor,
+                              onTap: () => setState(() =>
+                                  _activeField = PropertyFormField.timezone),
+                            ),
+                            const SizedBox(height: 24),
+
+                            // SECTION 3: DEFAULT LANGUAGE (OPTIONAL)
+                            const Row(
+                              children: [
+                                Icon(
+                                  Icons.translate_rounded,
+                                  size: 18,
+                                  color: Color(0xFF64748B),
                                 ),
                                 SizedBox(width: 8),
                                 Text(
-                                  'Loading partner...',
-                                  style: TextStyle(fontSize: 13, color: Color(0xFF71717A)),
+                                  'Default language (optional)',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w500,
+                                    color: Color(0xFF64748B),
+                                  ),
                                 ),
                               ],
-                            )
-                          else if (_availablePartners.length > 1 && _authRepository.currentUser?.partnerId == null)
-                            DropdownButtonFormField<String>(
-                              initialValue: _selectedPartnerId,
-                              decoration: InputDecoration(
-                                filled: true,
-                                fillColor: Colors.white,
-                                contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                  borderSide: const BorderSide(color: Color(0xFFE4E4E7)),
+                            ),
+                            const SizedBox(height: 12),
+
+                            // "Not set" full-width card
+                            _NotSetLanguageCard(
+                              isSelected: _selectedLanguageCode == null,
+                              onTap: () {
+                                setState(() {
+                                  _selectedLanguageCode = null;
+                                });
+                              },
+                            ),
+                            const SizedBox(height: 12),
+
+                            // 18 Languages Grid (4 columns)
+                            LayoutBuilder(
+                              builder: (context, constraints) {
+                                final cardWidth =
+                                    (constraints.maxWidth - (3 * 12)) / 4;
+                                return Wrap(
+                                  spacing: 12,
+                                  runSpacing: 12,
+                                  children: _languages.map((lang) {
+                                    final isSelected =
+                                        _selectedLanguageCode == lang.code;
+                                    return SizedBox(
+                                      width: cardWidth,
+                                      child: _LanguageCard(
+                                        language: lang,
+                                        isSelected: isSelected,
+                                        onTap: () {
+                                          setState(() {
+                                            _selectedLanguageCode = lang.code;
+                                          });
+                                        },
+                                      ),
+                                    );
+                                  }).toList(),
+                                );
+                              },
+                            ),
+                            const SizedBox(height: 32),
+
+                            // BOTTOM ACTION BUTTONS: [Create property]  [Cancel]
+                            Row(
+                              children: [
+                                _CreatePropertyButton(
+                                  isLoading: _isCreating,
+                                  onPressed: _handleCreateProperty,
+                                ),
+                                const SizedBox(width: 16),
+                                _CancelButton(
+                                  onPressed: _handleBack,
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 48),
+                          ],
+                        ),
+                      ),
+
+                      const SizedBox(width: 36),
+
+                      // RIGHT COLUMN: Dedicated On-Screen TV Virtual Keyboard
+                      SizedBox(
+                        width: 380,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            // "Entering Property name" Header
+                            Padding(
+                              padding:
+                                  const EdgeInsets.only(bottom: 16, right: 4),
+                              child: Text(
+                                _activeFieldLabel,
+                                style: const TextStyle(
+                                  fontSize: 14.5,
+                                  fontWeight: FontWeight.w500,
+                                  color: Color(0xFF64748B),
                                 ),
                               ),
-                              items: _availablePartners.map((p) {
-                                return DropdownMenuItem(
-                                  value: p.id,
-                                  child: Text(p.name),
-                                );
-                              }).toList(),
-                              onChanged: (val) {
-                                if (val != null) {
-                                  setState(() {
-                                    _selectedPartnerId = val;
-                                    final match = _availablePartners.where((p) => p.id == val).firstOrNull;
-                                    _partnerDisplayName = match?.name ?? '';
-                                  });
-                                }
+                            ),
+
+                            // 6-Column Virtual Keyboard
+                            _DedicatedTvKeyboard(
+                              isUpperCase: _isUpperCase,
+                              showSymbols: _showSymbols,
+                              onToggleCase: () {
+                                setState(() {
+                                  _isUpperCase = !_isUpperCase;
+                                });
                               },
-                            )
-                          else
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFF4F4F6),
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: Row(
-                                children: [
-                                  const Icon(Icons.apartment_rounded, size: 18, color: Color(0xFF71717A)),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    _partnerDisplayName,
-                                    style: const TextStyle(
-                                      fontSize: 13.5,
-                                      fontWeight: FontWeight.w600,
-                                      color: Color(0xFF18181B),
-                                    ),
-                                  ),
-                                ],
-                              ),
+                              onToggleSymbols: () {
+                                setState(() {
+                                  _showSymbols = !_showSymbols;
+                                });
+                              },
+                              onKeyPress: _handleVirtualKeyPress,
+                              onBackspace: _handleVirtualBackspace,
+                              onSpace: _handleVirtualSpace,
+                              onClear: _handleVirtualClear,
                             ),
-
-                          const SizedBox(height: 18),
-
-                          // Field 1: Property name (Required)
-                          _buildFormField(
-                            field: PropertyFormField.name,
-                            icon: Icons.account_balance_outlined,
-                            label: 'Property name',
-                            hintText: 'e.g. Grand Hotel Downtown - Riverside',
-                            controller: _nameController,
-                          ),
-                          const SizedBox(height: 10),
-
-                          // Field 2: Country (optional)
-                          _buildFormField(
-                            field: PropertyFormField.country,
-                            icon: Icons.language_outlined,
-                            label: 'Country (optional)',
-                            hintText: 'US',
-                            controller: _countryController,
-                          ),
-                          const SizedBox(height: 10),
-
-                          // Field 3: City (optional)
-                          _buildFormField(
-                            field: PropertyFormField.city,
-                            icon: Icons.location_on_outlined,
-                            label: 'City (optional)',
-                            hintText: 'Austin',
-                            controller: _cityController,
-                          ),
-                          const SizedBox(height: 10),
-
-                          // Field 4: Timezone (optional)
-                          _buildFormField(
-                            field: PropertyFormField.timezone,
-                            icon: Icons.access_time_rounded,
-                            label: 'Timezone (optional)',
-                            hintText: 'America/Chicago',
-                            controller: _timezoneController,
-                          ),
-                          const SizedBox(height: 10),
-
-                          // Field 5: Default language (optional)
-                          _buildFormField(
-                            field: PropertyFormField.language,
-                            icon: Icons.translate_rounded,
-                            label: 'Default language (optional)',
-                            hintText: 'en',
-                            controller: _languageController,
-                          ),
-                          const SizedBox(height: 24),
-
-                          // Action Buttons: "✓ Create property" and "← Cancel"
-                          Row(
-                            children: [
-                              _CreatePropertyButton(
-                                isSubmitting: _isSubmitting,
-                                onPressed: _submit,
-                              ),
-                              const SizedBox(width: 14),
-                              _CancelButton(onPressed: () {
-                                widget.onCancel?.call();
-                              }),
-                            ],
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-                    ),
-
-                    const SizedBox(width: 48),
-
-                    // Right Column: TV Virtual Keyboard
-                    Expanded(
-                      flex: 4,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            _activeFieldLabel,
-                            style: const TextStyle(
-                              fontSize: 13.5,
-                              fontWeight: FontWeight.w400,
-                              color: Color(0xFF71717A),
-                              letterSpacing: 0.1,
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-
-                          _buildVirtualKeyboard(),
-                        ],
-                      ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
-
-              const SizedBox(height: 40),
             ],
           ),
         ),
       ),
     );
   }
+}
 
-  Widget _buildFormField({
-    required PropertyFormField field,
-    required IconData icon,
-    required String label,
-    required String hintText,
-    required TextEditingController controller,
-  }) {
-    final isActive = _activeField == field;
+/// Property Input Field Card (with active purple glow and blinking cursor)
+class _PropertyInputField extends StatefulWidget {
+  const _PropertyInputField({
+    required this.icon,
+    required this.label,
+    required this.controller,
+    required this.isActive,
+    required this.showCursor,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final TextEditingController controller;
+  final bool isActive;
+  final bool showCursor;
+  final VoidCallback onTap;
+
+  @override
+  State<_PropertyInputField> createState() => _PropertyInputFieldState();
+}
+
+class _PropertyInputFieldState extends State<_PropertyInputField> {
+  final FocusNode _focusNode = FocusNode();
+  bool _isHovered = false;
+
+  @override
+  void dispose() {
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  KeyEventResult _handleKeyEvent(FocusNode node, KeyEvent event) {
+    if (event is KeyDownEvent) {
+      final key = event.logicalKey;
+      if (key == LogicalKeyboardKey.select ||
+          key == LogicalKeyboardKey.enter ||
+          key == LogicalKeyboardKey.space ||
+          key == LogicalKeyboardKey.gameButtonA) {
+        widget.onTap();
+        return KeyEventResult.handled;
+      }
+    }
+    return KeyEventResult.ignored;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isHighlighted = widget.isActive || _focusNode.hasFocus || _isHovered;
+    final hasText = widget.controller.text.isNotEmpty;
 
     return Focus(
-      onFocusChange: (focused) {
-        if (focused) {
-          setState(() {
-            _activeField = field;
-          });
-        }
-      },
-      child: GestureDetector(
-        onTap: () {
-          setState(() {
-            _activeField = field;
-          });
-        },
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 180),
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: isActive ? const Color(0xFF9333EA) : const Color(0xFFE4E4E7),
-              width: isActive ? 1.6 : 1.0,
-            ),
-            boxShadow: [
-              if (isActive)
-                BoxShadow(
-                  color: const Color(0xFF9333EA).withValues(alpha: 0.15),
-                  blurRadius: 12,
-                  spreadRadius: 1,
-                  offset: const Offset(0, 2),
-                )
-              else
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.02),
-                  blurRadius: 4,
-                  offset: const Offset(0, 1),
-                ),
-            ],
-          ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Icon(
-                icon,
-                size: 20,
-                color: isActive ? const Color(0xFF9333EA) : const Color(0xFF71717A),
+      focusNode: _focusNode,
+      onKeyEvent: _handleKeyEvent,
+      onFocusChange: (_) => setState(() {}),
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        onEnter: (_) => setState(() => _isHovered = true),
+        onExit: (_) => setState(() => _isHovered = false),
+        child: GestureDetector(
+          onTap: widget.onTap,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 140),
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: widget.isActive
+                    ? const Color(0xFF8B5CF6)
+                    : (isHighlighted
+                        ? const Color(0xFFA78BFA)
+                        : const Color(0xFFCBD5E1)),
+                width: widget.isActive ? 2.0 : 1.4,
               ),
-              const SizedBox(width: 12),
-
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      label,
-                      style: TextStyle(
-                        fontSize: 11.5,
-                        fontWeight: FontWeight.w500,
-                        color: isActive ? const Color(0xFF9333EA) : const Color(0xFF71717A),
+              boxShadow: widget.isActive
+                  ? [
+                      BoxShadow(
+                        color: const Color(0xFF8B5CF6).withValues(alpha: 0.28),
+                        blurRadius: 14,
+                        offset: const Offset(0, 3),
                       ),
-                    ),
-                    const SizedBox(height: 2),
-                    Row(
-                      children: [
-                        Flexible(
-                          child: Text(
-                            controller.text.isEmpty ? hintText : controller.text,
-                            style: TextStyle(
-                              fontSize: 14.5,
-                              fontWeight: FontWeight.w500,
-                              color: controller.text.isEmpty
-                                  ? const Color(0xFFA1A1AA)
-                                  : const Color(0xFF18181B),
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        if (isActive) ...[
-                          const SizedBox(width: 2),
-                          Opacity(
-                            opacity: _showCursor ? 1.0 : 0.0,
-                            child: Container(
-                              width: 1.8,
-                              height: 15,
-                              color: const Color(0xFF9333EA),
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ],
+                    ]
+                  : [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.02),
+                        blurRadius: 4,
+                        offset: const Offset(0, 1),
+                      ),
+                    ],
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                // Field Icon
+                Icon(
+                  widget.icon,
+                  color: widget.isActive
+                      ? const Color(0xFF8B5CF6)
+                      : const Color(0xFF64748B),
+                  size: 20,
                 ),
-              ),
-            ],
+                const SizedBox(width: 14),
+
+                // Label & Value
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        widget.label,
+                        style: const TextStyle(
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w500,
+                          color: Color(0xFF64748B),
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Row(
+                        children: [
+                          if (hasText)
+                            Text(
+                              widget.controller.text,
+                              style: const TextStyle(
+                                fontSize: 15.5,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFF18181B),
+                                letterSpacing: 0.1,
+                              ),
+                            ),
+                          if (widget.isActive && widget.showCursor)
+                            Container(
+                              margin:
+                                  EdgeInsets.only(left: hasText ? 2.0 : 0.0),
+                              width: 2,
+                              height: 18,
+                              color: const Color(0xFF8B5CF6),
+                            ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
     );
   }
+}
 
-  Widget _buildVirtualKeyboard() {
+/// "Not set" Language Option Card (Full Width)
+class _NotSetLanguageCard extends StatefulWidget {
+  const _NotSetLanguageCard({
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  @override
+  State<_NotSetLanguageCard> createState() => _NotSetLanguageCardState();
+}
+
+class _NotSetLanguageCardState extends State<_NotSetLanguageCard> {
+  final FocusNode _focusNode = FocusNode();
+  bool _isHovered = false;
+
+  @override
+  void dispose() {
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  KeyEventResult _handleKeyEvent(FocusNode node, KeyEvent event) {
+    if (event is KeyDownEvent) {
+      final key = event.logicalKey;
+      if (key == LogicalKeyboardKey.select ||
+          key == LogicalKeyboardKey.enter ||
+          key == LogicalKeyboardKey.space ||
+          key == LogicalKeyboardKey.gameButtonA) {
+        widget.onTap();
+        return KeyEventResult.handled;
+      }
+    }
+    return KeyEventResult.ignored;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isHighlighted = _focusNode.hasFocus || _isHovered;
+
+    return Focus(
+      focusNode: _focusNode,
+      onKeyEvent: _handleKeyEvent,
+      onFocusChange: (_) => setState(() {}),
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        onEnter: (_) => setState(() => _isHovered = true),
+        onExit: (_) => setState(() => _isHovered = false),
+        child: GestureDetector(
+          onTap: widget.onTap,
+          child: AnimatedScale(
+            scale: isHighlighted ? 1.01 : 1.0,
+            duration: const Duration(milliseconds: 140),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 140),
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+              decoration: BoxDecoration(
+                color: widget.isSelected
+                    ? const Color(0xFFFAF5FF)
+                    : (isHighlighted
+                        ? const Color(0xFFF8FAFC)
+                        : Colors.white),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(
+                  color: widget.isSelected
+                      ? const Color(0xFF8B5CF6)
+                      : (isHighlighted
+                          ? const Color(0xFFA78BFA)
+                          : const Color(0xFFCBD5E1)),
+                  width: widget.isSelected ? 2.0 : 1.4,
+                ),
+                boxShadow: widget.isSelected
+                    ? [
+                        BoxShadow(
+                          color: const Color(0xFF8B5CF6)
+                              .withValues(alpha: 0.18),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ]
+                    : [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.02),
+                          blurRadius: 4,
+                          offset: const Offset(0, 1),
+                        ),
+                      ],
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Not set',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: widget.isSelected
+                            ? const Color(0xFF8B5CF6)
+                            : const Color(0xFF18181B),
+                      ),
+                    ),
+                  ),
+                  if (widget.isSelected)
+                    const Icon(
+                      Icons.check_circle_rounded,
+                      color: Color(0xFF8B5CF6),
+                      size: 20,
+                    ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Single Language Grid Card (Flag + Language Name)
+class _LanguageCard extends StatefulWidget {
+  const _LanguageCard({
+    required this.language,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  final LanguageOption language;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  @override
+  State<_LanguageCard> createState() => _LanguageCardState();
+}
+
+class _LanguageCardState extends State<_LanguageCard> {
+  final FocusNode _focusNode = FocusNode();
+  bool _isHovered = false;
+
+  @override
+  void dispose() {
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  KeyEventResult _handleKeyEvent(FocusNode node, KeyEvent event) {
+    if (event is KeyDownEvent) {
+      final key = event.logicalKey;
+      if (key == LogicalKeyboardKey.select ||
+          key == LogicalKeyboardKey.enter ||
+          key == LogicalKeyboardKey.space ||
+          key == LogicalKeyboardKey.gameButtonA) {
+        widget.onTap();
+        return KeyEventResult.handled;
+      }
+    }
+    return KeyEventResult.ignored;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isHighlighted = _focusNode.hasFocus || _isHovered;
+
+    return Focus(
+      focusNode: _focusNode,
+      onKeyEvent: _handleKeyEvent,
+      onFocusChange: (_) => setState(() {}),
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        onEnter: (_) => setState(() => _isHovered = true),
+        onExit: (_) => setState(() => _isHovered = false),
+        child: GestureDetector(
+          onTap: widget.onTap,
+          child: AnimatedScale(
+            scale: isHighlighted ? 1.025 : 1.0,
+            duration: const Duration(milliseconds: 140),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 140),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              decoration: BoxDecoration(
+                color: widget.isSelected
+                    ? const Color(0xFFFAF5FF)
+                    : (isHighlighted
+                        ? const Color(0xFFF8FAFC)
+                        : Colors.white),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(
+                  color: widget.isSelected
+                      ? const Color(0xFF8B5CF6)
+                      : (isHighlighted
+                          ? const Color(0xFFA78BFA)
+                          : const Color(0xFFCBD5E1)),
+                  width: widget.isSelected ? 2.0 : 1.4,
+                ),
+                boxShadow: widget.isSelected
+                    ? [
+                        BoxShadow(
+                          color: const Color(0xFF8B5CF6)
+                              .withValues(alpha: 0.16),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ]
+                    : [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.02),
+                          blurRadius: 4,
+                          offset: const Offset(0, 1),
+                        ),
+                      ],
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    widget.language.flag,
+                    style: const TextStyle(fontSize: 18),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      widget.language.name,
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: widget.isSelected
+                            ? const Color(0xFF8B5CF6)
+                            : const Color(0xFF18181B),
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Partner Selectable Item Card
+class _PartnerSelectCard extends StatefulWidget {
+  const _PartnerSelectCard({
+    required this.name,
+    required this.subtitle,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  final String name;
+  final String subtitle;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  @override
+  State<_PartnerSelectCard> createState() => _PartnerSelectCardState();
+}
+
+class _PartnerSelectCardState extends State<_PartnerSelectCard> {
+  final FocusNode _focusNode = FocusNode();
+  bool _isHovered = false;
+
+  @override
+  void dispose() {
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  KeyEventResult _handleKeyEvent(FocusNode node, KeyEvent event) {
+    if (event is KeyDownEvent) {
+      final key = event.logicalKey;
+      if (key == LogicalKeyboardKey.select ||
+          key == LogicalKeyboardKey.enter ||
+          key == LogicalKeyboardKey.space ||
+          key == LogicalKeyboardKey.gameButtonA) {
+        widget.onTap();
+        return KeyEventResult.handled;
+      }
+    }
+    return KeyEventResult.ignored;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isHighlighted = _focusNode.hasFocus || _isHovered;
+
+    return Focus(
+      focusNode: _focusNode,
+      onKeyEvent: _handleKeyEvent,
+      onFocusChange: (_) => setState(() {}),
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        onEnter: (_) => setState(() => _isHovered = true),
+        onExit: (_) => setState(() => _isHovered = false),
+        child: GestureDetector(
+          onTap: widget.onTap,
+          child: AnimatedScale(
+            scale: isHighlighted ? 1.015 : 1.0,
+            duration: const Duration(milliseconds: 140),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 140),
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+              decoration: BoxDecoration(
+                color: widget.isSelected
+                    ? const Color(0xFFFAF5FF)
+                    : (isHighlighted
+                        ? const Color(0xFFF8FAFC)
+                        : Colors.white),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: widget.isSelected
+                      ? const Color(0xFF8B5CF6)
+                      : (isHighlighted
+                          ? const Color(0xFFA78BFA)
+                          : const Color(0xFFCBD5E1)),
+                  width: widget.isSelected ? 2.0 : 1.4,
+                ),
+                boxShadow: widget.isSelected
+                    ? [
+                        BoxShadow(
+                          color: const Color(0xFF8B5CF6)
+                              .withValues(alpha: 0.16),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ]
+                    : [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.02),
+                          blurRadius: 4,
+                          offset: const Offset(0, 1),
+                        ),
+                      ],
+              ),
+              child: Row(
+                children: [
+                  // Building Icon
+                  Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: widget.isSelected
+                          ? const Color(0xFFEDE9FE)
+                          : const Color(0xFFF1F5F9),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(
+                      Icons.apartment_rounded,
+                      size: 20,
+                      color: widget.isSelected
+                          ? const Color(0xFF8B5CF6)
+                          : const Color(0xFF64748B),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+
+                  // Name and contact info
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          widget.name,
+                          style: TextStyle(
+                            fontSize: 15.5,
+                            fontWeight: FontWeight.w700,
+                            color: widget.isSelected
+                                ? const Color(0xFF7C3AED)
+                                : const Color(0xFF18181B),
+                          ),
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          widget.subtitle,
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w400,
+                            color: Color(0xFF64748B),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // Subtle indicator if selected
+                  if (widget.isSelected)
+                    const Icon(
+                      Icons.check_circle_rounded,
+                      color: Color(0xFF8B5CF6),
+                      size: 20,
+                    ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// "Create property" Gradient Pill Button
+class _CreatePropertyButton extends StatefulWidget {
+  const _CreatePropertyButton({
+    required this.isLoading,
+    required this.onPressed,
+  });
+
+  final bool isLoading;
+  final VoidCallback onPressed;
+
+  @override
+  State<_CreatePropertyButton> createState() => _CreatePropertyButtonState();
+}
+
+class _CreatePropertyButtonState extends State<_CreatePropertyButton> {
+  final FocusNode _focusNode = FocusNode();
+  bool _isHovered = false;
+
+  @override
+  void dispose() {
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  KeyEventResult _handleKeyEvent(FocusNode node, KeyEvent event) {
+    if (event is KeyDownEvent) {
+      final key = event.logicalKey;
+      if (key == LogicalKeyboardKey.select ||
+          key == LogicalKeyboardKey.enter ||
+          key == LogicalKeyboardKey.space ||
+          key == LogicalKeyboardKey.gameButtonA) {
+        if (!widget.isLoading) {
+          widget.onPressed();
+        }
+        return KeyEventResult.handled;
+      }
+    }
+    return KeyEventResult.ignored;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isHighlighted = _focusNode.hasFocus || _isHovered;
+
+    return Focus(
+      focusNode: _focusNode,
+      onKeyEvent: _handleKeyEvent,
+      onFocusChange: (_) => setState(() {}),
+      child: MouseRegion(
+        cursor: widget.isLoading
+            ? SystemMouseCursors.basic
+            : SystemMouseCursors.click,
+        onEnter: (_) => setState(() => _isHovered = true),
+        onExit: (_) => setState(() => _isHovered = false),
+        child: GestureDetector(
+          onTap: widget.isLoading ? null : widget.onPressed,
+          child: AnimatedScale(
+            scale: isHighlighted ? 1.04 : 1.0,
+            duration: const Duration(milliseconds: 140),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 26, vertical: 14),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [
+                    Color(0xFFD946EF),
+                    Color(0xFF9333EA),
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(26),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF9333EA)
+                        .withValues(alpha: isHighlighted ? 0.5 : 0.35),
+                    blurRadius: isHighlighted ? 16 : 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: widget.isLoading
+                  ? const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'Creating property',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 14.5,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 0.1,
+                          ),
+                        ),
+                        SizedBox(width: 8),
+                        PlodyoThreeDotsLoading(
+                          dotSize: 5,
+                          spacing: 3.5,
+                          bounceHeight: 4,
+                          color: Colors.white,
+                        ),
+                      ],
+                    )
+                  : const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.check_rounded,
+                          color: Colors.white,
+                          size: 18,
+                        ),
+                        SizedBox(width: 8),
+                        Text(
+                          'Create property',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 14.5,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 0.1,
+                          ),
+                        ),
+                      ],
+                    ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// "Cancel" Outline Pill Button
+class _CancelButton extends StatefulWidget {
+  const _CancelButton({required this.onPressed});
+
+  final VoidCallback onPressed;
+
+  @override
+  State<_CancelButton> createState() => _CancelButtonState();
+}
+
+class _CancelButtonState extends State<_CancelButton> {
+  final FocusNode _focusNode = FocusNode();
+  bool _isHovered = false;
+
+  @override
+  void dispose() {
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  KeyEventResult _handleKeyEvent(FocusNode node, KeyEvent event) {
+    if (event is KeyDownEvent) {
+      final key = event.logicalKey;
+      if (key == LogicalKeyboardKey.select ||
+          key == LogicalKeyboardKey.enter ||
+          key == LogicalKeyboardKey.space ||
+          key == LogicalKeyboardKey.gameButtonA) {
+        widget.onPressed();
+        return KeyEventResult.handled;
+      }
+    }
+    return KeyEventResult.ignored;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isHighlighted = _focusNode.hasFocus || _isHovered;
+
+    return Focus(
+      focusNode: _focusNode,
+      onKeyEvent: _handleKeyEvent,
+      onFocusChange: (_) => setState(() {}),
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        onEnter: (_) => setState(() => _isHovered = true),
+        onExit: (_) => setState(() => _isHovered = false),
+        child: GestureDetector(
+          onTap: widget.onPressed,
+          child: AnimatedScale(
+            scale: isHighlighted ? 1.04 : 1.0,
+            duration: const Duration(milliseconds: 140),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+              decoration: BoxDecoration(
+                color: isHighlighted ? const Color(0xFFFAF5FF) : Colors.white,
+                borderRadius: BorderRadius.circular(26),
+                border: Border.all(
+                  color: const Color(0xFF8B5CF6),
+                  width: 1.5,
+                ),
+                boxShadow: isHighlighted
+                    ? [
+                        BoxShadow(
+                          color: const Color(0xFF8B5CF6).withValues(alpha: 0.25),
+                          blurRadius: 10,
+                          offset: const Offset(0, 2),
+                        ),
+                      ]
+                    : [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.02),
+                          blurRadius: 4,
+                          offset: const Offset(0, 1),
+                        ),
+                      ],
+              ),
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.arrow_back_rounded,
+                    color: Color(0xFF18181B),
+                    size: 16,
+                  ),
+                  SizedBox(width: 8),
+                  Text(
+                    'Cancel',
+                    style: TextStyle(
+                      color: Color(0xFF18181B),
+                      fontSize: 14.5,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 0.1,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// 6-Column On-Screen TV Virtual Keyboard matching design screenshot
+class _DedicatedTvKeyboard extends StatelessWidget {
+  const _DedicatedTvKeyboard({
+    required this.isUpperCase,
+    required this.showSymbols,
+    required this.onToggleCase,
+    required this.onToggleSymbols,
+    required this.onKeyPress,
+    required this.onBackspace,
+    required this.onSpace,
+    required this.onClear,
+  });
+
+  final bool isUpperCase;
+  final bool showSymbols;
+  final VoidCallback onToggleCase;
+  final VoidCallback onToggleSymbols;
+  final ValueChanged<String> onKeyPress;
+  final VoidCallback onBackspace;
+  final VoidCallback onSpace;
+  final VoidCallback onClear;
+
+  List<List<String>> get _standardRows => [
+        ['a', 'b', 'c', 'd', 'e', 'f'],
+        ['g', 'h', 'i', 'j', 'k', 'l'],
+        ['m', 'n', 'o', 'p', 'q', 'r'],
+        ['s', 't', 'u', 'v', 'w', 'x'],
+        ['y', 'z', '0', '1', '2', '3'],
+        ['4', '5', '6', '7', '8', '9'],
+        ['-', '.', '\''],
+      ];
+
+  List<List<String>> get _symbolsRows => [
+        ['!', '@', '#', '\$', '%', '^'],
+        ['&', '*', '(', ')', '_', '+'],
+        ['[', ']', '{', '}', ';', ':'],
+        ['\'', '"', ',', '.', '/', '?'],
+        ['~', '`', '<', '>', '=', '\\'],
+        ['4', '5', '6', '7', '8', '9'],
+        ['-', '.', '\''],
+      ];
+
+  @override
+  Widget build(BuildContext context) {
+    final rows = showSymbols ? _symbolsRows : _standardRows;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
       children: [
-        ..._keyboardRows.map(
+        // Grid Rows 1 to 7
+        ...rows.map(
           (row) => Padding(
             padding: const EdgeInsets.only(bottom: 8),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: row.map((char) {
-                final displayChar = _isUpperCase ? char.toUpperCase() : char;
+                final displayChar = isUpperCase ? char.toUpperCase() : char;
                 return Padding(
                   padding: const EdgeInsets.only(right: 8),
-                  child: _TvFormKeyButton(
+                  child: _KeyButton(
                     label: displayChar,
                     width: 44,
                     height: 44,
-                    onPressed: () => _handleVirtualKeyPress(displayChar),
+                    onPressed: () => onKeyPress(displayChar),
                   ),
                 );
               }).toList(),
             ),
           ),
         ),
+
+        // Bottom Action Keys Row: [↑ abc] [!#?] [—] [⌫] [Clear]
         Row(
           mainAxisSize: MainAxisSize.min,
           children: [
+            // Shift / Case toggle
             Padding(
               padding: const EdgeInsets.only(right: 8),
-              child: _TvFormKeyButton(
-                label: _isUpperCase ? '↑ ABC' : '↑ abc',
-                width: 66,
+              child: _KeyButton(
+                label: isUpperCase ? '↑ ABC' : '↑ abc',
+                width: 58,
                 height: 44,
-                fontSize: 12.5,
-                onPressed: () {
-                  setState(() {
-                    _isUpperCase = !_isUpperCase;
-                  });
-                },
+                fontSize: 12,
+                onPressed: onToggleCase,
               ),
             ),
+
+            // Symbols Toggle
             Padding(
               padding: const EdgeInsets.only(right: 8),
-              child: _TvFormKeyButton(
-                label: '— Space',
-                width: 82,
+              child: _KeyButton(
+                label: showSymbols ? 'ABC' : '!#?',
+                isActive: showSymbols,
+                width: 48,
                 height: 44,
-                fontSize: 12.5,
-                onPressed: _handleSpace,
+                fontSize: 12,
+                onPressed: onToggleSymbols,
               ),
             ),
+
+            // Space key
             Padding(
               padding: const EdgeInsets.only(right: 8),
-              child: _TvFormKeyButton(
+              child: _KeyButton(
+                label: '—',
+                width: 44,
+                height: 44,
+                fontSize: 15,
+                onPressed: onSpace,
+              ),
+            ),
+
+            // Backspace key
+            Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: _KeyButton(
                 icon: Icons.backspace_outlined,
-                width: 50,
+                width: 44,
                 height: 44,
-                isPurpleAccent: true,
-                onPressed: _handleBackspace,
+                onPressed: onBackspace,
               ),
             ),
-            _TvFormKeyButton(
+
+            // Clear key
+            _KeyButton(
               label: 'Clear',
-              width: 56,
+              width: 54,
               height: 44,
-              fontSize: 12.5,
-              onPressed: _handleClear,
+              fontSize: 12,
+              onPressed: onClear,
             ),
           ],
         ),
@@ -746,14 +1659,15 @@ class _AddPropertyViewState extends State<AddPropertyView> {
   }
 }
 
-class _TvFormKeyButton extends StatefulWidget {
-  const _TvFormKeyButton({
+/// Single Key Button on TV Keyboard with hover & focus glow effects
+class _KeyButton extends StatefulWidget {
+  const _KeyButton({
     this.label,
     this.icon,
     this.width = 44,
     this.height = 44,
     this.fontSize = 15,
-    this.isPurpleAccent = false,
+    this.isActive = false,
     required this.onPressed,
   });
 
@@ -762,36 +1676,45 @@ class _TvFormKeyButton extends StatefulWidget {
   final double width;
   final double height;
   final double fontSize;
-  final bool isPurpleAccent;
+  final bool isActive;
   final VoidCallback onPressed;
 
   @override
-  State<_TvFormKeyButton> createState() => _TvFormKeyButtonState();
+  State<_KeyButton> createState() => _KeyButtonState();
 }
 
-class _TvFormKeyButtonState extends State<_TvFormKeyButton> {
-  bool _isFocused = false;
+class _KeyButtonState extends State<_KeyButton> {
+  final FocusNode _focusNode = FocusNode();
   bool _isHovered = false;
 
   @override
+  void dispose() {
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  KeyEventResult _handleKeyEvent(FocusNode node, KeyEvent event) {
+    if (event is KeyDownEvent) {
+      final key = event.logicalKey;
+      if (key == LogicalKeyboardKey.select ||
+          key == LogicalKeyboardKey.enter ||
+          key == LogicalKeyboardKey.space ||
+          key == LogicalKeyboardKey.gameButtonA) {
+        widget.onPressed();
+        return KeyEventResult.handled;
+      }
+    }
+    return KeyEventResult.ignored;
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final active = _isFocused || _isHovered;
+    final isHighlighted = _focusNode.hasFocus || _isHovered || widget.isActive;
 
     return Focus(
-      onFocusChange: (focused) => setState(() => _isFocused = focused),
-      onKeyEvent: (node, event) {
-        if (event is KeyDownEvent) {
-          final key = event.logicalKey;
-          if (key == LogicalKeyboardKey.select ||
-              key == LogicalKeyboardKey.enter ||
-              key == LogicalKeyboardKey.gameButtonA ||
-              key == LogicalKeyboardKey.numpadEnter) {
-            widget.onPressed();
-            return KeyEventResult.handled;
-          }
-        }
-        return KeyEventResult.ignored;
-      },
+      focusNode: _focusNode,
+      onKeyEvent: _handleKeyEvent,
+      onFocusChange: (_) => setState(() {}),
       child: MouseRegion(
         cursor: SystemMouseCursors.click,
         onEnter: (_) => setState(() => _isHovered = true),
@@ -799,223 +1722,67 @@ class _TvFormKeyButtonState extends State<_TvFormKeyButton> {
         child: GestureDetector(
           onTap: widget.onPressed,
           child: AnimatedScale(
-            scale: active ? 1.08 : 1.0,
-            duration: const Duration(milliseconds: 150),
+            scale: isHighlighted ? 1.08 : 1.0,
+            duration: const Duration(milliseconds: 140),
+            curve: Curves.easeOutCubic,
             child: AnimatedContainer(
-              duration: const Duration(milliseconds: 150),
+              duration: const Duration(milliseconds: 140),
+              curve: Curves.easeOutCubic,
               width: widget.width,
               height: widget.height,
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(8),
-                gradient: widget.isPurpleAccent
+                gradient: isHighlighted
                     ? const LinearGradient(
-                        colors: [Color(0xFFC026D3), Color(0xFF9333EA)],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
+                        colors: [
+                          Color(0xFFD946EF),
+                          Color(0xFF9333EA),
+                        ],
                       )
                     : null,
-                color: widget.isPurpleAccent
+                color: isHighlighted ? null : Colors.white,
+                borderRadius: BorderRadius.circular(9),
+                border: isHighlighted
                     ? null
-                    : (active ? const Color(0xFFFAF5FF) : Colors.white),
-                border: Border.all(
-                  color: widget.isPurpleAccent
-                      ? Colors.transparent
-                      : (active ? const Color(0xFFC084FC) : const Color(0xFFE4E4E7)),
-                  width: active ? 1.5 : 1.0,
-                ),
-                boxShadow: [
-                  if (widget.isPurpleAccent)
-                    BoxShadow(
-                      color: const Color(0xFF9333EA).withValues(alpha: 0.45),
-                      blurRadius: 14,
-                      spreadRadius: 1,
-                      offset: const Offset(0, 3),
-                    )
-                  else if (active)
-                    BoxShadow(
-                      color: const Color(0xFFC084FC).withValues(alpha: 0.35),
-                      blurRadius: 10,
-                      spreadRadius: 1,
-                    )
-                  else
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.03),
-                      blurRadius: 4,
-                      offset: const Offset(0, 1),
-                    ),
-                ],
+                    : Border.all(
+                        color: const Color(0xFFE4E4E7),
+                        width: 1.0,
+                      ),
+                boxShadow: isHighlighted
+                    ? [
+                        BoxShadow(
+                          color: const Color(0xFFD946EF).withValues(alpha: 0.45),
+                          blurRadius: 10,
+                          offset: const Offset(0, 3),
+                        ),
+                      ]
+                    : [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.03),
+                          blurRadius: 4,
+                          offset: const Offset(0, 1.5),
+                        ),
+                      ],
               ),
               child: Center(
                 child: widget.icon != null
                     ? Icon(
                         widget.icon,
-                        size: 17,
-                        color: widget.isPurpleAccent
+                        size: 18,
+                        color: isHighlighted
                             ? Colors.white
-                            : (active ? const Color(0xFF7E22CE) : const Color(0xFF27272A)),
+                            : const Color(0xFF27272A),
                       )
                     : Text(
                         widget.label ?? '',
                         style: TextStyle(
                           fontSize: widget.fontSize,
-                          fontWeight: active ? FontWeight.w700 : FontWeight.w500,
-                          color: widget.isPurpleAccent
+                          fontWeight:
+                              isHighlighted ? FontWeight.w700 : FontWeight.w500,
+                          color: isHighlighted
                               ? Colors.white
-                              : (active ? const Color(0xFF7E22CE) : const Color(0xFF27272A)),
+                              : const Color(0xFF18181B),
                         ),
                       ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _CreatePropertyButton extends StatefulWidget {
-  const _CreatePropertyButton({
-    required this.isSubmitting,
-    required this.onPressed,
-  });
-
-  final bool isSubmitting;
-  final VoidCallback onPressed;
-
-  @override
-  State<_CreatePropertyButton> createState() => _CreatePropertyButtonState();
-}
-
-class _CreatePropertyButtonState extends State<_CreatePropertyButton> {
-  bool _isFocused = false;
-  bool _isHovered = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final active = _isFocused || _isHovered;
-
-    return Focus(
-      onFocusChange: (f) => setState(() => _isFocused = f),
-      onKeyEvent: (node, event) {
-        if (event is KeyDownEvent &&
-            (event.logicalKey == LogicalKeyboardKey.select ||
-                event.logicalKey == LogicalKeyboardKey.enter ||
-                event.logicalKey == LogicalKeyboardKey.gameButtonA)) {
-          widget.onPressed();
-          return KeyEventResult.handled;
-        }
-        return KeyEventResult.ignored;
-      },
-      child: MouseRegion(
-        cursor: SystemMouseCursors.click,
-        onEnter: (_) => setState(() => _isHovered = true),
-        onExit: (_) => setState(() => _isHovered = false),
-        child: GestureDetector(
-          onTap: widget.isSubmitting ? null : widget.onPressed,
-          child: AnimatedScale(
-            scale: active ? 1.04 : 1.0,
-            duration: const Duration(milliseconds: 150),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 12),
-              decoration: BoxDecoration(
-                color: const Color(0xFF18181B),
-                borderRadius: BorderRadius.circular(24),
-                boxShadow: [
-                  if (active)
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.35),
-                      blurRadius: 14,
-                      offset: const Offset(0, 4),
-                    ),
-                ],
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (widget.isSubmitting)
-                    const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                      ),
-                    )
-                  else
-                    const Icon(
-                      Icons.check_rounded,
-                      size: 17,
-                      color: Colors.white,
-                    ),
-                  const SizedBox(width: 8),
-                  Text(
-                    widget.isSubmitting ? 'Creating...' : 'Create property',
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.white,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _CancelButton extends StatefulWidget {
-  const _CancelButton({required this.onPressed});
-  final VoidCallback onPressed;
-
-  @override
-  State<_CancelButton> createState() => _CancelButtonState();
-}
-
-class _CancelButtonState extends State<_CancelButton> {
-  bool _isFocused = false;
-  bool _isHovered = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final active = _isFocused || _isHovered;
-
-    return Focus(
-      onFocusChange: (f) => setState(() => _isFocused = f),
-      onKeyEvent: (node, event) {
-        if (event is KeyDownEvent &&
-            (event.logicalKey == LogicalKeyboardKey.select ||
-                event.logicalKey == LogicalKeyboardKey.enter ||
-                event.logicalKey == LogicalKeyboardKey.gameButtonA)) {
-          widget.onPressed();
-          return KeyEventResult.handled;
-        }
-        return KeyEventResult.ignored;
-      },
-      child: MouseRegion(
-        cursor: SystemMouseCursors.click,
-        onEnter: (_) => setState(() => _isHovered = true),
-        onExit: (_) => setState(() => _isHovered = false),
-        child: GestureDetector(
-          onTap: widget.onPressed,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(24),
-              border: Border.all(
-                color: active ? const Color(0xFF9333EA) : const Color(0xFFE4E4E7),
-                width: 1.2,
-              ),
-            ),
-            child: const Text(
-              'Cancel',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF71717A),
               ),
             ),
           ),

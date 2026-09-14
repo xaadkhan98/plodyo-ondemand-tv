@@ -5,6 +5,7 @@ class PropertyModel extends Equatable {
   const PropertyModel({
     required this.id,
     required this.partnerId,
+    this.partnerName,
     required this.name,
     required this.status,
     this.country,
@@ -17,6 +18,7 @@ class PropertyModel extends Equatable {
 
   final String id;
   final String partnerId;
+  final String? partnerName;
   final String name;
   final String status; // "ACTIVE" | "SUSPENDED"
   final String? country;
@@ -33,6 +35,7 @@ class PropertyModel extends Equatable {
     return PropertyModel(
       id: json['id'] as String? ?? '',
       partnerId: json['partner_id'] as String? ?? '',
+      partnerName: json['partner_name'] as String?,
       name: json['name'] as String? ?? '',
       status: json['status'] as String? ?? 'ACTIVE',
       country: json['country'] as String?,
@@ -48,6 +51,7 @@ class PropertyModel extends Equatable {
     return {
       'id': id,
       'partner_id': partnerId,
+      'partner_name': partnerName,
       'name': name,
       'status': status,
       'country': country,
@@ -62,6 +66,7 @@ class PropertyModel extends Equatable {
   PropertyModel copyWith({
     String? id,
     String? partnerId,
+    String? partnerName,
     String? name,
     String? status,
     String? country,
@@ -74,6 +79,7 @@ class PropertyModel extends Equatable {
     return PropertyModel(
       id: id ?? this.id,
       partnerId: partnerId ?? this.partnerId,
+      partnerName: partnerName ?? this.partnerName,
       name: name ?? this.name,
       status: status ?? this.status,
       country: country ?? this.country,
@@ -89,6 +95,7 @@ class PropertyModel extends Equatable {
   List<Object?> get props => [
         id,
         partnerId,
+        partnerName,
         name,
         status,
         country,

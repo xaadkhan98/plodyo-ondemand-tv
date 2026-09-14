@@ -2,7 +2,6 @@ import '../models/actor.dart';
 import '../models/auth_exception.dart';
 import '../models/auth_response.dart';
 import '../models/invite_model.dart';
-import '../models/membership.dart';
 import '../services/auth_api_service.dart';
 
 /// Global shared instance of [AuthRepository] for the TV application session.
@@ -32,7 +31,7 @@ abstract class AuthRepository {
   });
 
   /// Fetch user profile and memberships.
-  Future<AuthMeResponse> getMe();
+  Future<AuthMeResponse> getMe({String? accessToken});
 
   /// Preview public invite.
   Future<InviteModel> previewInvite(String token);
@@ -87,43 +86,22 @@ class AuthRepositoryImpl implements AuthRepository {
     required String email,
     required String password,
   }) async {
-    // Commented out real sign-in API call for offline / UI development:
-    // final response = await _apiService.login(
-    //   email: email,
-    //   password: password,
-    // );
-    // _currentAuth = response;
-    // return response;
-
-    final username = email.contains('@') ? email.split('@').first : email;
-    final capitalized = username.isNotEmpty
-        ? '${username[0].toUpperCase()}${username.substring(1)}'
-        : 'User';
-
-    final sessionAuth = AuthResponse(
-      accessToken: 'token_${DateTime.now().millisecondsSinceEpoch}',
-      refreshToken: 'refresh_token',
-      tokenType: 'Bearer',
-      expiresIn: 86400,
-      actor: Actor(
-        userId: 'user-1',
-        email: email.isNotEmpty ? email : 'xaadkhan98@gmail.com',
-        fullName: capitalized.isNotEmpty ? capitalized : 'Saad Khan',
-        role: 'SUPER_ADMIN',
-        partnerId: 'partner-1',
-        propertyId: 'prop-1',
-      ),
+    final response = await _apiService.login(
+      email: email,
+      password: password,
     );
-
-    _currentAuth = sessionAuth;
-    return sessionAuth;
+    _currentAuth = response;
+    return response;
   }
 
   @override
   Future<AuthResponse> refreshToken() async {
     final token = _currentAuth?.refreshToken;
     if (token == null || token.isEmpty) {
-      throw Exception('No active refresh token available.');
+      throw const AuthException(
+        message: 'No active refresh token available.',
+        statusCode: 401,
+      );
     }
     final response = await _apiService.refreshToken(refreshToken: token);
     _currentAuth = response;
@@ -155,41 +133,17 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
-  Future<AuthMeResponse> getMe() async {
-    final accessToken = _currentAuth?.accessToken ?? '';
-    if (accessToken.isNotEmpty) {
-      try {
-        final res = await _apiService.getMe(accessToken: accessToken);
-        _currentAuth = _currentAuth?.copyWith(actor: res.actor);
-        return res;
-      } on AuthException catch (e) {
-        if (!e.isNetworkError && e.statusCode != null && e.statusCode! > 0) {
-          rethrow;
-        }
-      } catch (_) {}
+  Future<AuthMeResponse> getMe({String? accessToken}) async {
+    final token = accessToken ?? _currentAuth?.accessToken ?? '';
+    if (token.isEmpty) {
+      throw const AuthException(
+        message: 'Unauthenticated. Please sign in.',
+        statusCode: 401,
+      );
     }
-
-    final currentActor = _currentAuth?.actor ??
-        const Actor(
-          userId: 'user-1',
-          email: 'xaadkhan98@gmail.com',
-          fullName: 'Saad Khan',
-          role: 'SUPER_ADMIN',
-          partnerId: 'partner-1',
-        );
-
-    return AuthMeResponse(
-      actor: currentActor,
-      memberships: [
-        Membership(
-          id: 'mem-${currentActor.userId}',
-          role: currentActor.role,
-          partnerId: currentActor.partnerId,
-          propertyId: currentActor.propertyId,
-          createdAt: '2026-08-18T10:00:00.000Z',
-        ),
-      ],
-    );
+    final res = await _apiService.getMe(accessToken: token);
+    _currentAuth = _currentAuth?.copyWith(actor: res.actor);
+    return res;
   }
 
   @override

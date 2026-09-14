@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/widgets/plodyo_header.dart';
+import '../../../../core/widgets/plodyo_loading.dart';
+import '../../../../core/widgets/tv_section_badge.dart';
 import '../../../../data/models/actor.dart';
 import '../../../../data/repositories/auth_repository.dart';
 
-/// Settings View displaying authenticated TV account info, role badge, scope, and sign out flow.
+/// Settings View displaying authenticated TV account info, role badge, scope, and sign out flow
+/// matching the exact Plodyo TV specification and design aesthetics.
 class SettingsView extends StatefulWidget {
   const SettingsView({
     super.key,
@@ -30,6 +34,7 @@ class SettingsView extends StatefulWidget {
 
 class _SettingsViewState extends State<SettingsView> {
   late final AuthRepository _authRepository;
+
   bool _isLoading = true;
 
   String _name = '';
@@ -45,7 +50,13 @@ class _SettingsViewState extends State<SettingsView> {
     _role = widget.role ?? 'Partner admin';
     _scope = widget.scope ?? 'All partners and properties';
     _authRepository = widget.authRepository ?? sharedAuthRepository;
+
     _loadUserDetails();
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
   }
 
   static String _cleanName(String rawName) {
@@ -141,8 +152,8 @@ class _SettingsViewState extends State<SettingsView> {
       builder: (dialogContext) => AlertDialog(
         backgroundColor: Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Row(
-          children: const [
+        title: const Row(
+          children: [
             Icon(Icons.logout_rounded, color: Color(0xFFEF4444), size: 24),
             SizedBox(width: 10),
             Text(
@@ -197,157 +208,184 @@ class _SettingsViewState extends State<SettingsView> {
 
   @override
   Widget build(BuildContext context) {
-    final screenWidth = MediaQuery.sizeOf(context).width;
-    final horizontalSpacing = screenWidth * 0.10;
-
     return Scaffold(
       backgroundColor: const Color(0xFFFAF7FC),
-      body: SingleChildScrollView(
-        physics: const BouncingScrollPhysics(),
-        padding: const EdgeInsets.symmetric(vertical: 22),
+      body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Top App Bar Branding: Logo + "Plodyo" (kept at default padding)
+            // Top Plodyo Logo Header (Sticky)
             const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 36),
-              child: PlodyoHeader(padding: EdgeInsets.only(bottom: 12)),
+              padding: EdgeInsets.only(left: 48, right: 48, top: 20, bottom: 8),
+              child: PlodyoHeader(padding: EdgeInsets.zero),
             ),
 
-            // Main Section UI with 10% horizontal screen spacing
+            // Header Row (Sticky): Floating Angled Settings Badge Icon + Title + Subtitle
             Padding(
-              padding: EdgeInsets.symmetric(horizontal: horizontalSpacing),
-              child: Column(
+              padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 8),
+              child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Title: "Settings"
-                  const Text(
-                    'Settings',
-                    style: TextStyle(
-                      fontSize: 32,
-                      fontWeight: FontWeight.w800,
-                      color: Color(0xFF18181B),
-                      letterSpacing: -0.6,
-                    ),
+                  // Animated Settings Badge: Floating vertically & angled to the left (-8 degrees)
+                  const TvSectionBadge(
+                    icon: Icons.settings_rounded,
+                    gradientColors: [
+                      Color(0xFFF472B6),
+                      Color(0xFFE879F9),
+                      Color(0xFF9333EA),
+                      Color(0xFF7E22CE),
+                    ],
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(width: 16),
 
-                  // Subtitle
-                  const Text(
-                    'The account this TV is signed in with.',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w400,
-                      color: Color(0xFF71717A),
-                      height: 1.4,
-                    ),
-                  ),
-                  const SizedBox(height: 28),
-
-                  // Account Section Header
-                  Row(
-                    children: [
-                      const Text(
-                        'Account',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w800,
-                          color: Color(0xFF18181B),
+                  // Title & Subtitle
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Settings',
+                          style: GoogleFonts.baloo2(
+                            fontSize: 34,
+                            fontWeight: FontWeight.w900,
+                            color: const Color(0xFFA855F7),
+                            letterSpacing: -0.5,
+                          ),
                         ),
-                      ),
-                      if (_isLoading) ...[
-                        const SizedBox(width: 12),
-                        const SizedBox(
-                          width: 14,
-                          height: 14,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF9333EA)),
+                        const SizedBox(height: 4),
+                        Text(
+                          'The account this console session is signed in with.',
+                          style: GoogleFonts.nunito(
+                            fontSize: 15,
+                            height: 1.4,
+                            fontWeight: FontWeight.w400,
+                            color: const Color(0xFF4B5563),
                           ),
                         ),
                       ],
-                    ],
-                  ),
-                  const SizedBox(height: 14),
-
-                  // 2x2 Grid of Info Cards
-                  Row(
-                    children: [
-                      // Card 1: Name
-                      Expanded(
-                        child: _SettingsInfoCard(
-                          icon: Icons.person_outline_rounded,
-                          label: 'Name',
-                          value: _isLoading ? 'Loading...' : _name,
-                        ),
-                      ),
-                      const SizedBox(width: 14),
-
-                      // Card 2: Email
-                      Expanded(
-                        child: _SettingsInfoCard(
-                          icon: Icons.mail_outline_rounded,
-                          label: 'Email',
-                          value: _isLoading ? 'Loading...' : _email,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-
-                  Row(
-                    children: [
-                      // Card 3: Role
-                      Expanded(
-                        child: _SettingsInfoCard(
-                          icon: Icons.shield_outlined,
-                          label: 'Role',
-                          value: _isLoading ? '...' : _role,
-                          isBadge: true,
-                        ),
-                      ),
-                      const SizedBox(width: 14),
-
-                      // Card 4: Scope
-                      Expanded(
-                        child: _SettingsInfoCard(
-                          icon: Icons.corporate_fare_outlined,
-                          label: 'Scope',
-                          value: _isLoading ? 'Loading...' : _scope,
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 36),
-
-                  // Sign out Section
-                  const Text(
-                    'Sign out this TV',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w800,
-                      color: Color(0xFF18181B),
                     ),
                   ),
-                  const SizedBox(height: 4),
-                  const Text(
-                    'Ends every session started from this login, on every device.',
-                    style: TextStyle(
-                      fontSize: 13.5,
-                      fontWeight: FontWeight.w400,
-                      color: Color(0xFF71717A),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Sign out Button
-                  _SignOutButton(onPressed: _confirmSignOut),
                 ],
               ),
             ),
+            const SizedBox(height: 6),
 
-            const SizedBox(height: 40),
+            // Scrollable Body Content: Account 2x2 Grid + Sign Out
+            Expanded(
+              child: SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
+                padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Account Section Header
+                    Row(
+                      children: [
+                        Text(
+                          'Account',
+                          style: GoogleFonts.baloo2(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w800,
+                            color: const Color(0xFF18181B),
+                            letterSpacing: -0.3,
+                          ),
+                        ),
+                        if (_isLoading) ...[
+                          const SizedBox(width: 12),
+                          const PlodyoThreeDotsLoading(
+                            dotSize: 6,
+                            spacing: 4,
+                            bounceHeight: 4,
+                          ),
+                        ],
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+
+            // 2x2 Grid of Account Info Cards
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Column 1
+                Expanded(
+                  child: Column(
+                    children: [
+                      // Card 1: Name
+                      _SettingsInfoCard(
+                        icon: Icons.person_outline_rounded,
+                        label: 'Name',
+                        value: _isLoading ? 'Loading...' : _name,
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Card 3: Role
+                      _SettingsInfoCard(
+                        icon: Icons.shield_outlined,
+                        label: 'Role',
+                        value: _isLoading ? '...' : _role,
+                        isBadge: true,
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 16),
+
+                // Column 2
+                Expanded(
+                  child: Column(
+                    children: [
+                      // Card 2: Email
+                      _SettingsInfoCard(
+                        icon: Icons.mail_outline_rounded,
+                        label: 'Email',
+                        value: _isLoading ? 'Loading...' : _email,
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Card 4: Scope
+                      _SettingsInfoCard(
+                        icon: Icons.domain_rounded,
+                        label: 'Scope',
+                        value: _isLoading ? 'Loading...' : _scope,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 36),
+
+            // Sign out Section
+            const Text(
+              'Sign out',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w800,
+                color: Color(0xFF18181B),
+                letterSpacing: -0.3,
+              ),
+            ),
+            const SizedBox(height: 6),
+            const Text(
+              'Ends every session started from this login, on every device.',
+              style: TextStyle(
+                fontSize: 13.5,
+                fontWeight: FontWeight.w400,
+                color: Color(0xFF64748B),
+                height: 1.4,
+              ),
+            ),
+            const SizedBox(height: 18),
+
+            // Sign out Outlined Button
+            _SignOutButton(onPressed: _confirmSignOut),
+
+            const SizedBox(height: 48),
+          ],
+        ),
+      ),
+    ),
           ],
         ),
       ),
@@ -355,6 +393,7 @@ class _SettingsViewState extends State<SettingsView> {
   }
 }
 
+/// Styled Information Card for the Settings 2x2 Grid
 class _SettingsInfoCard extends StatefulWidget {
   const _SettingsInfoCard({
     required this.icon,
@@ -373,54 +412,90 @@ class _SettingsInfoCard extends StatefulWidget {
 }
 
 class _SettingsInfoCardState extends State<_SettingsInfoCard> {
-  bool _isFocused = false;
+  final FocusNode _focusNode = FocusNode();
   bool _isHovered = false;
 
   @override
+  void dispose() {
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final active = _isFocused || _isHovered;
+    final isFocused = _focusNode.hasFocus;
+    final active = isFocused || _isHovered;
 
     return Focus(
-      onFocusChange: (f) => setState(() => _isFocused = f),
+      focusNode: _focusNode,
+      onFocusChange: (_) => setState(() {}),
       child: MouseRegion(
         onEnter: (_) => setState(() => _isHovered = true),
         onExit: (_) => setState(() => _isHovered = false),
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 160),
-          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+          duration: const Duration(milliseconds: 140),
+          curve: Curves.easeOutCubic,
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 20),
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: active ? const Color(0xFF9333EA) : const Color(0xFFE4E4E7),
-              width: active ? 1.5 : 1.0,
+              color: active
+                  ? const Color(0xFF8B5CF6)
+                  : const Color(0xFFCBD5E1),
+              width: active ? 2.0 : 1.3,
             ),
             boxShadow: [
               if (active)
                 BoxShadow(
-                  color: const Color(0xFF9333EA).withValues(alpha: 0.12),
-                  blurRadius: 12,
-                  spreadRadius: 1,
-                  offset: const Offset(0, 3),
+                  color: const Color(0xFF9333EA).withValues(alpha: 0.28),
+                  blurRadius: 18,
+                  spreadRadius: 1.5,
+                  offset: const Offset(0, 4),
                 )
-              else
+              else ...const [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.02),
-                  blurRadius: 4,
-                  offset: const Offset(0, 1),
+                  color: Color(0x0A000000),
+                  blurRadius: 8,
+                  offset: Offset(0, 3),
                 ),
+                BoxShadow(
+                  color: Color(0x059333EA),
+                  blurRadius: 12,
+                  offset: Offset(0, 4),
+                ),
+              ],
             ],
           ),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              // Icon on the left
-              Icon(
-                widget.icon,
-                size: 20,
-                color: active ? const Color(0xFF9333EA) : const Color(0xFF71717A),
+              // Icon Container on the left
+              Container(
+                width: 46,
+                height: 46,
+                decoration: BoxDecoration(
+                  color: active
+                      ? const Color(0xFFF3E8FF)
+                      : const Color(0xFFFAF5FF),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: active
+                        ? const Color(0xFFDDD6FE)
+                        : const Color(0xFFF1EBF5),
+                    width: 1.2,
+                  ),
+                ),
+                child: Center(
+                  child: Icon(
+                    widget.icon,
+                    size: 24,
+                    color: const Color(0xFF9333EA),
+                  ),
+                ),
               ),
-              const SizedBox(width: 14),
+              const SizedBox(width: 16),
 
               // Label & Value
               Expanded(
@@ -431,25 +506,26 @@ class _SettingsInfoCardState extends State<_SettingsInfoCard> {
                     Text(
                       widget.label,
                       style: const TextStyle(
-                        fontSize: 11.5,
+                        fontSize: 13.5,
                         fontWeight: FontWeight.w500,
-                        color: Color(0xFF71717A),
+                        color: Color(0xFF64748B),
                       ),
                     ),
-                    const SizedBox(height: 3),
+                    const SizedBox(height: 4),
                     if (widget.isBadge)
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2.5),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 4.5),
                         decoration: BoxDecoration(
                           color: const Color(0xFFDCFCE7),
-                          borderRadius: BorderRadius.circular(6),
+                          borderRadius: BorderRadius.circular(14),
                         ),
                         child: Text(
                           widget.value,
                           style: const TextStyle(
-                            fontSize: 12.5,
+                            fontSize: 13.5,
                             fontWeight: FontWeight.w700,
-                            color: Color(0xFF15803D),
+                            color: Color(0xFF16A34A),
                           ),
                         ),
                       )
@@ -457,12 +533,10 @@ class _SettingsInfoCardState extends State<_SettingsInfoCard> {
                       Text(
                         widget.value,
                         style: const TextStyle(
-                          fontSize: 14.5,
+                          fontSize: 16.5,
                           fontWeight: FontWeight.w700,
                           color: Color(0xFF18181B),
                         ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
                       ),
                   ],
                 ),
@@ -475,8 +549,10 @@ class _SettingsInfoCardState extends State<_SettingsInfoCard> {
   }
 }
 
+/// Outlined "Sign out" Pill Button with focus/hover effects
 class _SignOutButton extends StatefulWidget {
   const _SignOutButton({required this.onPressed});
+
   final VoidCallback onPressed;
 
   @override
@@ -484,24 +560,38 @@ class _SignOutButton extends StatefulWidget {
 }
 
 class _SignOutButtonState extends State<_SignOutButton> {
-  bool _isFocused = false;
+  final FocusNode _focusNode = FocusNode();
   bool _isHovered = false;
 
   @override
+  void dispose() {
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  KeyEventResult _handleKeyEvent(FocusNode node, KeyEvent event) {
+    if (event is KeyDownEvent) {
+      final key = event.logicalKey;
+      if (key == LogicalKeyboardKey.select ||
+          key == LogicalKeyboardKey.enter ||
+          key == LogicalKeyboardKey.space ||
+          key == LogicalKeyboardKey.gameButtonA) {
+        widget.onPressed();
+        return KeyEventResult.handled;
+      }
+    }
+    return KeyEventResult.ignored;
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final active = _isFocused || _isHovered;
+    final isFocused = _focusNode.hasFocus;
+    final active = isFocused || _isHovered;
 
     return Focus(
-      onFocusChange: (f) => setState(() => _isFocused = f),
-      onKeyEvent: (node, event) {
-        if (event is KeyDownEvent &&
-            (event.logicalKey == LogicalKeyboardKey.select ||
-                event.logicalKey == LogicalKeyboardKey.enter)) {
-          widget.onPressed();
-          return KeyEventResult.handled;
-        }
-        return KeyEventResult.ignored;
-      },
+      focusNode: _focusNode,
+      onKeyEvent: _handleKeyEvent,
+      onFocusChange: (_) => setState(() {}),
       child: MouseRegion(
         cursor: SystemMouseCursors.click,
         onEnter: (_) => setState(() => _isHovered = true),
@@ -510,46 +600,49 @@ class _SignOutButtonState extends State<_SignOutButton> {
           onTap: widget.onPressed,
           child: AnimatedScale(
             scale: active ? 1.04 : 1.0,
-            duration: const Duration(milliseconds: 150),
+            duration: const Duration(milliseconds: 140),
+            curve: Curves.easeOutCubic,
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(22),
+                borderRadius: BorderRadius.circular(26),
                 border: Border.all(
-                  color: active ? const Color(0xFF9333EA) : const Color(0xFFE4E4E7),
-                  width: active ? 1.4 : 1.0,
+                  color: active
+                      ? const Color(0xFFEF4444)
+                      : const Color(0xFFFCA5A5),
+                  width: active ? 2.0 : 1.4,
                 ),
                 boxShadow: [
                   if (active)
                     BoxShadow(
-                      color: const Color(0xFF9333EA).withValues(alpha: 0.18),
-                      blurRadius: 10,
+                      color: const Color(0xFFEF4444).withValues(alpha: 0.25),
+                      blurRadius: 14,
                       offset: const Offset(0, 3),
                     )
                   else
                     BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.03),
-                      blurRadius: 4,
-                      offset: const Offset(0, 1),
+                      color: Colors.black.withValues(alpha: 0.02),
+                      blurRadius: 5,
+                      offset: const Offset(0, 1.5),
                     ),
                 ],
               ),
-              child: Row(
+              child: const Row(
                 mainAxisSize: MainAxisSize.min,
-                children: const [
+                children: [
                   Icon(
                     Icons.logout_rounded,
-                    size: 16,
-                    color: Color(0xFF18181B),
+                    size: 20,
+                    color: Color(0xFFEF4444),
                   ),
                   SizedBox(width: 8),
                   Text(
                     'Sign out',
                     style: TextStyle(
-                      fontSize: 13.5,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFF18181B),
+                      fontSize: 15.5,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFFEF4444),
                     ),
                   ),
                 ],

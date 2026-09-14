@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-/// D-Pad and remote navigable on-screen virtual keyboard for TV with special characters support.
+/// D-Pad and remote navigable on-screen virtual keyboard for TV with hover and focus effects.
 class TvKeyboard extends StatefulWidget {
   const TvKeyboard({
     super.key,
@@ -9,8 +9,9 @@ class TvKeyboard extends StatefulWidget {
     required this.onBackspace,
     required this.onSpace,
     required this.onClear,
-    this.statusText = 'Entering password',
+    this.statusText = '',
     this.showSpecialCharacters = true,
+    this.customSymbolsRow,
   });
 
   final ValueChanged<String> onKeyPress;
@@ -19,6 +20,7 @@ class TvKeyboard extends StatefulWidget {
   final VoidCallback onClear;
   final String statusText;
   final bool showSpecialCharacters;
+  final List<String>? customSymbolsRow;
 
   @override
   State<TvKeyboard> createState() => _TvKeyboardState();
@@ -26,31 +28,43 @@ class TvKeyboard extends StatefulWidget {
 
 class _TvKeyboardState extends State<TvKeyboard> {
   bool _isUpperCase = false;
+  bool _showSymbols = false;
 
-  final List<List<String>> _standardKeyRows = const [
-    ['a', 'b', 'c', 'd', 'e', 'f'],
-    ['g', 'h', 'i', 'j', 'k', 'l'],
-    ['m', 'n', 'o', 'p', 'q', 'r'],
-    ['s', 't', 'u', 'v', 'w', 'x'],
-    ['y', 'z', '0', '1', '2', '3'],
-    ['4', '5', '6', '7', '8', '9'],
-    ['@', '.', '_', '-', '!', '#'],
-  ];
+  List<List<String>> get _standardKeyRows => [
+        const ['a', 'b', 'c', 'd', 'e', 'f'],
+        const ['g', 'h', 'i', 'j', 'k', 'l'],
+        const ['m', 'n', 'o', 'p', 'q', 'r'],
+        const ['s', 't', 'u', 'v', 'w', 'x'],
+        const ['y', 'z', '0', '1', '2', '3'],
+        const ['4', '5', '6', '7', '8', '9'],
+        widget.customSymbolsRow ?? const ['@', '.', '-', '_'],
+      ];
+
+  List<List<String>> get _symbolsKeyRows => [
+        const ['!', '@', '#', '\$', '%', '^'],
+        const ['&', '*', '(', ')', '_', '+'],
+        const ['[', ']', '{', '}', ';', ':'],
+        const ['\'', '"', ',', '.', '/', '?'],
+        const ['~', '`', '<', '>', '=', '\\'],
+        const ['4', '5', '6', '7', '8', '9'],
+        widget.customSymbolsRow ?? const ['@', '.', '-', '_'],
+      ];
 
   @override
   Widget build(BuildContext context) {
+    final baseRows = _showSymbols ? _symbolsKeyRows : _standardKeyRows;
     final keyRows = widget.showSpecialCharacters
-        ? _standardKeyRows
-        : _standardKeyRows.sublist(0, 6);
+        ? baseRows
+        : baseRows.sublist(0, 6);
 
     return FittedBox(
       fit: BoxFit.scaleDown,
-      alignment: Alignment.topLeft,
+      alignment: Alignment.topRight,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Status header text (e.g. "Entering password")
+          // Optional Status header text
           if (widget.statusText.isNotEmpty)
             Padding(
               padding: const EdgeInsets.only(left: 2, bottom: 12),
@@ -65,7 +79,7 @@ class _TvKeyboardState extends State<TvKeyboard> {
               ),
             ),
 
-          // Grid Rows (6 columns)
+          // Grid Rows
           ...keyRows.map(
             (row) => Padding(
               padding: const EdgeInsets.only(bottom: 8),
@@ -87,7 +101,7 @@ class _TvKeyboardState extends State<TvKeyboard> {
             ),
           ),
 
-          // Bottom Action Keys Row (Shift/Caps, Space, Backspace, Clear)
+          // Bottom Action Keys Row (Shift/Caps, Symbols, Space, Backspace, Clear)
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -96,9 +110,9 @@ class _TvKeyboardState extends State<TvKeyboard> {
                 padding: const EdgeInsets.only(right: 8),
                 child: _TvKeyButton(
                   label: _isUpperCase ? '↑ ABC' : '↑ abc',
-                  width: 66,
+                  width: 58,
                   height: 44,
-                  fontSize: 12.5,
+                  fontSize: 12,
                   onPressed: () {
                     setState(() {
                       _isUpperCase = !_isUpperCase;
@@ -106,33 +120,52 @@ class _TvKeyboardState extends State<TvKeyboard> {
                   },
                 ),
               ),
-              // Space key
+
+              // Symbols Toggle
               Padding(
                 padding: const EdgeInsets.only(right: 8),
                 child: _TvKeyButton(
-                  label: '— Space',
-                  width: 82,
+                  label: _showSymbols ? 'ABC' : '!#?',
+                  width: 48,
                   height: 44,
-                  fontSize: 12.5,
+                  fontSize: 12,
+                  onPressed: () {
+                    setState(() {
+                      _showSymbols = !_showSymbols;
+                    });
+                  },
+                ),
+              ),
+
+              // Space / Dash key
+              Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: _TvKeyButton(
+                  label: '—',
+                  width: 44,
+                  height: 44,
+                  fontSize: 15,
                   onPressed: widget.onSpace,
                 ),
               ),
+
               // Backspace key
               Padding(
                 padding: const EdgeInsets.only(right: 8),
                 child: _TvKeyButton(
                   icon: Icons.backspace_outlined,
-                  width: 50,
+                  width: 44,
                   height: 44,
                   onPressed: widget.onBackspace,
                 ),
               ),
+
               // Clear key
               _TvKeyButton(
                 label: 'Clear',
-                width: 56,
+                width: 54,
                 height: 44,
-                fontSize: 12.5,
+                fontSize: 12,
                 onPressed: widget.onClear,
               ),
             ],
@@ -262,7 +295,8 @@ class _TvKeyButtonState extends State<_TvKeyButton> {
                         widget.label ?? '',
                         style: TextStyle(
                           fontSize: widget.fontSize,
-                          fontWeight: isHighlighted ? FontWeight.w700 : FontWeight.w500,
+                          fontWeight:
+                              isHighlighted ? FontWeight.w700 : FontWeight.w500,
                           color: isHighlighted
                               ? Colors.white
                               : const Color(0xFF18181B),
