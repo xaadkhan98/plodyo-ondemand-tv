@@ -345,6 +345,7 @@ class _ConsoleActionCardState extends State<_ConsoleActionCard> {
           if (key == LogicalKeyboardKey.select ||
               key == LogicalKeyboardKey.enter ||
               key == LogicalKeyboardKey.space ||
+              key == LogicalKeyboardKey.numpadEnter ||
               key == LogicalKeyboardKey.gameButtonA) {
             context.go(widget.card.route);
             return KeyEventResult.handled;

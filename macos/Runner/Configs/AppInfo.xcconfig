@@ -8,7 +8,7 @@
 PRODUCT_NAME = Plodyo TV
 
 // The application's bundle identifier
-PRODUCT_BUNDLE_IDENTIFIER = com.plodyo.plodyoOndemandTv
+PRODUCT_BUNDLE_IDENTIFIER = com.plodyo.tv
 
 // The copyright displayed in application information
 PRODUCT_COPYRIGHT = Copyright © 2026 com.plodyo. All rights reserved.

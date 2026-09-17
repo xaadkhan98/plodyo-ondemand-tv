@@ -23,11 +23,12 @@ class PlodyoTvApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Shortcuts(
-      // Configure global remote control key mapping
+      // Configure global remote control key mapping for Android TV, Samsung Tizen & Fire TV
       shortcuts: <LogicalKeySet, Intent>{
         LogicalKeySet(LogicalKeyboardKey.select): const ActivateIntent(),
         LogicalKeySet(LogicalKeyboardKey.enter): const ActivateIntent(),
         LogicalKeySet(LogicalKeyboardKey.numpadEnter): const ActivateIntent(),
+        LogicalKeySet(LogicalKeyboardKey.space): const ActivateIntent(),
         LogicalKeySet(LogicalKeyboardKey.gameButtonA): const ActivateIntent(),
       },
       child: MaterialApp.router(

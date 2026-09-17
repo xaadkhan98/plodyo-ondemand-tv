@@ -276,6 +276,8 @@ class _TvSidebarItemWidgetState extends State<_TvSidebarItemWidget> {
           final key = event.logicalKey;
           if (key == LogicalKeyboardKey.select ||
               key == LogicalKeyboardKey.enter ||
+              key == LogicalKeyboardKey.space ||
+              key == LogicalKeyboardKey.numpadEnter ||
               key == LogicalKeyboardKey.gameButtonA) {
             widget.onTap();
             return KeyEventResult.handled;
