@@ -6,45 +6,46 @@ import 'package:plodyo_ondemand_tv/ui/features/search/views/search_view.dart';
 
 void main() {
   group('Physical Keyboard Input Tests', () {
-    testWidgets('SignInView captures physical keyboard typing, Tab, and Enter', (tester) async {
-      await tester.pumpWidget(
-        const MaterialApp(
-          home: Scaffold(
-            body: SignInView(),
-          ),
-        ),
-      );
+    testWidgets('SignInView: typing, D-pad into TvKeyboard, and down to Forgot password', (tester) async {
+      tester.view.physicalSize = const Size(1920, 1080);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.reset);
 
+      var forgotPressed = false;
+      await tester.pumpWidget(
+        MaterialApp(home: SignInView(onForgotPassword: () => forgotPressed = true)),
+      );
       await tester.pumpAndSettle();
 
-      // Type email "admin" via physical key events
+      // Physical typing + backspace go to the autofocused email field.
       await tester.sendKeyEvent(LogicalKeyboardKey.keyA, character: 'a');
       await tester.sendKeyEvent(LogicalKeyboardKey.keyD, character: 'd');
       await tester.sendKeyEvent(LogicalKeyboardKey.keyM, character: 'm');
-      await tester.sendKeyEvent(LogicalKeyboardKey.keyI, character: 'i');
-      await tester.sendKeyEvent(LogicalKeyboardKey.keyN, character: 'n');
-      await tester.pump();
-
-      expect(find.text('admin'), findsOneWidget);
-
-      // Press Tab to switch to password field
-      await tester.sendKeyEvent(LogicalKeyboardKey.tab);
-      await tester.pump();
-
-      // Type password "pass"
-      await tester.sendKeyEvent(LogicalKeyboardKey.keyP, character: 'p');
-      await tester.sendKeyEvent(LogicalKeyboardKey.keyA, character: 'a');
-      await tester.sendKeyEvent(LogicalKeyboardKey.keyS, character: 's');
-      await tester.sendKeyEvent(LogicalKeyboardKey.keyS, character: 's');
-      await tester.pump();
-
-      // 4 characters for password renders as 4 dots
-      expect(find.text('••••'), findsOneWidget);
-
-      // Press Backspace
       await tester.sendKeyEvent(LogicalKeyboardKey.backspace);
       await tester.pump();
-      expect(find.text('•••'), findsOneWidget);
+      expect(find.text('ad'), findsOneWidget);
+
+      // OK on the field jumps into the keyboard; OK there types a key.
+      await tester.sendKeyEvent(LogicalKeyboardKey.select);
+      await tester.sendKeyEvent(LogicalKeyboardKey.select);
+      await tester.pump();
+      expect(find.textContaining(RegExp(r'^ad.$')), findsOneWidget);
+
+      // Down stays inside the keyboard (used to yank focus back to the form).
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+      await tester.sendKeyEvent(LogicalKeyboardKey.select);
+      await tester.pump();
+      expect(find.textContaining(RegExp(r'^ad..$')), findsOneWidget);
+
+      // Email -> Password -> Sign in -> Forgot password (used to get stuck on Sign in).
+      await tester.tap(find.text('Email'));
+      await tester.pump();
+      for (var i = 0; i < 3; i++) {
+        await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+      }
+      await tester.sendKeyEvent(LogicalKeyboardKey.select);
+      await tester.pump();
+      expect(forgotPressed, isTrue);
     });
 
     testWidgets('SearchView captures physical keyboard typing and clear', (tester) async {

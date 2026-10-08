@@ -40,7 +40,8 @@ class _SignInViewState extends State<SignInView> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
-  final FocusNode _screenFocusNode = FocusNode();
+  // Key-handling only; must not be a D-pad focus target itself.
+  final FocusNode _screenFocusNode = FocusNode(canRequestFocus: false);
   final FocusNode _backButtonFocusNode = FocusNode();
   final FocusNode _emailFocusNode = FocusNode();
   final FocusNode _passwordFocusNode = FocusNode();
@@ -117,107 +118,17 @@ class _SignInViewState extends State<SignInView> {
     if (event is KeyDownEvent) {
       final key = event.logicalKey;
 
-      // Tab navigation
-      if (key == LogicalKeyboardKey.tab) {
-        final isShift = HardwareKeyboard.instance.isShiftPressed;
-        setState(() {
-          if (isShift) {
-            if (_activeField == ActiveAuthField.password) {
-              _activeField = ActiveAuthField.email;
-              _emailFocusNode.requestFocus();
-            } else if (_signInButtonFocusNode.hasFocus) {
-              _activeField = ActiveAuthField.password;
-              _passwordFocusNode.requestFocus();
-            } else if (_forgotPasswordFocusNode.hasFocus) {
-              _signInButtonFocusNode.requestFocus();
-            } else if (_registerVenueFocusNode.hasFocus) {
-              _forgotPasswordFocusNode.requestFocus();
-            } else if (_emailFocusNode.hasFocus) {
-              _backButtonFocusNode.requestFocus();
-            }
-          } else {
-            if (_backButtonFocusNode.hasFocus) {
-              _activeField = ActiveAuthField.email;
-              _emailFocusNode.requestFocus();
-            } else if (_activeField == ActiveAuthField.email) {
-              _activeField = ActiveAuthField.password;
-              _passwordFocusNode.requestFocus();
-            } else if (_activeField == ActiveAuthField.password) {
-              _signInButtonFocusNode.requestFocus();
-            } else if (_signInButtonFocusNode.hasFocus) {
-              _forgotPasswordFocusNode.requestFocus();
-            } else if (_forgotPasswordFocusNode.hasFocus) {
-              _registerVenueFocusNode.requestFocus();
-            }
-          }
-        });
-        return KeyEventResult.handled;
-      }
-
-      // Arrow Up / Down switching between fields
-      if (key == LogicalKeyboardKey.arrowDown) {
-        if (_backButtonFocusNode.hasFocus) {
-          setState(() {
-            _activeField = ActiveAuthField.email;
-          });
-          _emailFocusNode.requestFocus();
-          return KeyEventResult.handled;
-        } else if (_activeField == ActiveAuthField.email) {
-          setState(() {
-            _activeField = ActiveAuthField.password;
-          });
-          _passwordFocusNode.requestFocus();
-          return KeyEventResult.handled;
-        } else if (_activeField == ActiveAuthField.password) {
-          _signInButtonFocusNode.requestFocus();
-          return KeyEventResult.handled;
-        } else if (_signInButtonFocusNode.hasFocus) {
-          _forgotPasswordFocusNode.requestFocus();
-          return KeyEventResult.handled;
-        } else if (_forgotPasswordFocusNode.hasFocus) {
-          _registerVenueFocusNode.requestFocus();
-          return KeyEventResult.handled;
-        }
-      } else if (key == LogicalKeyboardKey.arrowUp) {
-        if (_registerVenueFocusNode.hasFocus) {
-          _forgotPasswordFocusNode.requestFocus();
-          return KeyEventResult.handled;
-        } else if (_forgotPasswordFocusNode.hasFocus) {
-          _signInButtonFocusNode.requestFocus();
-          return KeyEventResult.handled;
-        } else if (_signInButtonFocusNode.hasFocus) {
-          setState(() {
-            _activeField = ActiveAuthField.password;
-          });
-          _passwordFocusNode.requestFocus();
-          return KeyEventResult.handled;
-        } else if (_activeField == ActiveAuthField.password) {
-          setState(() {
-            _activeField = ActiveAuthField.email;
-          });
-          _emailFocusNode.requestFocus();
-          return KeyEventResult.handled;
-        } else if (_activeField == ActiveAuthField.email &&
-            !_backButtonFocusNode.hasFocus) {
-          _backButtonFocusNode.requestFocus();
-          return KeyEventResult.handled;
-        }
-      }
+      // Arrows / Tab fall through to Flutter's built-in directional focus
+      // traversal, which also reaches the on-screen keyboard.
 
       // Backspace
       if (key == LogicalKeyboardKey.backspace) {
-        if (_emailFocusNode.hasFocus || _passwordFocusNode.hasFocus) {
-          return KeyEventResult.ignored;
-        }
         _handleBackspace();
         return KeyEventResult.handled;
       }
 
       // Space
       if (key == LogicalKeyboardKey.space) {
-        if (_emailFocusNode.hasFocus || _passwordFocusNode.hasFocus) {
-          return KeyEventResult.ignored;
-        }
         _handleSpace();
         return KeyEventResult.handled;
       }
@@ -266,9 +177,6 @@ class _SignInViewState extends State<SignInView> {
       if (event.character != null &&
           event.character!.isNotEmpty &&
           event.character!.codeUnitAt(0) >= 32) {
-        if (_emailFocusNode.hasFocus || _passwordFocusNode.hasFocus) {
-          return KeyEventResult.ignored;
-        }
         _handleVirtualKeyPress(event.character!);
         return KeyEventResult.handled;
       }
@@ -721,15 +629,16 @@ class _SignInViewState extends State<SignInView> {
     final isActive = _activeField == field;
 
     return Focus(
+      focusNode: focusNode,
+      autofocus: field == ActiveAuthField.email,
       onKeyEvent: (node, event) {
         if (event is KeyDownEvent) {
           final key = event.logicalKey;
           if (key == LogicalKeyboardKey.select ||
               key == LogicalKeyboardKey.enter ||
               key == LogicalKeyboardKey.gameButtonA) {
-            setState(() {
-              _activeField = field;
-            });
+            // OK on a field jumps into the on-screen keyboard.
+            node.focusInDirection(TraversalDirection.right);
             return KeyEventResult.handled;
           }
         }
@@ -815,48 +724,33 @@ class _SignInViewState extends State<SignInView> {
                         Row(
                           children: [
                             Flexible(
-                              child: TextField(
-                                controller: controller,
-                                focusNode: focusNode,
-                                obscureText: isPassword,
-                                autofocus: field == ActiveAuthField.email,
-                                autocorrect: false,
-                                enableSuggestions: !isPassword,
-                                keyboardType: isPassword
-                                    ? TextInputType.visiblePassword
-                                    : TextInputType.emailAddress,
-                                textInputAction: isPassword
-                                    ? TextInputAction.done
-                                    : TextInputAction.next,
-                                maxLines: 1,
-                                style: TextStyle(
-                                  fontSize: isPassword ? 19 : 16.5,
-                                  fontWeight: FontWeight.w600,
-                                  letterSpacing: isPassword ? 2.5 : 0.2,
-                                  color: const Color(0xFF18181B),
-                                ),
-                                decoration: InputDecoration(
-                                  isDense: true,
-                                  contentPadding: EdgeInsets.zero,
-                                  border: InputBorder.none,
-                                  hintText: hintText,
-                                  hintStyle: const TextStyle(
-                                    fontSize: 16.5,
+                              // Display-only: input comes from TvKeyboard, so the
+                              // TextField must never take focus (that opens the
+                              // Android system IME and traps the D-pad).
+                              child: IgnorePointer(
+                                child: TextField(
+                                  controller: controller,
+                                  canRequestFocus: false,
+                                  obscureText: isPassword,
+                                  maxLines: 1,
+                                  style: TextStyle(
+                                    fontSize: isPassword ? 19 : 16.5,
                                     fontWeight: FontWeight.w600,
-                                    color: Color(0xFFA1A1AA),
+                                    letterSpacing: isPassword ? 2.5 : 0.2,
+                                    color: const Color(0xFF18181B),
+                                  ),
+                                  decoration: InputDecoration(
+                                    isDense: true,
+                                    contentPadding: EdgeInsets.zero,
+                                    border: InputBorder.none,
+                                    hintText: hintText,
+                                    hintStyle: const TextStyle(
+                                      fontSize: 16.5,
+                                      fontWeight: FontWeight.w600,
+                                      color: Color(0xFFA1A1AA),
+                                    ),
                                   ),
                                 ),
-                                onChanged: (_) {
-                                  _cubit.clearError();
-                                  setState(() {});
-                                },
-                                onSubmitted: (_) {
-                                  if (isPassword) {
-                                    _handleSignIn();
-                                  } else {
-                                    _passwordFocusNode.requestFocus();
-                                  }
-                                },
                               ),
                             ),
                           ],
@@ -963,8 +857,10 @@ class _SignInViewState extends State<SignInView> {
         }
         return KeyEventResult.ignored;
       },
-      child: StatefulBuilder(
-        builder: (context, setBtnState) {
+      // Rebuild on focus change so the focus glow actually shows.
+      child: ListenableBuilder(
+        listenable: _signInButtonFocusNode,
+        builder: (context, _) {
           final isFocused = _signInButtonFocusNode.hasFocus;
 
           return MouseRegion(
@@ -1064,8 +960,9 @@ class _SignInViewState extends State<SignInView> {
         }
         return KeyEventResult.ignored;
       },
-      child: StatefulBuilder(
-        builder: (context, setBtnState) {
+      child: ListenableBuilder(
+        listenable: focusNode,
+        builder: (context, _) {
           final isFocused = focusNode.hasFocus;
 
           return MouseRegion(
