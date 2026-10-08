@@ -3,12 +3,13 @@ import 'package:flutter/widgets.dart';
 import '../theme/tv_motion.dart';
 import '../theme/tv_scale.dart';
 
-/// Centres its child, scrolling only when the child outgrows the screen: the reference's `min-h-full` inside
-/// `overflow-y-auto`. Padded by the overscan gutters by default.
+/// Places its child in the screen ([alignment], centred by default), scrolling only when the child outgrows it:
+/// the reference's `min-h-full` inside `overflow-y-auto`. Padded by the overscan gutters by default.
 class CenteredScrollView extends StatelessWidget {
   const CenteredScrollView({
     super.key,
     required this.child,
+    this.alignment = Alignment.center,
     this.padding = const EdgeInsets.symmetric(
       horizontal: TvInsets.safeX,
       vertical: TvInsets.safeY,
@@ -16,6 +17,7 @@ class CenteredScrollView extends StatelessWidget {
   });
 
   final Widget child;
+  final Alignment alignment;
   final EdgeInsets padding;
 
   @override
@@ -26,7 +28,7 @@ class CenteredScrollView extends StatelessWidget {
           constraints: BoxConstraints(minHeight: constraints.maxHeight),
           child: Padding(
             padding: padding,
-            child: Center(child: child),
+            child: Align(alignment: alignment, child: child),
           ),
         ),
       ),

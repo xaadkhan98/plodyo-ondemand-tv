@@ -179,6 +179,7 @@ class _RegisterVenueViewState extends State<RegisterVenueView> {
         controller: _entry,
         onExit: _back,
         child: CenteredScrollView(
+          alignment: Alignment.topCenter,
           child: Entrance(
             rise: 20,
             duration: const Duration(milliseconds: 450),

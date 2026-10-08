@@ -7,6 +7,7 @@ import '../../../../core/theme/tv_motion.dart';
 import '../../../../core/theme/tv_scale.dart';
 import '../../../../core/theme/tv_shadows.dart';
 import '../../../../core/theme/tv_typography.dart';
+import '../../../../core/widgets/outset_shadow.dart';
 import '../../../../core/widgets/page_layout.dart';
 import '../../../../core/widgets/setup_scene.dart';
 import '../../../../core/widgets/tv_button.dart';
@@ -19,6 +20,7 @@ class UnpairedSplashView extends StatelessWidget {
   final VoidCallback? onSetupTv;
   final VoidCallback? onSignInConsole;
 
+  static const _cardRadius = BorderRadius.all(Radius.circular(2.5 * rem));
   static final _arrival = SpringCurve(
     stiffness: 240,
     damping: 16,
@@ -34,67 +36,77 @@ class UnpairedSplashView extends StatelessWidget {
         children: [
           const Positioned.fill(child: NightBackdrop()),
           CenteredScrollView(
-            child: Container(
+            child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 52 * rem),
-              padding: const EdgeInsets.symmetric(
-                horizontal: 3 * rem,
-                vertical: 2.5 * rem,
-              ),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.85),
-                borderRadius: BorderRadius.circular(2.5 * rem),
-                boxShadow: TvShadows.x2l(
+              child: OutsetShadow(
+                shadows: TvShadows.x2l(
                   TvColors.primary.withValues(alpha: 0.25),
                 ),
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // The one motion on this screen: the set arriving is the change it announces.
-                  _arrivingArt(context),
-                  const SizedBox(height: 1.75 * rem),
-                  Text(
-                    'This TV is not set up yet',
-                    textAlign: TextAlign.center,
-                    style: TvText.x2l.copyWith(
-                      fontFamily: TvText.baloo,
-                      fontWeight: FontWeight.w600,
-                    ),
+                borderRadius: _cardRadius,
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 3 * rem,
+                    vertical: 2.5 * rem,
                   ),
-                  const SizedBox(height: 0.75 * rem),
-                  ConstrainedBox(
-                    constraints: BoxConstraints(maxWidth: 46 * TvText.ch(body)),
-                    child: Text(
-                      'Pair it with a room to show the story library, or sign in to run the Plodyo console from this screen.',
-                      textAlign: TextAlign.center,
-                      style: body,
-                    ),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.85),
+                    borderRadius: _cardRadius,
                   ),
-                  const SizedBox(height: 1.5 * rem),
-                  const _CodeHint(),
-                  const SizedBox(height: 2 * rem),
-                  // Wraps rather than overflowing if a label runs long.
-                  Wrap(
-                    alignment: WrapAlignment.center,
-                    spacing: rem,
-                    runSpacing: rem,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      TvButton(
-                        label: 'Set up this TV',
-                        icon: LucideIcons.tv,
-                        autofocus: true,
-                        onSelect: onSetupTv ?? () => context.push('/pair-tv'),
+                      // The one motion on this screen: the set arriving is the change it announces.
+                      _arrivingArt(context),
+                      const SizedBox(height: 1.75 * rem),
+                      Text(
+                        'This TV is not set up yet',
+                        textAlign: TextAlign.center,
+                        style: TvText.x2l.copyWith(
+                          fontFamily: TvText.baloo,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
-                      TvButton(
-                        label: 'Sign in to the console',
-                        icon: LucideIcons.logIn,
-                        variant: TvButtonVariant.outline,
-                        onSelect:
-                            onSignInConsole ?? () => context.push('/sign-in'),
+                      const SizedBox(height: 0.75 * rem),
+                      ConstrainedBox(
+                        constraints: BoxConstraints(
+                          maxWidth: 46 * TvText.ch(body),
+                        ),
+                        child: Text(
+                          'Pair it with a room to show the story library, or sign in to run the Plodyo console from this screen.',
+                          textAlign: TextAlign.center,
+                          style: body,
+                        ),
+                      ),
+                      const SizedBox(height: 1.5 * rem),
+                      const _CodeHint(),
+                      const SizedBox(height: 2 * rem),
+                      // Wraps rather than overflowing if a label runs long.
+                      Wrap(
+                        alignment: WrapAlignment.center,
+                        spacing: rem,
+                        runSpacing: rem,
+                        children: [
+                          TvButton(
+                            label: 'Set up this TV',
+                            icon: LucideIcons.tv,
+                            autofocus: true,
+                            onSelect:
+                                onSetupTv ?? () => context.push('/pair-tv'),
+                          ),
+                          TvButton(
+                            label: 'Sign in to the console',
+                            icon: LucideIcons.logIn,
+                            variant: TvButtonVariant.outline,
+                            onSelect:
+                                onSignInConsole ??
+                                () => context.push('/sign-in'),
+                          ),
+                        ],
                       ),
                     ],
                   ),
-                ],
+                ),
               ),
             ),
           ),
