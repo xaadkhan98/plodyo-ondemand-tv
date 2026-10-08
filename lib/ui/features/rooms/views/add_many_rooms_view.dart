@@ -6,14 +6,13 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/constants/languages.dart';
 import '../../../../core/widgets/language_flag.dart';
 import '../../../../core/widgets/plodyo_header.dart';
-import '../../../../core/widgets/plodyo_loading.dart';
+import '../../../../core/widgets/loading.dart';
 import '../../../../core/widgets/tv_section_badge.dart';
 import '../../../../data/models/property_model.dart';
 import '../../../../data/models/room_model.dart';
 import '../../../../data/repositories/auth_repository.dart';
 import '../../../../data/repositories/properties_repository.dart';
 import '../../../../data/repositories/rooms_repository.dart';
-
 
 class RoomRange {
   const RoomRange({
@@ -81,7 +80,6 @@ class _AddManyRoomsViewState extends State<AddManyRoomsView> {
   // Virtual keyboard state
   bool _isUpperCase = false;
   bool _showSymbols = false;
-
 
   @override
   void initState() {
@@ -245,11 +243,13 @@ class _AddManyRoomsViewState extends State<AddManyRoomsView> {
         });
         return;
       }
-      rangesToCreate.add(RoomRange(
-        prefix: _prefixController.text,
-        start: _firstNumber,
-        end: _lastNumber,
-      ));
+      rangesToCreate.add(
+        RoomRange(
+          prefix: _prefixController.text,
+          start: _firstNumber,
+          end: _lastNumber,
+        ),
+      );
     }
 
     if (_selectedPropertyId == null && _availableProperties.isNotEmpty) {
@@ -282,7 +282,8 @@ class _AddManyRoomsViewState extends State<AddManyRoomsView> {
           final label = '${range.prefix}$num';
           bulkRoomsPayload.add({
             'room_label': label,
-            if (_selectedLanguageCode != null) 'default_language': _selectedLanguageCode,
+            if (_selectedLanguageCode != null)
+              'default_language': _selectedLanguageCode,
           });
         }
       }
@@ -409,7 +410,8 @@ class _AddManyRoomsViewState extends State<AddManyRoomsView> {
                                 const SizedBox(width: 18),
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Text(
                                         'Add many rooms',
@@ -557,14 +559,16 @@ class _AddManyRoomsViewState extends State<AddManyRoomsView> {
                                     value: _firstNumber,
                                     onDecrement10: () {
                                       setState(() {
-                                        _firstNumber =
-                                            (_firstNumber - 10).clamp(1, 9999);
+                                        _firstNumber = (_firstNumber - 10)
+                                            .clamp(1, 9999);
                                       });
                                     },
                                     onDecrement1: () {
                                       setState(() {
-                                        _firstNumber =
-                                            (_firstNumber - 1).clamp(1, 9999);
+                                        _firstNumber = (_firstNumber - 1).clamp(
+                                          1,
+                                          9999,
+                                        );
                                       });
                                     },
                                     onIncrement1: () {
@@ -588,14 +592,18 @@ class _AddManyRoomsViewState extends State<AddManyRoomsView> {
                                     value: _lastNumber,
                                     onDecrement10: () {
                                       setState(() {
-                                        _lastNumber =
-                                            (_lastNumber - 10).clamp(1, 9999);
+                                        _lastNumber = (_lastNumber - 10).clamp(
+                                          1,
+                                          9999,
+                                        );
                                       });
                                     },
                                     onDecrement1: () {
                                       setState(() {
-                                        _lastNumber =
-                                            (_lastNumber - 1).clamp(1, 9999);
+                                        _lastNumber = (_lastNumber - 1).clamp(
+                                          1,
+                                          9999,
+                                        );
                                       });
                                     },
                                     onIncrement1: () {
@@ -615,9 +623,7 @@ class _AddManyRoomsViewState extends State<AddManyRoomsView> {
                             const SizedBox(height: 20),
 
                             // "+ Add this range" Outline Button
-                            _AddThisRangeButton(
-                              onPressed: _handleAddRange,
-                            ),
+                            _AddThisRangeButton(onPressed: _handleAddRange),
                             const SizedBox(height: 32),
 
                             // SECTION 3: LANGUAGE FOR EVERY ROOM IN THIS BATCH (OPTIONAL)
@@ -689,9 +695,7 @@ class _AddManyRoomsViewState extends State<AddManyRoomsView> {
                                   onPressed: _handleCreateRooms,
                                 ),
                                 const SizedBox(width: 16),
-                                _CancelButton(
-                                  onPressed: _handleBack,
-                                ),
+                                _CancelButton(onPressed: _handleBack),
                               ],
                             ),
                             const SizedBox(height: 48),
@@ -759,20 +763,25 @@ class _AddManyRoomsViewState extends State<AddManyRoomsView> {
                                   ),
                                   boxShadow: [
                                     BoxShadow(
-                                      color: const Color(0xFF8B5CF6)
-                                          .withValues(alpha: 0.1),
+                                      color: const Color(
+                                        0xFF8B5CF6,
+                                      ).withValues(alpha: 0.1),
                                       blurRadius: 10,
                                       offset: const Offset(0, 3),
                                     ),
                                   ],
                                 ),
                                 child: Column(
-                                  children: _ranges.asMap().entries.map((entry) {
+                                  children: _ranges.asMap().entries.map((
+                                    entry,
+                                  ) {
                                     final idx = entry.key;
                                     final range = entry.value;
                                     return Container(
                                       margin: EdgeInsets.only(
-                                        bottom: idx == _ranges.length - 1 ? 0 : 8,
+                                        bottom: idx == _ranges.length - 1
+                                            ? 0
+                                            : 8,
                                       ),
                                       padding: const EdgeInsets.symmetric(
                                         horizontal: 12,
@@ -804,9 +813,11 @@ class _AddManyRoomsViewState extends State<AddManyRoomsView> {
                                             ),
                                           ),
                                           InkWell(
-                                            borderRadius:
-                                                BorderRadius.circular(6),
-                                            onTap: () => _handleRemoveRange(idx),
+                                            borderRadius: BorderRadius.circular(
+                                              6,
+                                            ),
+                                            onTap: () =>
+                                                _handleRemoveRange(idx),
                                             child: const Padding(
                                               padding: EdgeInsets.all(4),
                                               child: Icon(
@@ -880,17 +891,9 @@ class _AddManyRoomsViewState extends State<AddManyRoomsView> {
         Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            _StepperButton(
-              text: '– 10',
-              onTap: onDecrement10,
-              width: 48,
-            ),
+            _StepperButton(text: '– 10', onTap: onDecrement10, width: 48),
             const SizedBox(width: 6),
-            _StepperButton(
-              text: '–',
-              onTap: onDecrement1,
-              width: 40,
-            ),
+            _StepperButton(text: '–', onTap: onDecrement1, width: 40),
             const SizedBox(width: 6),
             // Value Box
             Container(
@@ -900,10 +903,7 @@ class _AddManyRoomsViewState extends State<AddManyRoomsView> {
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: const Color(0xFFCBD5E1),
-                  width: 1.4,
-                ),
+                border: Border.all(color: const Color(0xFFCBD5E1), width: 1.4),
               ),
               child: Text(
                 '$value',
@@ -915,17 +915,9 @@ class _AddManyRoomsViewState extends State<AddManyRoomsView> {
               ),
             ),
             const SizedBox(width: 6),
-            _StepperButton(
-              text: '+',
-              onTap: onIncrement1,
-              width: 40,
-            ),
+            _StepperButton(text: '+', onTap: onIncrement1, width: 40),
             const SizedBox(width: 6),
-            _StepperButton(
-              text: '+ 10',
-              onTap: onIncrement10,
-              width: 48,
-            ),
+            _StepperButton(text: '+ 10', onTap: onIncrement10, width: 48),
           ],
         ),
       ],
@@ -1006,8 +998,7 @@ class _StepperButtonState extends State<_StepperButton> {
                 boxShadow: isHighlighted
                     ? [
                         BoxShadow(
-                          color:
-                              const Color(0xFF8B5CF6).withValues(alpha: 0.2),
+                          color: const Color(0xFF8B5CF6).withValues(alpha: 0.2),
                           blurRadius: 8,
                           offset: const Offset(0, 2),
                         ),
@@ -1034,9 +1025,7 @@ class _StepperButtonState extends State<_StepperButton> {
 
 /// "+ Add this range" Outline Button
 class _AddThisRangeButton extends StatefulWidget {
-  const _AddThisRangeButton({
-    required this.onPressed,
-  });
+  const _AddThisRangeButton({required this.onPressed});
 
   final VoidCallback onPressed;
 
@@ -1090,15 +1079,13 @@ class _AddThisRangeButtonState extends State<_AddThisRangeButton> {
               decoration: BoxDecoration(
                 color: isHighlighted ? const Color(0xFFFAF5FF) : Colors.white,
                 borderRadius: BorderRadius.circular(24),
-                border: Border.all(
-                  color: const Color(0xFF8B5CF6),
-                  width: 1.8,
-                ),
+                border: Border.all(color: const Color(0xFF8B5CF6), width: 1.8),
                 boxShadow: isHighlighted
                     ? [
                         BoxShadow(
-                          color:
-                              const Color(0xFF8B5CF6).withValues(alpha: 0.25),
+                          color: const Color(
+                            0xFF8B5CF6,
+                          ).withValues(alpha: 0.25),
                           blurRadius: 10,
                           offset: const Offset(0, 3),
                         ),
@@ -1108,11 +1095,7 @@ class _AddThisRangeButtonState extends State<_AddThisRangeButton> {
               child: const Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(
-                    Icons.add_rounded,
-                    size: 18,
-                    color: Color(0xFF18181B),
-                  ),
+                  Icon(Icons.add_rounded, size: 18, color: Color(0xFF18181B)),
                   SizedBox(width: 6),
                   Text(
                     'Add this range',
@@ -1195,23 +1178,22 @@ class _PropertySelectCardState extends State<_PropertySelectCard> {
               decoration: BoxDecoration(
                 color: widget.isSelected
                     ? const Color(0xFFFAF5FF)
-                    : (isHighlighted
-                        ? const Color(0xFFF8FAFC)
-                        : Colors.white),
+                    : (isHighlighted ? const Color(0xFFF8FAFC) : Colors.white),
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(
                   color: widget.isSelected
                       ? const Color(0xFF8B5CF6)
                       : (isHighlighted
-                          ? const Color(0xFFA78BFA)
-                          : const Color(0xFFCBD5E1)),
+                            ? const Color(0xFFA78BFA)
+                            : const Color(0xFFCBD5E1)),
                   width: widget.isSelected ? 2.0 : 1.4,
                 ),
                 boxShadow: widget.isSelected
                     ? [
                         BoxShadow(
-                          color: const Color(0xFF8B5CF6)
-                              .withValues(alpha: 0.18),
+                          color: const Color(
+                            0xFF8B5CF6,
+                          ).withValues(alpha: 0.18),
                           blurRadius: 10,
                           offset: const Offset(0, 3),
                         ),
@@ -1269,10 +1251,7 @@ class _PropertySelectCardState extends State<_PropertySelectCard> {
 
 /// Prefix Input Box styled with active glowing purple border
 class _PrefixInputBox extends StatefulWidget {
-  const _PrefixInputBox({
-    required this.controller,
-    required this.showCursor,
-  });
+  const _PrefixInputBox({required this.controller, required this.showCursor});
 
   final TextEditingController controller;
   final bool showCursor;
@@ -1309,14 +1288,12 @@ class _PrefixInputBoxState extends State<_PrefixInputBox> {
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: const Color(0xFF8B5CF6),
-              width: 2.0,
-            ),
+            border: Border.all(color: const Color(0xFF8B5CF6), width: 2.0),
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFF8B5CF6)
-                    .withValues(alpha: isHighlighted ? 0.32 : 0.16),
+                color: const Color(
+                  0xFF8B5CF6,
+                ).withValues(alpha: isHighlighted ? 0.32 : 0.16),
                 blurRadius: isHighlighted ? 14 : 8,
                 offset: const Offset(0, 3),
               ),
@@ -1393,10 +1370,7 @@ class _PrefixInputBoxState extends State<_PrefixInputBox> {
 
 /// "Follows the property" Full-Width Language Option Card
 class _FollowsPropertyCard extends StatefulWidget {
-  const _FollowsPropertyCard({
-    required this.isSelected,
-    required this.onTap,
-  });
+  const _FollowsPropertyCard({required this.isSelected, required this.onTap});
 
   final bool isSelected;
   final VoidCallback onTap;
@@ -1452,23 +1426,22 @@ class _FollowsPropertyCardState extends State<_FollowsPropertyCard> {
               decoration: BoxDecoration(
                 color: widget.isSelected
                     ? const Color(0xFFFAF5FF)
-                    : (isHighlighted
-                        ? const Color(0xFFF8FAFC)
-                        : Colors.white),
+                    : (isHighlighted ? const Color(0xFFF8FAFC) : Colors.white),
                 borderRadius: BorderRadius.circular(14),
                 border: Border.all(
                   color: widget.isSelected
                       ? const Color(0xFF8B5CF6)
                       : (isHighlighted
-                          ? const Color(0xFFA78BFA)
-                          : const Color(0xFFCBD5E1)),
+                            ? const Color(0xFFA78BFA)
+                            : const Color(0xFFCBD5E1)),
                   width: widget.isSelected ? 2.0 : 1.4,
                 ),
                 boxShadow: widget.isSelected
                     ? [
                         BoxShadow(
-                          color: const Color(0xFF8B5CF6)
-                              .withValues(alpha: 0.15),
+                          color: const Color(
+                            0xFF8B5CF6,
+                          ).withValues(alpha: 0.15),
                           blurRadius: 8,
                           offset: const Offset(0, 2),
                         ),
@@ -1575,23 +1548,22 @@ class _LanguageCardState extends State<_LanguageCard> {
               decoration: BoxDecoration(
                 color: widget.isSelected
                     ? const Color(0xFFFAF5FF)
-                    : (isHighlighted
-                        ? const Color(0xFFF8FAFC)
-                        : Colors.white),
+                    : (isHighlighted ? const Color(0xFFF8FAFC) : Colors.white),
                 borderRadius: BorderRadius.circular(14),
                 border: Border.all(
                   color: widget.isSelected
                       ? const Color(0xFF8B5CF6)
                       : (isHighlighted
-                          ? const Color(0xFFA78BFA)
-                          : const Color(0xFFCBD5E1)),
+                            ? const Color(0xFFA78BFA)
+                            : const Color(0xFFCBD5E1)),
                   width: widget.isSelected ? 2.0 : 1.3,
                 ),
                 boxShadow: widget.isSelected
                     ? [
                         BoxShadow(
-                          color: const Color(0xFF8B5CF6)
-                              .withValues(alpha: 0.18),
+                          color: const Color(
+                            0xFF8B5CF6,
+                          ).withValues(alpha: 0.18),
                           blurRadius: 8,
                           offset: const Offset(0, 2),
                         ),
@@ -1700,8 +1672,9 @@ class _AddRoomsSubmitButtonState extends State<_AddRoomsSubmitButton> {
                 borderRadius: BorderRadius.circular(24),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFFD946EF)
-                        .withValues(alpha: isHighlighted ? 0.45 : 0.28),
+                    color: const Color(
+                      0xFFD946EF,
+                    ).withValues(alpha: isHighlighted ? 0.45 : 0.28),
                     blurRadius: isHighlighted ? 16 : 10,
                     offset: const Offset(0, 4),
                   ),
@@ -1721,12 +1694,7 @@ class _AddRoomsSubmitButtonState extends State<_AddRoomsSubmitButton> {
                       ),
                     ),
                     const SizedBox(width: 8),
-                    const PlodyoThreeDotsLoading(
-                      dotSize: 5,
-                      spacing: 3.5,
-                      bounceHeight: 4,
-                      color: Colors.white,
-                    ),
+                    const LoadingDots(color: Colors.white),
                   ] else ...[
                     const Icon(
                       Icons.check_rounded,
@@ -1756,9 +1724,7 @@ class _AddRoomsSubmitButtonState extends State<_AddRoomsSubmitButton> {
 
 /// Outline "Cancel" Pill Button
 class _CancelButton extends StatefulWidget {
-  const _CancelButton({
-    required this.onPressed,
-  });
+  const _CancelButton({required this.onPressed});
 
   final VoidCallback onPressed;
 
@@ -1813,15 +1779,11 @@ class _CancelButtonState extends State<_CancelButton> {
               decoration: BoxDecoration(
                 color: isHighlighted ? const Color(0xFFFAF5FF) : Colors.white,
                 borderRadius: BorderRadius.circular(24),
-                border: Border.all(
-                  color: const Color(0xFF8B5CF6),
-                  width: 1.8,
-                ),
+                border: Border.all(color: const Color(0xFF8B5CF6), width: 1.8),
                 boxShadow: isHighlighted
                     ? [
                         BoxShadow(
-                          color:
-                              const Color(0xFF8B5CF6).withValues(alpha: 0.2),
+                          color: const Color(0xFF8B5CF6).withValues(alpha: 0.2),
                           blurRadius: 10,
                           offset: const Offset(0, 3),
                         ),
@@ -1906,10 +1868,7 @@ class _DedicatedTvKeyboard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: const Color(0xFFE2E8F0),
-          width: 1.2,
-        ),
+        border: Border.all(color: const Color(0xFFE2E8F0), width: 1.2),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.04),
@@ -2098,8 +2057,9 @@ class _TvKeyButtonState extends State<_TvKeyButton> {
                 boxShadow: isHighlighted
                     ? [
                         BoxShadow(
-                          color:
-                              const Color(0xFF8B5CF6).withValues(alpha: 0.25),
+                          color: const Color(
+                            0xFF8B5CF6,
+                          ).withValues(alpha: 0.25),
                           blurRadius: 8,
                           offset: const Offset(0, 2),
                         ),
@@ -2107,11 +2067,7 @@ class _TvKeyButtonState extends State<_TvKeyButton> {
                     : [],
               ),
               child: widget.icon != null
-                  ? Icon(
-                      widget.icon,
-                      size: 18,
-                      color: textCol,
-                    )
+                  ? Icon(widget.icon, size: 18, color: textCol)
                   : Text(
                       widget.label ?? '',
                       style: TextStyle(

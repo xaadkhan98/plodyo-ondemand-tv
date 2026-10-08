@@ -7,6 +7,9 @@ import 'tv_colors.dart';
 /// One reference `rem`. The reference is 20px at 1920×1080; the design canvas below is that frame halved.
 const double rem = 10;
 
+/// One reference CSS pixel at 1080p, for the values it sets in px (borders, rings, shadows).
+const double px = rem / 20;
+
 /// Overscan gutters (the reference's `px-safe` 3.5vw and `py-safe-y` 3vh): older panels clip ~5% of each edge.
 abstract final class TvInsets {
   static const double safeX = 0.035 * TvCanvas.designWidth;

@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 190" fill="none">
+  <defs>
+    <linearGradient id="tv-edge" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#AD46FF"/>
+      <stop offset="1" stop-color="#F6339A"/>
+    </linearGradient>
+    <clipPath id="tv-screen">
+      <rect x="44" y="56" width="132" height="84" rx="18"/>
+    </clipPath>
+  </defs>
+  <path d="M76 46 44 14M144 46l32-32" stroke="url(#tv-edge)" stroke-width="7" stroke-linecap="round"/>
+  <circle cx="44" cy="14" r="9" fill="#EC4899"/>
+  <circle cx="176" cy="14" r="9" fill="#FBC72D"/>
+  <path d="M78 150 64 178M142 150l14 28" stroke="#8B5CF6" stroke-width="7" stroke-linecap="round"/>
+  <rect x="28" y="40" width="164" height="116" rx="28" fill="#FFFFFF" stroke="url(#tv-edge)" stroke-width="6"/>
+  <g clip-path="url(#tv-screen)">
+    <rect x="44" y="56" width="132" height="84" fill="#F5EFFB"/>
+    <path d="M158 66a15 15 0 1 0 8 27 12 12 0 1 1-8-27Z" fill="#FBC72D"/>
+    <path d="M0-10Q1.5-1.5 10 0Q1.5 1.5 0 10Q-1.5 1.5-10 0Q-1.5-1.5 0-10Z" fill="#8B5CF6" fill-opacity=".4" transform="translate(68 74) scale(0.7)"/>
+    <path d="M0-10Q1.5-1.5 10 0Q1.5 1.5 0 10Q-1.5 1.5-10 0Q-1.5-1.5 0-10Z" fill="#EC4899" fill-opacity=".5" transform="translate(112 66) scale(0.5)"/>
+    <path d="M40 122c22-18 42 8 64-6s44 6 76-8v40H40Z" fill="#8B5CF6" fill-opacity=".25"/>
+  </g>
+  <circle cx="110" cy="148" r="4" fill="#36D399"/>
+</svg>

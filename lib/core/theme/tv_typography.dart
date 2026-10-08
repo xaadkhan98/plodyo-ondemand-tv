@@ -58,4 +58,19 @@ abstract final class TvText {
   static const double tight = 1.25;
   // Tailwind's `tracking-tight`, in em: multiply by the font size.
   static const double trackingTight = -0.025;
+
+  static final Map<TextStyle, double> _chCache = {};
+
+  /// CSS `ch` for [style]: the advance of "0". The reference caps text blocks in ch (`max-w-[60ch]`).
+  static double ch(TextStyle style) => _chCache[style] ??= _measureZero(style);
+
+  static double _measureZero(TextStyle style) {
+    final painter = TextPainter(
+      text: TextSpan(text: '0', style: style),
+      textDirection: TextDirection.ltr,
+    )..layout();
+    final width = painter.width;
+    painter.dispose();
+    return width;
+  }
 }

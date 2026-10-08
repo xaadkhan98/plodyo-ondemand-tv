@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/widgets/plodyo_header.dart';
-import '../../../../core/widgets/plodyo_loading.dart';
+import '../../../../core/widgets/loading.dart';
 import '../../../../core/widgets/tv_section_badge.dart';
 import '../../../../data/models/auth_exception.dart';
 import '../../../../data/models/partner_model.dart';
@@ -13,11 +13,7 @@ import '../../../../data/repositories/partners_repository.dart';
 import '../../../../data/repositories/properties_repository.dart';
 import 'add_property_view.dart';
 
-enum PropertyStatusFilter {
-  all,
-  active,
-  suspended,
-}
+enum PropertyStatusFilter { all, active, suspended }
 
 /// Properties View matching the exact Plodyo TV specification.
 /// Features angled floating badge icon animation, status filter pills,
@@ -151,9 +147,9 @@ class _PropertiesViewState extends State<PropertiesView> {
       return property.partnerName!;
     }
     final partner = _partners.cast<PartnerModel?>().firstWhere(
-          (p) => p?.id == property.partnerId,
-          orElse: () => null,
-        );
+      (p) => p?.id == property.partnerId,
+      orElse: () => null,
+    );
     if (partner != null && partner.name.isNotEmpty) {
       return partner.name;
     }
@@ -279,7 +275,8 @@ class _PropertiesViewState extends State<PropertiesView> {
                       _FilterPill(
                         label: 'Active',
                         isSelected:
-                            _selectedStatusFilter == PropertyStatusFilter.active,
+                            _selectedStatusFilter ==
+                            PropertyStatusFilter.active,
                         onTap: () =>
                             _onStatusFilterChanged(PropertyStatusFilter.active),
                       ),
@@ -287,9 +284,11 @@ class _PropertiesViewState extends State<PropertiesView> {
                       _FilterPill(
                         label: 'Suspended',
                         isSelected:
-                            _selectedStatusFilter == PropertyStatusFilter.suspended,
-                        onTap: () =>
-                            _onStatusFilterChanged(PropertyStatusFilter.suspended),
+                            _selectedStatusFilter ==
+                            PropertyStatusFilter.suspended,
+                        onTap: () => _onStatusFilterChanged(
+                          PropertyStatusFilter.suspended,
+                        ),
                       ),
                     ],
                   ),
@@ -328,89 +327,87 @@ class _PropertiesViewState extends State<PropertiesView> {
             // Scrollable Content: Loading, Error, or Properties List
             Expanded(
               child: _isLoading
-                  ? const Center(
-                      child: PlodyoPageLoading(),
-                    )
+                  ? const Center(child: Spinner())
                   : _errorMessage != null
-                      ? Center(
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(
-                                Icons.error_outline_rounded,
-                                color: Color(0xFFDC2626),
-                                size: 36,
-                              ),
-                              const SizedBox(height: 12),
-                              Text(
-                                _errorMessage!,
-                                style: const TextStyle(
-                                  color: Color(0xFF71717A),
-                                  fontSize: 14,
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                              const SizedBox(height: 16),
-                              ElevatedButton(
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFF9333EA),
-                                  foregroundColor: Colors.white,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                ),
-                                onPressed: _loadData,
-                                child: const Text('Retry'),
-                              ),
-                            ],
+                  ? Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                            Icons.error_outline_rounded,
+                            color: Color(0xFFDC2626),
+                            size: 36,
                           ),
-                        )
-                      : _properties.isEmpty
-                          ? Center(
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: const [
-                                  Icon(
-                                    Icons.account_balance_outlined,
-                                    size: 40,
-                                    color: Color(0xFF71717A),
-                                  ),
-                                  SizedBox(height: 12),
-                                  Text(
-                                    'No properties found.',
-                                    style: TextStyle(
-                                      fontSize: 15,
-                                      fontWeight: FontWeight.w500,
-                                      color: Color(0xFF71717A),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            )
-                          : ListView.separated(
-                              physics: const BouncingScrollPhysics(),
-                              padding: EdgeInsets.only(
-                                left: horizontalSpacing,
-                                right: horizontalSpacing,
-                                bottom: 32,
-                              ),
-                              itemCount: _properties.length,
-                              separatorBuilder: (context, index) =>
-                                  const SizedBox(height: 14),
-                              itemBuilder: (context, index) {
-                                final property = _properties[index];
-                                final partnerName = _getPartnerDisplayName(property);
-
-                                return _PropertyCard(
-                                  property: property,
-                                  partnerName: partnerName,
-                                  isInitiallyFocused: index == 0,
-                                  onTap: () {
-                                    widget.onPropertySelected?.call(property);
-                                  },
-                                );
-                              },
+                          const SizedBox(height: 12),
+                          Text(
+                            _errorMessage!,
+                            style: const TextStyle(
+                              color: Color(0xFF71717A),
+                              fontSize: 14,
                             ),
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 16),
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF9333EA),
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            onPressed: _loadData,
+                            child: const Text('Retry'),
+                          ),
+                        ],
+                      ),
+                    )
+                  : _properties.isEmpty
+                  ? Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: const [
+                          Icon(
+                            Icons.account_balance_outlined,
+                            size: 40,
+                            color: Color(0xFF71717A),
+                          ),
+                          SizedBox(height: 12),
+                          Text(
+                            'No properties found.',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w500,
+                              color: Color(0xFF71717A),
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  : ListView.separated(
+                      physics: const BouncingScrollPhysics(),
+                      padding: EdgeInsets.only(
+                        left: horizontalSpacing,
+                        right: horizontalSpacing,
+                        bottom: 32,
+                      ),
+                      itemCount: _properties.length,
+                      separatorBuilder: (context, index) =>
+                          const SizedBox(height: 14),
+                      itemBuilder: (context, index) {
+                        final property = _properties[index];
+                        final partnerName = _getPartnerDisplayName(property);
+
+                        return _PropertyCard(
+                          property: property,
+                          partnerName: partnerName,
+                          isInitiallyFocused: index == 0,
+                          onTap: () {
+                            widget.onPropertySelected?.call(property);
+                          },
+                        );
+                      },
+                    ),
             ),
           ],
         ),
@@ -474,16 +471,14 @@ class _AddPropertyButtonState extends State<_AddPropertyButton> {
               padding: const EdgeInsets.symmetric(horizontal: 26, vertical: 14),
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
-                  colors: [
-                    Color(0xFFD946EF),
-                    Color(0xFF9333EA),
-                  ],
+                  colors: [Color(0xFFD946EF), Color(0xFF9333EA)],
                 ),
                 borderRadius: BorderRadius.circular(24),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFF9333EA)
-                        .withValues(alpha: isHighlighted ? 0.55 : 0.38),
+                    color: const Color(
+                      0xFF9333EA,
+                    ).withValues(alpha: isHighlighted ? 0.55 : 0.38),
                     blurRadius: isHighlighted ? 18 : 12,
                     offset: const Offset(0, 4),
                   ),
@@ -492,11 +487,7 @@ class _AddPropertyButtonState extends State<_AddPropertyButton> {
               child: const Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(
-                    Icons.add_rounded,
-                    color: Colors.white,
-                    size: 20,
-                  ),
+                  Icon(Icons.add_rounded, color: Colors.white, size: 20),
                   SizedBox(width: 8),
                   Text(
                     'Add property',
@@ -580,23 +571,22 @@ class _FilterPillState extends State<_FilterPill> {
               decoration: BoxDecoration(
                 color: widget.isSelected
                     ? const Color(0xFFFAF5FF)
-                    : (isHighlighted
-                        ? const Color(0xFFF8FAFC)
-                        : Colors.white),
+                    : (isHighlighted ? const Color(0xFFF8FAFC) : Colors.white),
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(
                   color: widget.isSelected
                       ? const Color(0xFF8B5CF6)
                       : (isHighlighted
-                          ? const Color(0xFFA78BFA)
-                          : const Color(0xFFCBD5E1)),
+                            ? const Color(0xFFA78BFA)
+                            : const Color(0xFFCBD5E1)),
                   width: widget.isSelected ? 1.6 : 1.2,
                 ),
                 boxShadow: widget.isSelected
                     ? [
                         BoxShadow(
-                          color: const Color(0xFF8B5CF6)
-                              .withValues(alpha: 0.22),
+                          color: const Color(
+                            0xFF8B5CF6,
+                          ).withValues(alpha: 0.22),
                           blurRadius: 10,
                           offset: const Offset(0, 3),
                         ),
@@ -613,8 +603,9 @@ class _FilterPillState extends State<_FilterPill> {
                 widget.label,
                 style: TextStyle(
                   fontSize: 14,
-                  fontWeight:
-                      widget.isSelected ? FontWeight.w700 : FontWeight.w500,
+                  fontWeight: widget.isSelected
+                      ? FontWeight.w700
+                      : FontWeight.w500,
                   color: widget.isSelected
                       ? const Color(0xFF8B5CF6)
                       : const Color(0xFF3F3F46),
@@ -702,8 +693,9 @@ class _PropertyCardState extends State<_PropertyCard> {
                 boxShadow: isHighlighted
                     ? [
                         BoxShadow(
-                          color: const Color(0xFF9333EA)
-                              .withValues(alpha: 0.38),
+                          color: const Color(
+                            0xFF9333EA,
+                          ).withValues(alpha: 0.38),
                           blurRadius: 20,
                           spreadRadius: 2,
                           offset: const Offset(0, 5),
@@ -716,7 +708,9 @@ class _PropertyCardState extends State<_PropertyCard> {
                           offset: const Offset(0, 3),
                         ),
                         BoxShadow(
-                          color: const Color(0xFF9333EA).withValues(alpha: 0.02),
+                          color: const Color(
+                            0xFF9333EA,
+                          ).withValues(alpha: 0.02),
                           blurRadius: 12,
                           offset: const Offset(0, 4),
                         ),
@@ -757,7 +751,9 @@ class _PropertyCardState extends State<_PropertyCard> {
                               ),
                             ),
                             const SizedBox(width: 12),
-                            _PropertyStatusBadge(status: widget.property.status),
+                            _PropertyStatusBadge(
+                              status: widget.property.status,
+                            ),
                           ],
                         ),
                         const SizedBox(height: 6),

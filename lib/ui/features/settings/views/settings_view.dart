@@ -3,7 +3,8 @@ import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/widgets/plodyo_header.dart';
-import '../../../../core/widgets/plodyo_loading.dart';
+import '../../../../core/theme/tv_colors.dart';
+import '../../../../core/widgets/loading.dart';
 import '../../../../core/widgets/tv_section_badge.dart';
 import '../../../../data/models/actor.dart';
 import '../../../../data/models/roles.dart';
@@ -62,13 +63,16 @@ class _SettingsViewState extends State<SettingsView> {
     setState(() {
       _name = widget.name ?? _orNotSet(actor?.fullName);
       _email = widget.email ?? _orNotSet(actor?.email);
-      _role = widget.role ?? (actor == null ? 'Not set' : roleLabel(actor.role));
-      _scope = widget.scope ?? (actor == null ? 'Not set' : _describeScope(actor));
+      _role =
+          widget.role ?? (actor == null ? 'Not set' : roleLabel(actor.role));
+      _scope =
+          widget.scope ?? (actor == null ? 'Not set' : _describeScope(actor));
       _isLoading = false;
     });
   }
 
-  static String _orNotSet(String? value) => (value == null || value.isEmpty) ? 'Not set' : value;
+  static String _orNotSet(String? value) =>
+      (value == null || value.isEmpty) ? 'Not set' : value;
 
   // Ids are shown in full: they are what support asks for when a scope looks wrong.
   static String _describeScope(Actor actor) {
@@ -110,11 +114,7 @@ class _SettingsViewState extends State<SettingsView> {
         ),
         content: const Text(
           'Ends every session started from this login on this device. You will need to sign in again to access Plodyo TV.',
-          style: TextStyle(
-            color: Color(0xFF71717A),
-            fontSize: 14,
-            height: 1.4,
-          ),
+          style: TextStyle(color: Color(0xFF71717A), fontSize: 14, height: 1.4),
         ),
         actions: [
           TextButton(
@@ -131,7 +131,9 @@ class _SettingsViewState extends State<SettingsView> {
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFFEF4444),
               foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
               padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
             ),
             onPressed: () {
@@ -216,7 +218,10 @@ class _SettingsViewState extends State<SettingsView> {
             Expanded(
               child: SingleChildScrollView(
                 physics: const BouncingScrollPhysics(),
-                padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 48,
+                  vertical: 12,
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -234,100 +239,96 @@ class _SettingsViewState extends State<SettingsView> {
                         ),
                         if (_isLoading) ...[
                           const SizedBox(width: 12),
-                          const PlodyoThreeDotsLoading(
-                            dotSize: 6,
-                            spacing: 4,
-                            bounceHeight: 4,
-                          ),
+                          const LoadingDots(color: TvColors.primary),
                         ],
                       ],
                     ),
                     const SizedBox(height: 16),
 
-            // 2x2 Grid of Account Info Cards
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Column 1
-                Expanded(
-                  child: Column(
-                    children: [
-                      // Card 1: Name
-                      _SettingsInfoCard(
-                        icon: Icons.person_outline_rounded,
-                        label: 'Name',
-                        value: _isLoading ? 'Loading...' : _name,
-                      ),
-                      const SizedBox(height: 16),
+                    // 2x2 Grid of Account Info Cards
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Column 1
+                        Expanded(
+                          child: Column(
+                            children: [
+                              // Card 1: Name
+                              _SettingsInfoCard(
+                                icon: Icons.person_outline_rounded,
+                                label: 'Name',
+                                value: _isLoading ? 'Loading...' : _name,
+                              ),
+                              const SizedBox(height: 16),
 
-                      // Card 3: Role
-                      _SettingsInfoCard(
-                        icon: Icons.shield_outlined,
-                        label: 'Role',
-                        value: _isLoading ? '...' : _role,
-                        isBadge: true,
+                              // Card 3: Role
+                              _SettingsInfoCard(
+                                icon: Icons.shield_outlined,
+                                label: 'Role',
+                                value: _isLoading ? '...' : _role,
+                                isBadge: true,
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+
+                        // Column 2
+                        Expanded(
+                          child: Column(
+                            children: [
+                              // Card 2: Email
+                              _SettingsInfoCard(
+                                icon: Icons.mail_outline_rounded,
+                                label: 'Email',
+                                value: _isLoading ? 'Loading...' : _email,
+                              ),
+                              const SizedBox(height: 16),
+
+                              // Card 4: Scope
+                              _SettingsInfoCard(
+                                icon: Icons.domain_rounded,
+                                label: 'Scope',
+                                value: _isLoading ? 'Loading...' : _scope,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 36),
+
+                    // Sign out Section
+                    const Text(
+                      'Sign out',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w800,
+                        color: Color(0xFF18181B),
+                        letterSpacing: -0.3,
                       ),
-                    ],
-                  ),
+                    ),
+                    const SizedBox(height: 6),
+                    const Text(
+                      'Ends every session started from this login, on every device.',
+                      style: TextStyle(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w400,
+                        color: Color(0xFF64748B),
+                        height: 1.4,
+                      ),
+                    ),
+                    const SizedBox(height: 18),
+
+                    // Sign out Outlined Button
+                    _SignOutButton(onPressed: _confirmSignOut),
+
+                    const SizedBox(height: 48),
+                  ],
                 ),
-                const SizedBox(width: 16),
-
-                // Column 2
-                Expanded(
-                  child: Column(
-                    children: [
-                      // Card 2: Email
-                      _SettingsInfoCard(
-                        icon: Icons.mail_outline_rounded,
-                        label: 'Email',
-                        value: _isLoading ? 'Loading...' : _email,
-                      ),
-                      const SizedBox(height: 16),
-
-                      // Card 4: Scope
-                      _SettingsInfoCard(
-                        icon: Icons.domain_rounded,
-                        label: 'Scope',
-                        value: _isLoading ? 'Loading...' : _scope,
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 36),
-
-            // Sign out Section
-            const Text(
-              'Sign out',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.w800,
-                color: Color(0xFF18181B),
-                letterSpacing: -0.3,
               ),
             ),
-            const SizedBox(height: 6),
-            const Text(
-              'Ends every session started from this login, on every device.',
-              style: TextStyle(
-                fontSize: 13.5,
-                fontWeight: FontWeight.w400,
-                color: Color(0xFF64748B),
-                height: 1.4,
-              ),
-            ),
-            const SizedBox(height: 18),
-
-            // Sign out Outlined Button
-            _SignOutButton(onPressed: _confirmSignOut),
-
-            const SizedBox(height: 48),
-          ],
-        ),
-      ),
-    ),
           ],
         ),
       ),
@@ -383,9 +384,7 @@ class _SettingsInfoCardState extends State<_SettingsInfoCard> {
             color: Colors.white,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: active
-                  ? const Color(0xFF8B5CF6)
-                  : const Color(0xFFCBD5E1),
+              color: active ? const Color(0xFF8B5CF6) : const Color(0xFFCBD5E1),
               width: active ? 2.0 : 1.3,
             ),
             boxShadow: [
@@ -457,7 +456,9 @@ class _SettingsInfoCardState extends State<_SettingsInfoCard> {
                     if (widget.isBadge)
                       Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 4.5),
+                          horizontal: 12,
+                          vertical: 4.5,
+                        ),
                         decoration: BoxDecoration(
                           color: const Color(0xFFDCFCE7),
                           borderRadius: BorderRadius.circular(14),

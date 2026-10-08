@@ -4,7 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/widgets/plodyo_header.dart';
-import '../../../../core/widgets/plodyo_loading.dart';
+import '../../../../core/widgets/loading.dart';
 import '../../../../core/widgets/tv_section_badge.dart';
 import '../../../../data/models/partner_model.dart';
 import '../../../../data/repositories/auth_repository.dart';
@@ -284,12 +284,14 @@ class _AddPartnerViewState extends State<AddPartnerView> {
         return KeyEventResult.handled;
       }
 
-      if (key == LogicalKeyboardKey.arrowDown && HardwareKeyboard.instance.isMetaPressed) {
+      if (key == LogicalKeyboardKey.arrowDown &&
+          HardwareKeyboard.instance.isMetaPressed) {
         _handleNextField();
         return KeyEventResult.handled;
       }
 
-      if (key == LogicalKeyboardKey.arrowUp && HardwareKeyboard.instance.isMetaPressed) {
+      if (key == LogicalKeyboardKey.arrowUp &&
+          HardwareKeyboard.instance.isMetaPressed) {
         _handlePrevField();
         return KeyEventResult.handled;
       }
@@ -303,7 +305,8 @@ class _AddPartnerViewState extends State<AddPartnerView> {
         }
       }
 
-      if (key == LogicalKeyboardKey.backspace || key == LogicalKeyboardKey.delete) {
+      if (key == LogicalKeyboardKey.backspace ||
+          key == LogicalKeyboardKey.delete) {
         _handleVirtualBackspace();
         return KeyEventResult.handled;
       }
@@ -313,7 +316,8 @@ class _AddPartnerViewState extends State<AddPartnerView> {
         return KeyEventResult.handled;
       }
 
-      if (key == LogicalKeyboardKey.enter || key == LogicalKeyboardKey.numpadEnter) {
+      if (key == LogicalKeyboardKey.enter ||
+          key == LogicalKeyboardKey.numpadEnter) {
         if (_activeField == AddPartnerField.contractReference) {
           _handleCreatePartner();
         } else {
@@ -338,7 +342,12 @@ class _AddPartnerViewState extends State<AddPartnerView> {
             children: [
               // Top Plodyo Logo Header (Sticky)
               const Padding(
-                padding: EdgeInsets.only(left: 48, right: 48, top: 20, bottom: 8),
+                padding: EdgeInsets.only(
+                  left: 48,
+                  right: 48,
+                  top: 20,
+                  bottom: 8,
+                ),
                 child: PlodyoHeader(padding: EdgeInsets.zero),
               ),
 
@@ -346,398 +355,428 @@ class _AddPartnerViewState extends State<AddPartnerView> {
               Expanded(
                 child: SingleChildScrollView(
                   physics: const BouncingScrollPhysics(),
-                  padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 48,
+                    vertical: 12,
+                  ),
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                  // LEFT COLUMN: Form + Controls + Actions
-                  Expanded(
-                    flex: 12,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Header Row: TvSectionBadge + Title + Subtitle
-                        Row(
+                      // LEFT COLUMN: Form + Controls + Actions
+                      Expanded(
+                        flex: 12,
+                        child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const TvSectionBadge(
-                              icon: Icons.business_rounded,
-                              gradientColors: [
-                                Color(0xFFF472B6),
-                                Color(0xFFD946EF),
-                                Color(0xFF9333EA),
-                              ],
-                            ),
-                            const SizedBox(width: 18),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'Add a partner',
-                                    style: GoogleFonts.baloo2(
-                                      fontSize: 32,
-                                      fontWeight: FontWeight.w900,
-                                      color: const Color(0xFF18181B),
-                                      letterSpacing: -0.5,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    'Onboards a venue that is not going through the public registration form. It is active straight away, and no invite is sent \u2014 invite the first partner admin separately.',
-                                    style: GoogleFonts.nunito(
-                                      fontSize: 14.5,
-                                      color: const Color(0xFF64748B),
-                                      height: 1.45,
-                                      fontWeight: FontWeight.w400,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 24),
-
-                        // Business Type Section Label
-                        Text(
-                          'Business type',
-                          style: GoogleFonts.nunito(
-                            fontSize: 13.5,
-                            fontWeight: FontWeight.w600,
-                            color: const Color(0xFF475569),
-                          ),
-                        ),
-                        const SizedBox(height: 10),
-
-                        // Business Type 3 Cards Row
-                        Row(
-                          children: [
-                            Expanded(
-                              child: _BusinessTypeCard(
-                                title: 'Chain',
-                                description:
-                                    'Several venues under one contract. Cannot self-register.',
-                                isSelected: _selectedBusinessType == 'CHAIN',
-                                onTap: () {
-                                  setState(() {
-                                    _selectedBusinessType = 'CHAIN';
-                                  });
-                                },
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: _BusinessTypeCard(
-                                title: 'Independent',
-                                description: 'A single hotel or guest house.',
-                                isSelected:
-                                    _selectedBusinessType == 'INDEPENDENT',
-                                onTap: () {
-                                  setState(() {
-                                    _selectedBusinessType = 'INDEPENDENT';
-                                  });
-                                },
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: _BusinessTypeCard(
-                                title: 'Host',
-                                description:
-                                    'A short-let host with a handful of rooms.',
-                                isSelected: _selectedBusinessType == 'HOST',
-                                onTap: () {
-                                  setState(() {
-                                    _selectedBusinessType = 'HOST';
-                                  });
-                                },
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 18),
-
-                        // Error Banner if present
-                        if (_errorMessage != null)
-                          Padding(
-                            padding: const EdgeInsets.only(bottom: 14),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 14, vertical: 10),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFFEF2F2),
-                                borderRadius: BorderRadius.circular(10),
-                                border: Border.all(
-                                    color: const Color(0xFFF87171)),
-                              ),
-                              child: Row(
-                                children: [
-                                  const Icon(Icons.error_outline_rounded,
-                                      color: Color(0xFFDC2626), size: 18),
-                                  const SizedBox(width: 8),
-                                  Expanded(
-                                    child: Text(
-                                      _errorMessage!,
-                                      style: const TextStyle(
-                                        color: Color(0xFFDC2626),
-                                        fontSize: 13,
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-
-                        // 5 Styled Form Fields
-                        _FormInputField(
-                          icon: Icons.apartment_rounded,
-                          label: 'Venue name',
-                          hint: 'Grand Hotel Group',
-                          controller: _venueNameController,
-                          isActive: _activeField == AddPartnerField.venueName,
-                          showCursor: _showCursor,
-                          onTap: () {
-                            setState(() {
-                              _activeField = AddPartnerField.venueName;
-                            });
-                          },
-                        ),
-                        const SizedBox(height: 12),
-
-                        _FormInputField(
-                          icon: Icons.mail_outline_rounded,
-                          label: 'Contact email',
-                          hint: 'ops@grandhotelgroup.com',
-                          controller: _contactEmailController,
-                          isActive: _activeField == AddPartnerField.contactEmail,
-                          showCursor: _showCursor,
-                          onTap: () {
-                            setState(() {
-                              _activeField = AddPartnerField.contactEmail;
-                            });
-                          },
-                        ),
-                        const SizedBox(height: 12),
-
-                        _FormInputField(
-                          icon: Icons.person_outline_rounded,
-                          label: 'Contact name (optional)',
-                          hint: 'Jordan Lee',
-                          controller: _contactNameController,
-                          isActive: _activeField == AddPartnerField.contactName,
-                          showCursor: _showCursor,
-                          onTap: () {
-                            setState(() {
-                              _activeField = AddPartnerField.contactName;
-                            });
-                          },
-                        ),
-                        const SizedBox(height: 12),
-
-                        _FormInputField(
-                          icon: Icons.phone_outlined,
-                          label: 'Phone (optional)',
-                          hint: '+1-555-0100',
-                          controller: _phoneController,
-                          isActive: _activeField == AddPartnerField.phone,
-                          showCursor: _showCursor,
-                          onTap: () {
-                            setState(() {
-                              _activeField = AddPartnerField.phone;
-                            });
-                          },
-                        ),
-                        const SizedBox(height: 12),
-
-                        _FormInputField(
-                          icon: Icons.description_outlined,
-                          label: 'Contract reference (optional)',
-                          hint: 'CTR-2026-0142',
-                          controller: _contractRefController,
-                          isActive: _activeField ==
-                              AddPartnerField.contractReference,
-                          showCursor: _showCursor,
-                          onTap: () {
-                            setState(() {
-                              _activeField =
-                                  AddPartnerField.contractReference;
-                            });
-                          },
-                        ),
-                        const SizedBox(height: 20),
-
-                        // Room limit Section
-                        const Text(
-                          'Room limit',
-                          style: TextStyle(
-                            fontSize: 13.5,
-                            fontWeight: FontWeight.w600,
-                            color: Color(0xFF475569),
-                          ),
-                        ),
-                        const SizedBox(height: 10),
-
-                        // Room limit Stepper Row: [-10] [-] [0 rooms] [+] [+10]
-                        Row(
-                          children: [
-                            _StepperButton(
-                              label: '- 10',
-                              onPressed: () {
-                                setState(() {
-                                  _roomLimit = (_roomLimit - 10).clamp(0, 9999);
-                                });
-                              },
-                            ),
-                            const SizedBox(width: 8),
-                            _StepperButton(
-                              label: '—',
-                              onPressed: () {
-                                setState(() {
-                                  _roomLimit = (_roomLimit - 1).clamp(0, 9999);
-                                });
-                              },
-                            ),
-                            const SizedBox(width: 8),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 18, vertical: 10),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(10),
-                                border: Border.all(
-                                  color: const Color(0xFF1E293B),
-                                  width: 1.4,
-                                ),
-                              ),
-                              child: RichText(
-                                text: TextSpan(
-                                  children: [
-                                    TextSpan(
-                                      text: '$_roomLimit',
-                                      style: const TextStyle(
-                                        color: Color(0xFF18181B),
-                                        fontSize: 15,
-                                        fontWeight: FontWeight.w800,
-                                      ),
-                                    ),
-                                    const TextSpan(
-                                      text: ' rooms',
-                                      style: TextStyle(
-                                        color: Color(0xFF18181B),
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                    ),
+                            // Header Row: TvSectionBadge + Title + Subtitle
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const TvSectionBadge(
+                                  icon: Icons.business_rounded,
+                                  gradientColors: [
+                                    Color(0xFFF472B6),
+                                    Color(0xFFD946EF),
+                                    Color(0xFF9333EA),
                                   ],
                                 ),
+                                const SizedBox(width: 18),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Add a partner',
+                                        style: GoogleFonts.baloo2(
+                                          fontSize: 32,
+                                          fontWeight: FontWeight.w900,
+                                          color: const Color(0xFF18181B),
+                                          letterSpacing: -0.5,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        'Onboards a venue that is not going through the public registration form. It is active straight away, and no invite is sent \u2014 invite the first partner admin separately.',
+                                        style: GoogleFonts.nunito(
+                                          fontSize: 14.5,
+                                          color: const Color(0xFF64748B),
+                                          height: 1.45,
+                                          fontWeight: FontWeight.w400,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 24),
+
+                            // Business Type Section Label
+                            Text(
+                              'Business type',
+                              style: GoogleFonts.nunito(
+                                fontSize: 13.5,
+                                fontWeight: FontWeight.w600,
+                                color: const Color(0xFF475569),
                               ),
                             ),
-                            const SizedBox(width: 8),
-                            _StepperButton(
-                              label: '+',
-                              onPressed: () {
+                            const SizedBox(height: 10),
+
+                            // Business Type 3 Cards Row
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: _BusinessTypeCard(
+                                    title: 'Chain',
+                                    description:
+                                        'Several venues under one contract. Cannot self-register.',
+                                    isSelected:
+                                        _selectedBusinessType == 'CHAIN',
+                                    onTap: () {
+                                      setState(() {
+                                        _selectedBusinessType = 'CHAIN';
+                                      });
+                                    },
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: _BusinessTypeCard(
+                                    title: 'Independent',
+                                    description:
+                                        'A single hotel or guest house.',
+                                    isSelected:
+                                        _selectedBusinessType == 'INDEPENDENT',
+                                    onTap: () {
+                                      setState(() {
+                                        _selectedBusinessType = 'INDEPENDENT';
+                                      });
+                                    },
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: _BusinessTypeCard(
+                                    title: 'Host',
+                                    description:
+                                        'A short-let host with a handful of rooms.',
+                                    isSelected: _selectedBusinessType == 'HOST',
+                                    onTap: () {
+                                      setState(() {
+                                        _selectedBusinessType = 'HOST';
+                                      });
+                                    },
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 18),
+
+                            // Error Banner if present
+                            if (_errorMessage != null)
+                              Padding(
+                                padding: const EdgeInsets.only(bottom: 14),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 14,
+                                    vertical: 10,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFFEF2F2),
+                                    borderRadius: BorderRadius.circular(10),
+                                    border: Border.all(
+                                      color: const Color(0xFFF87171),
+                                    ),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      const Icon(
+                                        Icons.error_outline_rounded,
+                                        color: Color(0xFFDC2626),
+                                        size: 18,
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: Text(
+                                          _errorMessage!,
+                                          style: const TextStyle(
+                                            color: Color(0xFFDC2626),
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+
+                            // 5 Styled Form Fields
+                            _FormInputField(
+                              icon: Icons.apartment_rounded,
+                              label: 'Venue name',
+                              hint: 'Grand Hotel Group',
+                              controller: _venueNameController,
+                              isActive:
+                                  _activeField == AddPartnerField.venueName,
+                              showCursor: _showCursor,
+                              onTap: () {
                                 setState(() {
-                                  _roomLimit = (_roomLimit + 1).clamp(0, 9999);
+                                  _activeField = AddPartnerField.venueName;
                                 });
                               },
                             ),
-                            const SizedBox(width: 8),
-                            _StepperButton(
-                              label: '+ 10',
-                              onPressed: () {
+                            const SizedBox(height: 12),
+
+                            _FormInputField(
+                              icon: Icons.mail_outline_rounded,
+                              label: 'Contact email',
+                              hint: 'ops@grandhotelgroup.com',
+                              controller: _contactEmailController,
+                              isActive:
+                                  _activeField == AddPartnerField.contactEmail,
+                              showCursor: _showCursor,
+                              onTap: () {
                                 setState(() {
-                                  _roomLimit = (_roomLimit + 10).clamp(0, 9999);
+                                  _activeField = AddPartnerField.contactEmail;
                                 });
                               },
                             ),
+                            const SizedBox(height: 12),
+
+                            _FormInputField(
+                              icon: Icons.person_outline_rounded,
+                              label: 'Contact name (optional)',
+                              hint: 'Jordan Lee',
+                              controller: _contactNameController,
+                              isActive:
+                                  _activeField == AddPartnerField.contactName,
+                              showCursor: _showCursor,
+                              onTap: () {
+                                setState(() {
+                                  _activeField = AddPartnerField.contactName;
+                                });
+                              },
+                            ),
+                            const SizedBox(height: 12),
+
+                            _FormInputField(
+                              icon: Icons.phone_outlined,
+                              label: 'Phone (optional)',
+                              hint: '+1-555-0100',
+                              controller: _phoneController,
+                              isActive: _activeField == AddPartnerField.phone,
+                              showCursor: _showCursor,
+                              onTap: () {
+                                setState(() {
+                                  _activeField = AddPartnerField.phone;
+                                });
+                              },
+                            ),
+                            const SizedBox(height: 12),
+
+                            _FormInputField(
+                              icon: Icons.description_outlined,
+                              label: 'Contract reference (optional)',
+                              hint: 'CTR-2026-0142',
+                              controller: _contractRefController,
+                              isActive:
+                                  _activeField ==
+                                  AddPartnerField.contractReference,
+                              showCursor: _showCursor,
+                              onTap: () {
+                                setState(() {
+                                  _activeField =
+                                      AddPartnerField.contractReference;
+                                });
+                              },
+                            ),
+                            const SizedBox(height: 20),
+
+                            // Room limit Section
+                            const Text(
+                              'Room limit',
+                              style: TextStyle(
+                                fontSize: 13.5,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFF475569),
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+
+                            // Room limit Stepper Row: [-10] [-] [0 rooms] [+] [+10]
+                            Row(
+                              children: [
+                                _StepperButton(
+                                  label: '- 10',
+                                  onPressed: () {
+                                    setState(() {
+                                      _roomLimit = (_roomLimit - 10).clamp(
+                                        0,
+                                        9999,
+                                      );
+                                    });
+                                  },
+                                ),
+                                const SizedBox(width: 8),
+                                _StepperButton(
+                                  label: '—',
+                                  onPressed: () {
+                                    setState(() {
+                                      _roomLimit = (_roomLimit - 1).clamp(
+                                        0,
+                                        9999,
+                                      );
+                                    });
+                                  },
+                                ),
+                                const SizedBox(width: 8),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 18,
+                                    vertical: 10,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(10),
+                                    border: Border.all(
+                                      color: const Color(0xFF1E293B),
+                                      width: 1.4,
+                                    ),
+                                  ),
+                                  child: RichText(
+                                    text: TextSpan(
+                                      children: [
+                                        TextSpan(
+                                          text: '$_roomLimit',
+                                          style: const TextStyle(
+                                            color: Color(0xFF18181B),
+                                            fontSize: 15,
+                                            fontWeight: FontWeight.w800,
+                                          ),
+                                        ),
+                                        const TextSpan(
+                                          text: ' rooms',
+                                          style: TextStyle(
+                                            color: Color(0xFF18181B),
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                _StepperButton(
+                                  label: '+',
+                                  onPressed: () {
+                                    setState(() {
+                                      _roomLimit = (_roomLimit + 1).clamp(
+                                        0,
+                                        9999,
+                                      );
+                                    });
+                                  },
+                                ),
+                                const SizedBox(width: 8),
+                                _StepperButton(
+                                  label: '+ 10',
+                                  onPressed: () {
+                                    setState(() {
+                                      _roomLimit = (_roomLimit + 10).clamp(
+                                        0,
+                                        9999,
+                                      );
+                                    });
+                                  },
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+
+                            // Caption below room limit
+                            const Text(
+                              'At 0 no room can be created, so a TV cannot be signed in. It can be raised later from the partner\u2019s own screen.',
+                              style: TextStyle(
+                                fontSize: 12.5,
+                                color: Color(0xFF64748B),
+                                height: 1.4,
+                              ),
+                            ),
+                            const SizedBox(height: 28),
+
+                            // Bottom Action Buttons: [Create partner] [Cancel]
+                            Row(
+                              children: [
+                                // Create Partner Primary Gradient Pill Button
+                                _CreatePartnerButton(
+                                  isLoading: _isCreating,
+                                  onPressed: _handleCreatePartner,
+                                ),
+                                const SizedBox(width: 14),
+
+                                // Cancel Outline Pill Button
+                                _CancelButton(onPressed: _handleBack),
+                              ],
+                            ),
+                            const SizedBox(height: 40),
                           ],
                         ),
-                        const SizedBox(height: 8),
+                      ),
 
-                        // Caption below room limit
-                        const Text(
-                          'At 0 no room can be created, so a TV cannot be signed in. It can be raised later from the partner\u2019s own screen.',
-                          style: TextStyle(
-                            fontSize: 12.5,
-                            color: Color(0xFF64748B),
-                            height: 1.4,
-                          ),
-                        ),
-                        const SizedBox(height: 28),
+                      const SizedBox(width: 48),
 
-                        // Bottom Action Buttons: [Create partner] [Cancel]
-                        Row(
+                      // RIGHT COLUMN: Dedicated On-Screen TV Virtual Keyboard
+                      SizedBox(
+                        width: 380,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            // Create Partner Primary Gradient Pill Button
-                            _CreatePartnerButton(
-                              isLoading: _isCreating,
-                              onPressed: _handleCreatePartner,
+                            // Active Field Indicator Header
+                            Text(
+                              'Entering $_activeFieldLabel',
+                              style: const TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                                color: Color(0xFF475569),
+                                letterSpacing: 0.1,
+                              ),
                             ),
-                            const SizedBox(width: 14),
+                            const SizedBox(height: 16),
 
-                            // Cancel Outline Pill Button
-                            _CancelButton(onPressed: _handleBack),
+                            // TV Keyboard Grid
+                            _DedicatedTvKeyboard(
+                              isUpperCase: _isUpperCase,
+                              showSymbols: _showSymbols,
+                              onToggleCase: () {
+                                setState(() {
+                                  _isUpperCase = !_isUpperCase;
+                                });
+                              },
+                              onToggleSymbols: () {
+                                setState(() {
+                                  _showSymbols = !_showSymbols;
+                                });
+                              },
+                              onKeyPress: _handleVirtualKeyPress,
+                              onBackspace: _handleVirtualBackspace,
+                              onSpace: _handleVirtualSpace,
+                              onClear: _handleVirtualClear,
+                            ),
                           ],
                         ),
-                        const SizedBox(height: 40),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
-
-                  const SizedBox(width: 48),
-
-                  // RIGHT COLUMN: Dedicated On-Screen TV Virtual Keyboard
-                  SizedBox(
-                    width: 380,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Active Field Indicator Header
-                        Text(
-                          'Entering $_activeFieldLabel',
-                          style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                            color: Color(0xFF475569),
-                            letterSpacing: 0.1,
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-
-                        // TV Keyboard Grid
-                        _DedicatedTvKeyboard(
-                          isUpperCase: _isUpperCase,
-                          showSymbols: _showSymbols,
-                          onToggleCase: () {
-                            setState(() {
-                              _isUpperCase = !_isUpperCase;
-                            });
-                          },
-                          onToggleSymbols: () {
-                            setState(() {
-                              _showSymbols = !_showSymbols;
-                            });
-                          },
-                          onKeyPress: _handleVirtualKeyPress,
-                          onBackspace: _handleVirtualBackspace,
-                          onSpace: _handleVirtualSpace,
-                          onClear: _handleVirtualClear,
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
+                ),
               ),
-            ),
+            ],
           ),
-        ],
+        ),
       ),
-    ),
-  ),
-);
+    );
   }
 }
 
@@ -793,8 +832,9 @@ class _BusinessTypeCardState extends State<_BusinessTypeCard> {
         : (isHighlighted ? const Color(0xFF8B5CF6) : const Color(0xFFCBD5E1));
 
     final borderWidth = widget.isSelected ? 1.8 : 1.0;
-    final backgroundColor =
-        widget.isSelected ? const Color(0xFFFAF5FF) : Colors.white;
+    final backgroundColor = widget.isSelected
+        ? const Color(0xFFFAF5FF)
+        : Colors.white;
 
     final titleColor = widget.isSelected
         ? const Color(0xFF8B5CF6)
@@ -817,10 +857,7 @@ class _BusinessTypeCardState extends State<_BusinessTypeCard> {
             decoration: BoxDecoration(
               color: backgroundColor,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: borderColor,
-                width: borderWidth,
-              ),
+              border: Border.all(color: borderColor, width: borderWidth),
               boxShadow: widget.isSelected
                   ? [
                       BoxShadow(
@@ -891,11 +928,13 @@ class _FormInputField extends StatelessWidget {
     final text = controller.text;
     final hasText = text.isNotEmpty;
 
-    final borderColor =
-        isActive ? const Color(0xFF8B5CF6) : const Color(0xFFCBD5E1);
+    final borderColor = isActive
+        ? const Color(0xFF8B5CF6)
+        : const Color(0xFFCBD5E1);
     final borderWidth = isActive ? 1.8 : 1.0;
-    final iconColor =
-        isActive ? const Color(0xFF8B5CF6) : const Color(0xFF64748B);
+    final iconColor = isActive
+        ? const Color(0xFF8B5CF6)
+        : const Color(0xFF64748B);
 
     return MouseRegion(
       cursor: SystemMouseCursors.click,
@@ -908,10 +947,7 @@ class _FormInputField extends StatelessWidget {
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: borderColor,
-              width: borderWidth,
-            ),
+            border: Border.all(color: borderColor, width: borderWidth),
             boxShadow: isActive
                 ? [
                     BoxShadow(
@@ -931,11 +967,7 @@ class _FormInputField extends StatelessWidget {
           child: Row(
             children: [
               // Left Icon
-              Icon(
-                icon,
-                size: 20,
-                color: iconColor,
-              ),
+              Icon(icon, size: 20, color: iconColor),
               const SizedBox(width: 14),
 
               // Text Content Column: Label at top, Value/Hint at bottom
@@ -960,8 +992,9 @@ class _FormInputField extends StatelessWidget {
                             hasText ? text : hint,
                             style: TextStyle(
                               fontSize: 14.5,
-                              fontWeight:
-                                  hasText ? FontWeight.w500 : FontWeight.w400,
+                              fontWeight: hasText
+                                  ? FontWeight.w500
+                                  : FontWeight.w400,
                               color: hasText
                                   ? const Color(0xFF18181B)
                                   : const Color(0xFF94A3B8),
@@ -995,10 +1028,7 @@ class _FormInputField extends StatelessWidget {
 
 /// Stepper Button ([-10], [-], [+], [+10])
 class _StepperButton extends StatefulWidget {
-  const _StepperButton({
-    required this.label,
-    required this.onPressed,
-  });
+  const _StepperButton({required this.label, required this.onPressed});
 
   final String label;
   final VoidCallback onPressed;
@@ -1159,16 +1189,14 @@ class _CreatePartnerButtonState extends State<_CreatePartnerButton> {
               padding: const EdgeInsets.symmetric(horizontal: 26, vertical: 14),
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
-                  colors: [
-                    Color(0xFFD946EF),
-                    Color(0xFF9333EA),
-                  ],
+                  colors: [Color(0xFFD946EF), Color(0xFF9333EA)],
                 ),
                 borderRadius: BorderRadius.circular(26),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFF9333EA)
-                        .withValues(alpha: isHighlighted ? 0.5 : 0.35),
+                    color: const Color(
+                      0xFF9333EA,
+                    ).withValues(alpha: isHighlighted ? 0.5 : 0.35),
                     blurRadius: isHighlighted ? 16 : 12,
                     offset: const Offset(0, 4),
                   ),
@@ -1188,12 +1216,7 @@ class _CreatePartnerButtonState extends State<_CreatePartnerButton> {
                           ),
                         ),
                         SizedBox(width: 8),
-                        PlodyoThreeDotsLoading(
-                          dotSize: 5,
-                          spacing: 3.5,
-                          bounceHeight: 4,
-                          color: Colors.white,
-                        ),
+                        LoadingDots(color: Colors.white),
                       ],
                     )
                   : const Row(
@@ -1280,14 +1303,13 @@ class _CancelButtonState extends State<_CancelButton> {
               decoration: BoxDecoration(
                 color: isHighlighted ? const Color(0xFFFAF5FF) : Colors.white,
                 borderRadius: BorderRadius.circular(26),
-                border: Border.all(
-                  color: const Color(0xFF8B5CF6),
-                  width: 1.5,
-                ),
+                border: Border.all(color: const Color(0xFF8B5CF6), width: 1.5),
                 boxShadow: isHighlighted
                     ? [
                         BoxShadow(
-                          color: const Color(0xFF8B5CF6).withValues(alpha: 0.25),
+                          color: const Color(
+                            0xFF8B5CF6,
+                          ).withValues(alpha: 0.25),
                           blurRadius: 10,
                           offset: const Offset(0, 2),
                         ),
@@ -1351,24 +1373,24 @@ class _DedicatedTvKeyboard extends StatelessWidget {
   final VoidCallback onClear;
 
   List<List<String>> get _standardRows => [
-        ['a', 'b', 'c', 'd', 'e', 'f'],
-        ['g', 'h', 'i', 'j', 'k', 'l'],
-        ['m', 'n', 'o', 'p', 'q', 'r'],
-        ['s', 't', 'u', 'v', 'w', 'x'],
-        ['y', 'z', '0', '1', '2', '3'],
-        ['4', '5', '6', '7', '8', '9'],
-        ['-', '.', '\''],
-      ];
+    ['a', 'b', 'c', 'd', 'e', 'f'],
+    ['g', 'h', 'i', 'j', 'k', 'l'],
+    ['m', 'n', 'o', 'p', 'q', 'r'],
+    ['s', 't', 'u', 'v', 'w', 'x'],
+    ['y', 'z', '0', '1', '2', '3'],
+    ['4', '5', '6', '7', '8', '9'],
+    ['-', '.', '\''],
+  ];
 
   List<List<String>> get _symbolsRows => [
-        ['!', '@', '#', '\$', '%', '^'],
-        ['&', '*', '(', ')', '_', '+'],
-        ['[', ']', '{', '}', ';', ':'],
-        ['\'', '"', ',', '.', '/', '?'],
-        ['~', '`', '<', '>', '=', '\\'],
-        ['4', '5', '6', '7', '8', '9'],
-        ['-', '.', '\''],
-      ];
+    ['!', '@', '#', '\$', '%', '^'],
+    ['&', '*', '(', ')', '_', '+'],
+    ['[', ']', '{', '}', ';', ':'],
+    ['\'', '"', ',', '.', '/', '?'],
+    ['~', '`', '<', '>', '=', '\\'],
+    ['4', '5', '6', '7', '8', '9'],
+    ['-', '.', '\''],
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -1537,24 +1559,20 @@ class _KeyButtonState extends State<_KeyButton> {
               decoration: BoxDecoration(
                 gradient: isHighlighted
                     ? const LinearGradient(
-                        colors: [
-                          Color(0xFFD946EF),
-                          Color(0xFF9333EA),
-                        ],
+                        colors: [Color(0xFFD946EF), Color(0xFF9333EA)],
                       )
                     : null,
                 color: isHighlighted ? null : Colors.white,
                 borderRadius: BorderRadius.circular(9),
                 border: isHighlighted
                     ? null
-                    : Border.all(
-                        color: const Color(0xFFE4E4E7),
-                        width: 1.0,
-                      ),
+                    : Border.all(color: const Color(0xFFE4E4E7), width: 1.0),
                 boxShadow: isHighlighted
                     ? [
                         BoxShadow(
-                          color: const Color(0xFFD946EF).withValues(alpha: 0.45),
+                          color: const Color(
+                            0xFFD946EF,
+                          ).withValues(alpha: 0.45),
                           blurRadius: 10,
                           offset: const Offset(0, 3),
                         ),
@@ -1580,8 +1598,9 @@ class _KeyButtonState extends State<_KeyButton> {
                         widget.label ?? '',
                         style: TextStyle(
                           fontSize: widget.fontSize,
-                          fontWeight:
-                              isHighlighted ? FontWeight.w700 : FontWeight.w500,
+                          fontWeight: isHighlighted
+                              ? FontWeight.w700
+                              : FontWeight.w500,
                           color: isHighlighted
                               ? Colors.white
                               : const Color(0xFF18181B),

@@ -3,20 +3,14 @@ import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/widgets/plodyo_header.dart';
-import '../../../../core/widgets/plodyo_loading.dart';
+import '../../../../core/widgets/loading.dart';
 import '../../../../core/widgets/tv_section_badge.dart';
 import '../../../../data/models/auth_exception.dart';
 import '../../../../data/models/partner_model.dart';
 import '../../../../data/repositories/auth_repository.dart';
 import '../../../../data/repositories/partners_repository.dart';
 
-enum PartnerFilter {
-  all,
-  pendingApproval,
-  active,
-  suspended,
-  rejected,
-}
+enum PartnerFilter { all, pendingApproval, active, suspended, rejected }
 
 /// Partners View matching the refined Plodyo TV design specification.
 /// Features angled floating badge icon animation, custom pill tabs, card list items, and full interaction modal flows.
@@ -46,7 +40,6 @@ class _PartnersViewState extends State<PartnersView> {
   List<PartnerModel> _partners = [];
   bool _isLoading = false;
   String? _errorMessage;
-
 
   @override
   void initState() {
@@ -109,7 +102,9 @@ class _PartnersViewState extends State<PartnersView> {
         setState(() {
           _partners = [];
           _isLoading = false;
-          _errorMessage = e is AuthException ? e.message : 'Could not load partners.';
+          _errorMessage = e is AuthException
+              ? e.message
+              : 'Could not load partners.';
         });
       }
     }
@@ -226,8 +221,10 @@ class _PartnersViewState extends State<PartnersView> {
                       const SizedBox(width: 10),
                       _FilterPill(
                         label: 'Pending approval',
-                        isSelected: _selectedFilter == PartnerFilter.pendingApproval,
-                        onTap: () => _onFilterChanged(PartnerFilter.pendingApproval),
+                        isSelected:
+                            _selectedFilter == PartnerFilter.pendingApproval,
+                        onTap: () =>
+                            _onFilterChanged(PartnerFilter.pendingApproval),
                       ),
                       const SizedBox(width: 10),
                       _FilterPill(
@@ -257,55 +254,67 @@ class _PartnersViewState extends State<PartnersView> {
             // Main Content: Loading, Error, or Scrollable Partner Cards
             Expanded(
               child: _isLoading
-                  ? const Center(
-                      child: PlodyoPageLoading(),
-                    )
+                  ? const Center(child: Spinner())
                   : _errorMessage != null
-                      ? Center(
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(Icons.error_outline_rounded, color: Color(0xFFDC2626), size: 36),
-                              const SizedBox(height: 12),
-                              Text(
-                                _errorMessage!,
-                                style: const TextStyle(color: Color(0xFF71717A), fontSize: 14),
-                                textAlign: TextAlign.center,
-                              ),
-                              const SizedBox(height: 16),
-                              ElevatedButton(
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFF9333EA),
-                                  foregroundColor: Colors.white,
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                ),
-                                onPressed: _loadPartners,
-                                child: const Text('Retry'),
-                              ),
-                            ],
+                  ? Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                            Icons.error_outline_rounded,
+                            color: Color(0xFFDC2626),
+                            size: 36,
                           ),
-                        )
-                      : partnersToDisplay.isEmpty
-                          ? _EmptyStateWidget(filter: _selectedFilter)
-                          : ListView.separated(
-                              physics: const BouncingScrollPhysics(),
-                              padding: const EdgeInsets.only(left: 48, right: 48, bottom: 32),
-                              itemCount: partnersToDisplay.length,
-                              separatorBuilder: (context, index) => const SizedBox(height: 14),
-                              itemBuilder: (context, index) {
-                                final partner = partnersToDisplay[index];
-                                return _PartnerCard(
-                                  partner: partner,
-                                  onTap: () {
-                                    if (widget.onPartnerSelected != null) {
-                                      widget.onPartnerSelected!(partner);
-                                    } else {
-                                      context.push('/partners/details', extra: partner);
-                                    }
-                                  },
-                                );
-                              },
+                          const SizedBox(height: 12),
+                          Text(
+                            _errorMessage!,
+                            style: const TextStyle(
+                              color: Color(0xFF71717A),
+                              fontSize: 14,
                             ),
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 16),
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF9333EA),
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            onPressed: _loadPartners,
+                            child: const Text('Retry'),
+                          ),
+                        ],
+                      ),
+                    )
+                  : partnersToDisplay.isEmpty
+                  ? _EmptyStateWidget(filter: _selectedFilter)
+                  : ListView.separated(
+                      physics: const BouncingScrollPhysics(),
+                      padding: const EdgeInsets.only(
+                        left: 48,
+                        right: 48,
+                        bottom: 32,
+                      ),
+                      itemCount: partnersToDisplay.length,
+                      separatorBuilder: (context, index) =>
+                          const SizedBox(height: 14),
+                      itemBuilder: (context, index) {
+                        final partner = partnersToDisplay[index];
+                        return _PartnerCard(
+                          partner: partner,
+                          onTap: () {
+                            if (widget.onPartnerSelected != null) {
+                              widget.onPartnerSelected!(partner);
+                            } else {
+                              context.push('/partners/details', extra: partner);
+                            }
+                          },
+                        );
+                      },
+                    ),
             ),
           ],
         ),
@@ -373,14 +382,13 @@ class _AddPartnerButtonState extends State<_AddPartnerButton> {
                 gradient: const LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
-                  colors: [
-                    Color(0xFFE11D89),
-                    Color(0xFF9333EA),
-                  ],
+                  colors: [Color(0xFFE11D89), Color(0xFF9333EA)],
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFF9333EA).withValues(alpha: active ? 0.55 : 0.38),
+                    color: const Color(
+                      0xFF9333EA,
+                    ).withValues(alpha: active ? 0.55 : 0.38),
                     blurRadius: active ? 18 : 12,
                     offset: const Offset(0, 4),
                   ),
@@ -389,11 +397,7 @@ class _AddPartnerButtonState extends State<_AddPartnerButton> {
               child: const Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(
-                    Icons.add_rounded,
-                    color: Colors.white,
-                    size: 20,
-                  ),
+                  Icon(Icons.add_rounded, color: Colors.white, size: 20),
                   SizedBox(width: 8),
                   Text(
                     'Add partner',
@@ -459,8 +463,8 @@ class _FilterPillState extends State<_FilterPill> {
     final innerShadowColor = active
         ? const Color(0xFF9333EA).withValues(alpha: 0.38)
         : (widget.isSelected
-            ? const Color(0xFF9333EA).withValues(alpha: 0.16)
-            : Colors.transparent);
+              ? const Color(0xFF9333EA).withValues(alpha: 0.16)
+              : Colors.transparent);
 
     return Focus(
       focusNode: _focusNode,
@@ -520,12 +524,17 @@ class _FilterPillState extends State<_FilterPill> {
                 child: Stack(
                   children: [
                     Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 18,
+                        vertical: 10,
+                      ),
                       child: Text(
                         widget.label,
                         style: TextStyle(
                           fontSize: 14,
-                          fontWeight: widget.isSelected ? FontWeight.w700 : FontWeight.w500,
+                          fontWeight: widget.isSelected
+                              ? FontWeight.w700
+                              : FontWeight.w500,
                           color: textColor,
                         ),
                       ),
@@ -598,10 +607,7 @@ class _PillInnerShadowPainter extends CustomPainter {
 }
 
 class _PartnerCard extends StatefulWidget {
-  const _PartnerCard({
-    required this.partner,
-    required this.onTap,
-  });
+  const _PartnerCard({required this.partner, required this.onTap});
 
   final PartnerModel partner;
   final VoidCallback onTap;
@@ -878,11 +884,7 @@ class _EmptyStateWidget extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            const Icon(
-              Icons.inbox_rounded,
-              size: 52,
-              color: Color(0xFF334155),
-            ),
+            const Icon(Icons.inbox_rounded, size: 52, color: Color(0xFF334155)),
             const SizedBox(height: 18),
             Text(
               _emptyMessage,
@@ -900,4 +902,3 @@ class _EmptyStateWidget extends StatelessWidget {
     );
   }
 }
-

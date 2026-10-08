@@ -4,7 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/constants/languages.dart';
 import '../../../../core/widgets/plodyo_header.dart';
-import '../../../../core/widgets/plodyo_loading.dart';
+import '../../../../core/widgets/loading.dart';
 import '../../../../core/widgets/tv_section_badge.dart';
 import '../../../../data/models/auth_exception.dart';
 import '../../../../data/models/property_model.dart';
@@ -14,12 +14,7 @@ import '../../../../data/repositories/properties_repository.dart';
 import '../../../../data/repositories/rooms_repository.dart';
 import 'add_room_view.dart';
 
-enum RoomStatusFilter {
-  all,
-  notSetUp,
-  active,
-  revoked,
-}
+enum RoomStatusFilter { all, notSetUp, active, revoked }
 
 /// Rooms View matching the exact Plodyo TV specification.
 /// Features angled floating badge icon animation, status filter pills,
@@ -166,9 +161,9 @@ class _RoomsViewState extends State<RoomsView> {
       return _propertyNames[room.propertyId]!;
     }
     final match = _properties.cast<PropertyModel?>().firstWhere(
-          (p) => p?.id == room.propertyId,
-          orElse: () => null,
-        );
+      (p) => p?.id == room.propertyId,
+      orElse: () => null,
+    );
     if (match != null && match.name.isNotEmpty) {
       return match.name;
     }
@@ -204,7 +199,6 @@ class _RoomsViewState extends State<RoomsView> {
       return '12 Sept 2026';
     }
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -380,7 +374,8 @@ class _RoomsViewState extends State<RoomsView> {
                             child: _FilterPill(
                               label: property.name,
                               isSelected: isSelected,
-                              onTap: () => _onPropertyFilterChanged(property.id),
+                              onTap: () =>
+                                  _onPropertyFilterChanged(property.id),
                             ),
                           );
                         }),
@@ -395,93 +390,93 @@ class _RoomsViewState extends State<RoomsView> {
             // Scrollable Content: Loading, Error, or Rooms List
             Expanded(
               child: _isLoading
-                  ? const Center(
-                      child: PlodyoPageLoading(),
-                    )
+                  ? const Center(child: Spinner())
                   : _errorMessage != null
-                      ? Center(
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(
-                                Icons.error_outline_rounded,
-                                color: Color(0xFFDC2626),
-                                size: 36,
-                              ),
-                              const SizedBox(height: 12),
-                              Text(
-                                _errorMessage!,
-                                style: const TextStyle(
-                                  color: Color(0xFF71717A),
-                                  fontSize: 14,
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                              const SizedBox(height: 16),
-                              ElevatedButton(
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFF9333EA),
-                                  foregroundColor: Colors.white,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                ),
-                                onPressed: _loadData,
-                                child: const Text('Retry'),
-                              ),
-                            ],
+                  ? Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                            Icons.error_outline_rounded,
+                            color: Color(0xFFDC2626),
+                            size: 36,
                           ),
-                        )
-                      : _rooms.isEmpty
-                          ? Center(
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: const [
-                                  Icon(
-                                    Icons.meeting_room_outlined,
-                                    size: 40,
-                                    color: Color(0xFF71717A),
-                                  ),
-                                  SizedBox(height: 12),
-                                  Text(
-                                    'No rooms found.',
-                                    style: TextStyle(
-                                      fontSize: 15,
-                                      fontWeight: FontWeight.w500,
-                                      color: Color(0xFF71717A),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            )
-                          : ListView.separated(
-                              physics: const BouncingScrollPhysics(),
-                              padding: EdgeInsets.only(
-                                left: horizontalSpacing,
-                                right: horizontalSpacing,
-                                bottom: 32,
-                              ),
-                              itemCount: _rooms.length,
-                              separatorBuilder: (context, index) =>
-                                  const SizedBox(height: 12),
-                              itemBuilder: (context, index) {
-                                final room = _rooms[index];
-                                final propName = _getPropertyDisplayName(room);
-                                final dateText = _formatRoomDate(room);
-                                final langDisplay = languageLabel(room.defaultLanguage);
-
-                                return _RoomCard(
-                                  room: room,
-                                  propertyName: propName,
-                                  dateText: dateText,
-                                  languageDisplay: langDisplay.isEmpty ? null : langDisplay,
-                                  isInitiallyFocused: index == 0,
-                                  onTap: () {
-                                    widget.onRoomSelected?.call(room);
-                                  },
-                                );
-                              },
+                          const SizedBox(height: 12),
+                          Text(
+                            _errorMessage!,
+                            style: const TextStyle(
+                              color: Color(0xFF71717A),
+                              fontSize: 14,
                             ),
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 16),
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF9333EA),
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            onPressed: _loadData,
+                            child: const Text('Retry'),
+                          ),
+                        ],
+                      ),
+                    )
+                  : _rooms.isEmpty
+                  ? Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: const [
+                          Icon(
+                            Icons.meeting_room_outlined,
+                            size: 40,
+                            color: Color(0xFF71717A),
+                          ),
+                          SizedBox(height: 12),
+                          Text(
+                            'No rooms found.',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w500,
+                              color: Color(0xFF71717A),
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  : ListView.separated(
+                      physics: const BouncingScrollPhysics(),
+                      padding: EdgeInsets.only(
+                        left: horizontalSpacing,
+                        right: horizontalSpacing,
+                        bottom: 32,
+                      ),
+                      itemCount: _rooms.length,
+                      separatorBuilder: (context, index) =>
+                          const SizedBox(height: 12),
+                      itemBuilder: (context, index) {
+                        final room = _rooms[index];
+                        final propName = _getPropertyDisplayName(room);
+                        final dateText = _formatRoomDate(room);
+                        final langDisplay = languageLabel(room.defaultLanguage);
+
+                        return _RoomCard(
+                          room: room,
+                          propertyName: propName,
+                          dateText: dateText,
+                          languageDisplay: langDisplay.isEmpty
+                              ? null
+                              : langDisplay,
+                          isInitiallyFocused: index == 0,
+                          onTap: () {
+                            widget.onRoomSelected?.call(room);
+                          },
+                        );
+                      },
+                    ),
             ),
           ],
         ),
@@ -545,16 +540,14 @@ class _AddRoomButtonState extends State<_AddRoomButton> {
               padding: const EdgeInsets.symmetric(horizontal: 26, vertical: 14),
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
-                  colors: [
-                    Color(0xFFD946EF),
-                    Color(0xFF9333EA),
-                  ],
+                  colors: [Color(0xFFD946EF), Color(0xFF9333EA)],
                 ),
                 borderRadius: BorderRadius.circular(24),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFF9333EA)
-                        .withValues(alpha: isHighlighted ? 0.55 : 0.38),
+                    color: const Color(
+                      0xFF9333EA,
+                    ).withValues(alpha: isHighlighted ? 0.55 : 0.38),
                     blurRadius: isHighlighted ? 18 : 12,
                     offset: const Offset(0, 4),
                   ),
@@ -563,11 +556,7 @@ class _AddRoomButtonState extends State<_AddRoomButton> {
               child: const Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(
-                    Icons.add_rounded,
-                    color: Colors.white,
-                    size: 20,
-                  ),
+                  Icon(Icons.add_rounded, color: Colors.white, size: 20),
                   SizedBox(width: 8),
                   Text(
                     'Add room',
@@ -644,14 +633,13 @@ class _AddManyButtonState extends State<_AddManyButton> {
               decoration: BoxDecoration(
                 color: isHighlighted ? const Color(0xFFFAF5FF) : Colors.white,
                 borderRadius: BorderRadius.circular(24),
-                border: Border.all(
-                  color: const Color(0xFF8B5CF6),
-                  width: 1.6,
-                ),
+                border: Border.all(color: const Color(0xFF8B5CF6), width: 1.6),
                 boxShadow: isHighlighted
                     ? [
                         BoxShadow(
-                          color: const Color(0xFF8B5CF6).withValues(alpha: 0.28),
+                          color: const Color(
+                            0xFF8B5CF6,
+                          ).withValues(alpha: 0.28),
                           blurRadius: 12,
                           offset: const Offset(0, 3),
                         ),
@@ -755,23 +743,22 @@ class _FilterPillState extends State<_FilterPill> {
               decoration: BoxDecoration(
                 color: widget.isSelected
                     ? const Color(0xFFFAF5FF)
-                    : (isHighlighted
-                        ? const Color(0xFFF8FAFC)
-                        : Colors.white),
+                    : (isHighlighted ? const Color(0xFFF8FAFC) : Colors.white),
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(
                   color: widget.isSelected
                       ? const Color(0xFF8B5CF6)
                       : (isHighlighted
-                          ? const Color(0xFFA78BFA)
-                          : const Color(0xFFCBD5E1)),
+                            ? const Color(0xFFA78BFA)
+                            : const Color(0xFFCBD5E1)),
                   width: widget.isSelected ? 1.6 : 1.2,
                 ),
                 boxShadow: widget.isSelected
                     ? [
                         BoxShadow(
-                          color: const Color(0xFF8B5CF6)
-                              .withValues(alpha: 0.22),
+                          color: const Color(
+                            0xFF8B5CF6,
+                          ).withValues(alpha: 0.22),
                           blurRadius: 10,
                           offset: const Offset(0, 3),
                         ),
@@ -788,8 +775,9 @@ class _FilterPillState extends State<_FilterPill> {
                 widget.label,
                 style: TextStyle(
                   fontSize: 14,
-                  fontWeight:
-                      widget.isSelected ? FontWeight.w700 : FontWeight.w500,
+                  fontWeight: widget.isSelected
+                      ? FontWeight.w700
+                      : FontWeight.w500,
                   color: widget.isSelected
                       ? const Color(0xFF8B5CF6)
                       : const Color(0xFF3F3F46),
@@ -881,8 +869,9 @@ class _RoomCardState extends State<_RoomCard> {
                 boxShadow: isHighlighted
                     ? [
                         BoxShadow(
-                          color: const Color(0xFF9333EA)
-                              .withValues(alpha: 0.38),
+                          color: const Color(
+                            0xFF9333EA,
+                          ).withValues(alpha: 0.38),
                           blurRadius: 20,
                           spreadRadius: 2,
                           offset: const Offset(0, 5),
@@ -895,7 +884,9 @@ class _RoomCardState extends State<_RoomCard> {
                           offset: const Offset(0, 3),
                         ),
                         BoxShadow(
-                          color: const Color(0xFF9333EA).withValues(alpha: 0.02),
+                          color: const Color(
+                            0xFF9333EA,
+                          ).withValues(alpha: 0.02),
                           blurRadius: 12,
                           offset: const Offset(0, 4),
                         ),

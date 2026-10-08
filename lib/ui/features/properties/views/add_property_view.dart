@@ -6,7 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/constants/languages.dart';
 import '../../../../core/widgets/language_flag.dart';
 import '../../../../core/widgets/plodyo_header.dart';
-import '../../../../core/widgets/plodyo_loading.dart';
+import '../../../../core/widgets/loading.dart';
 import '../../../../core/widgets/tv_section_badge.dart';
 import '../../../../data/models/partner_model.dart';
 import '../../../../data/models/property_model.dart';
@@ -14,13 +14,7 @@ import '../../../../data/repositories/auth_repository.dart';
 import '../../../../data/repositories/partners_repository.dart';
 import '../../../../data/repositories/properties_repository.dart';
 
-enum PropertyFormField {
-  name,
-  country,
-  city,
-  timezone,
-}
-
+enum PropertyFormField { name, country, city, timezone }
 
 /// "Add a property" full-screen view matching the exact Plodyo TV specification.
 /// Features Partner Selection list, styled property inputs with active field indicator,
@@ -73,7 +67,6 @@ class _AddPropertyViewState extends State<AddPropertyView> {
   // Virtual keyboard state
   bool _isUpperCase = false;
   bool _showSymbols = false;
-
 
   @override
   void initState() {
@@ -232,8 +225,7 @@ class _AddPropertyViewState extends State<AddPropertyView> {
 
   void _handlePrevField() {
     final values = PropertyFormField.values;
-    final prevIndex =
-        (_activeField.index - 1 + values.length) % values.length;
+    final prevIndex = (_activeField.index - 1 + values.length) % values.length;
     setState(() {
       _activeField = values[prevIndex];
     });
@@ -403,7 +395,8 @@ class _AddPropertyViewState extends State<AddPropertyView> {
                                 const SizedBox(width: 18),
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Text(
                                         'Add a property',
@@ -523,7 +516,8 @@ class _AddPropertyViewState extends State<AddPropertyView> {
                               isActive: _activeField == PropertyFormField.name,
                               showCursor: _showCursor,
                               onTap: () => setState(
-                                  () => _activeField = PropertyFormField.name),
+                                () => _activeField = PropertyFormField.name,
+                              ),
                             ),
                             const SizedBox(height: 14),
 
@@ -534,8 +528,9 @@ class _AddPropertyViewState extends State<AddPropertyView> {
                               isActive:
                                   _activeField == PropertyFormField.country,
                               showCursor: _showCursor,
-                              onTap: () => setState(() =>
-                                  _activeField = PropertyFormField.country),
+                              onTap: () => setState(
+                                () => _activeField = PropertyFormField.country,
+                              ),
                             ),
                             const SizedBox(height: 14),
 
@@ -546,7 +541,8 @@ class _AddPropertyViewState extends State<AddPropertyView> {
                               isActive: _activeField == PropertyFormField.city,
                               showCursor: _showCursor,
                               onTap: () => setState(
-                                  () => _activeField = PropertyFormField.city),
+                                () => _activeField = PropertyFormField.city,
+                              ),
                             ),
                             const SizedBox(height: 14),
 
@@ -557,8 +553,9 @@ class _AddPropertyViewState extends State<AddPropertyView> {
                               isActive:
                                   _activeField == PropertyFormField.timezone,
                               showCursor: _showCursor,
-                              onTap: () => setState(() =>
-                                  _activeField = PropertyFormField.timezone),
+                              onTap: () => setState(
+                                () => _activeField = PropertyFormField.timezone,
+                              ),
                             ),
                             const SizedBox(height: 24),
 
@@ -631,9 +628,7 @@ class _AddPropertyViewState extends State<AddPropertyView> {
                                   onPressed: _handleCreateProperty,
                                 ),
                                 const SizedBox(width: 16),
-                                _CancelButton(
-                                  onPressed: _handleBack,
-                                ),
+                                _CancelButton(onPressed: _handleBack),
                               ],
                             ),
                             const SizedBox(height: 48),
@@ -651,8 +646,10 @@ class _AddPropertyViewState extends State<AddPropertyView> {
                           children: [
                             // "Entering Property name" Header
                             Padding(
-                              padding:
-                                  const EdgeInsets.only(bottom: 16, right: 4),
+                              padding: const EdgeInsets.only(
+                                bottom: 16,
+                                right: 4,
+                              ),
                               child: Text(
                                 _activeFieldLabel,
                                 style: const TextStyle(
@@ -769,8 +766,8 @@ class _PropertyInputFieldState extends State<_PropertyInputField> {
                 color: widget.isActive
                     ? const Color(0xFF8B5CF6)
                     : (isHighlighted
-                        ? const Color(0xFFA78BFA)
-                        : const Color(0xFFCBD5E1)),
+                          ? const Color(0xFFA78BFA)
+                          : const Color(0xFFCBD5E1)),
                 width: widget.isActive ? 2.0 : 1.4,
               ),
               boxShadow: widget.isActive
@@ -831,8 +828,9 @@ class _PropertyInputFieldState extends State<_PropertyInputField> {
                             ),
                           if (widget.isActive && widget.showCursor)
                             Container(
-                              margin:
-                                  EdgeInsets.only(left: hasText ? 2.0 : 0.0),
+                              margin: EdgeInsets.only(
+                                left: hasText ? 2.0 : 0.0,
+                              ),
                               width: 2,
                               height: 18,
                               color: const Color(0xFF8B5CF6),
@@ -853,10 +851,7 @@ class _PropertyInputFieldState extends State<_PropertyInputField> {
 
 /// "Not set" Language Option Card (Full Width)
 class _NotSetLanguageCard extends StatefulWidget {
-  const _NotSetLanguageCard({
-    required this.isSelected,
-    required this.onTap,
-  });
+  const _NotSetLanguageCard({required this.isSelected, required this.onTap});
 
   final bool isSelected;
   final VoidCallback onTap;
@@ -913,23 +908,22 @@ class _NotSetLanguageCardState extends State<_NotSetLanguageCard> {
               decoration: BoxDecoration(
                 color: widget.isSelected
                     ? const Color(0xFFFAF5FF)
-                    : (isHighlighted
-                        ? const Color(0xFFF8FAFC)
-                        : Colors.white),
+                    : (isHighlighted ? const Color(0xFFF8FAFC) : Colors.white),
                 borderRadius: BorderRadius.circular(14),
                 border: Border.all(
                   color: widget.isSelected
                       ? const Color(0xFF8B5CF6)
                       : (isHighlighted
-                          ? const Color(0xFFA78BFA)
-                          : const Color(0xFFCBD5E1)),
+                            ? const Color(0xFFA78BFA)
+                            : const Color(0xFFCBD5E1)),
                   width: widget.isSelected ? 2.0 : 1.4,
                 ),
                 boxShadow: widget.isSelected
                     ? [
                         BoxShadow(
-                          color: const Color(0xFF8B5CF6)
-                              .withValues(alpha: 0.18),
+                          color: const Color(
+                            0xFF8B5CF6,
+                          ).withValues(alpha: 0.18),
                           blurRadius: 8,
                           offset: const Offset(0, 2),
                         ),
@@ -1035,23 +1029,22 @@ class _LanguageCardState extends State<_LanguageCard> {
               decoration: BoxDecoration(
                 color: widget.isSelected
                     ? const Color(0xFFFAF5FF)
-                    : (isHighlighted
-                        ? const Color(0xFFF8FAFC)
-                        : Colors.white),
+                    : (isHighlighted ? const Color(0xFFF8FAFC) : Colors.white),
                 borderRadius: BorderRadius.circular(14),
                 border: Border.all(
                   color: widget.isSelected
                       ? const Color(0xFF8B5CF6)
                       : (isHighlighted
-                          ? const Color(0xFFA78BFA)
-                          : const Color(0xFFCBD5E1)),
+                            ? const Color(0xFFA78BFA)
+                            : const Color(0xFFCBD5E1)),
                   width: widget.isSelected ? 2.0 : 1.4,
                 ),
                 boxShadow: widget.isSelected
                     ? [
                         BoxShadow(
-                          color: const Color(0xFF8B5CF6)
-                              .withValues(alpha: 0.16),
+                          color: const Color(
+                            0xFF8B5CF6,
+                          ).withValues(alpha: 0.16),
                           blurRadius: 8,
                           offset: const Offset(0, 2),
                         ),
@@ -1157,23 +1150,22 @@ class _PartnerSelectCardState extends State<_PartnerSelectCard> {
               decoration: BoxDecoration(
                 color: widget.isSelected
                     ? const Color(0xFFFAF5FF)
-                    : (isHighlighted
-                        ? const Color(0xFFF8FAFC)
-                        : Colors.white),
+                    : (isHighlighted ? const Color(0xFFF8FAFC) : Colors.white),
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(
                   color: widget.isSelected
                       ? const Color(0xFF8B5CF6)
                       : (isHighlighted
-                          ? const Color(0xFFA78BFA)
-                          : const Color(0xFFCBD5E1)),
+                            ? const Color(0xFFA78BFA)
+                            : const Color(0xFFCBD5E1)),
                   width: widget.isSelected ? 2.0 : 1.4,
                 ),
                 boxShadow: widget.isSelected
                     ? [
                         BoxShadow(
-                          color: const Color(0xFF8B5CF6)
-                              .withValues(alpha: 0.16),
+                          color: const Color(
+                            0xFF8B5CF6,
+                          ).withValues(alpha: 0.16),
                           blurRadius: 8,
                           offset: const Offset(0, 2),
                         ),
@@ -1316,16 +1308,14 @@ class _CreatePropertyButtonState extends State<_CreatePropertyButton> {
               padding: const EdgeInsets.symmetric(horizontal: 26, vertical: 14),
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
-                  colors: [
-                    Color(0xFFD946EF),
-                    Color(0xFF9333EA),
-                  ],
+                  colors: [Color(0xFFD946EF), Color(0xFF9333EA)],
                 ),
                 borderRadius: BorderRadius.circular(26),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFF9333EA)
-                        .withValues(alpha: isHighlighted ? 0.5 : 0.35),
+                    color: const Color(
+                      0xFF9333EA,
+                    ).withValues(alpha: isHighlighted ? 0.5 : 0.35),
                     blurRadius: isHighlighted ? 16 : 12,
                     offset: const Offset(0, 4),
                   ),
@@ -1345,12 +1335,7 @@ class _CreatePropertyButtonState extends State<_CreatePropertyButton> {
                           ),
                         ),
                         SizedBox(width: 8),
-                        PlodyoThreeDotsLoading(
-                          dotSize: 5,
-                          spacing: 3.5,
-                          bounceHeight: 4,
-                          color: Colors.white,
-                        ),
+                        LoadingDots(color: Colors.white),
                       ],
                     )
                   : const Row(
@@ -1437,14 +1422,13 @@ class _CancelButtonState extends State<_CancelButton> {
               decoration: BoxDecoration(
                 color: isHighlighted ? const Color(0xFFFAF5FF) : Colors.white,
                 borderRadius: BorderRadius.circular(26),
-                border: Border.all(
-                  color: const Color(0xFF8B5CF6),
-                  width: 1.5,
-                ),
+                border: Border.all(color: const Color(0xFF8B5CF6), width: 1.5),
                 boxShadow: isHighlighted
                     ? [
                         BoxShadow(
-                          color: const Color(0xFF8B5CF6).withValues(alpha: 0.25),
+                          color: const Color(
+                            0xFF8B5CF6,
+                          ).withValues(alpha: 0.25),
                           blurRadius: 10,
                           offset: const Offset(0, 2),
                         ),
@@ -1508,24 +1492,24 @@ class _DedicatedTvKeyboard extends StatelessWidget {
   final VoidCallback onClear;
 
   List<List<String>> get _standardRows => [
-        ['a', 'b', 'c', 'd', 'e', 'f'],
-        ['g', 'h', 'i', 'j', 'k', 'l'],
-        ['m', 'n', 'o', 'p', 'q', 'r'],
-        ['s', 't', 'u', 'v', 'w', 'x'],
-        ['y', 'z', '0', '1', '2', '3'],
-        ['4', '5', '6', '7', '8', '9'],
-        ['-', '.', '\''],
-      ];
+    ['a', 'b', 'c', 'd', 'e', 'f'],
+    ['g', 'h', 'i', 'j', 'k', 'l'],
+    ['m', 'n', 'o', 'p', 'q', 'r'],
+    ['s', 't', 'u', 'v', 'w', 'x'],
+    ['y', 'z', '0', '1', '2', '3'],
+    ['4', '5', '6', '7', '8', '9'],
+    ['-', '.', '\''],
+  ];
 
   List<List<String>> get _symbolsRows => [
-        ['!', '@', '#', '\$', '%', '^'],
-        ['&', '*', '(', ')', '_', '+'],
-        ['[', ']', '{', '}', ';', ':'],
-        ['\'', '"', ',', '.', '/', '?'],
-        ['~', '`', '<', '>', '=', '\\'],
-        ['4', '5', '6', '7', '8', '9'],
-        ['-', '.', '\''],
-      ];
+    ['!', '@', '#', '\$', '%', '^'],
+    ['&', '*', '(', ')', '_', '+'],
+    ['[', ']', '{', '}', ';', ':'],
+    ['\'', '"', ',', '.', '/', '?'],
+    ['~', '`', '<', '>', '=', '\\'],
+    ['4', '5', '6', '7', '8', '9'],
+    ['-', '.', '\''],
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -1697,24 +1681,20 @@ class _KeyButtonState extends State<_KeyButton> {
               decoration: BoxDecoration(
                 gradient: isHighlighted
                     ? const LinearGradient(
-                        colors: [
-                          Color(0xFFD946EF),
-                          Color(0xFF9333EA),
-                        ],
+                        colors: [Color(0xFFD946EF), Color(0xFF9333EA)],
                       )
                     : null,
                 color: isHighlighted ? null : Colors.white,
                 borderRadius: BorderRadius.circular(9),
                 border: isHighlighted
                     ? null
-                    : Border.all(
-                        color: const Color(0xFFE4E4E7),
-                        width: 1.0,
-                      ),
+                    : Border.all(color: const Color(0xFFE4E4E7), width: 1.0),
                 boxShadow: isHighlighted
                     ? [
                         BoxShadow(
-                          color: const Color(0xFFD946EF).withValues(alpha: 0.45),
+                          color: const Color(
+                            0xFFD946EF,
+                          ).withValues(alpha: 0.45),
                           blurRadius: 10,
                           offset: const Offset(0, 3),
                         ),
@@ -1740,8 +1720,9 @@ class _KeyButtonState extends State<_KeyButton> {
                         widget.label ?? '',
                         style: TextStyle(
                           fontSize: widget.fontSize,
-                          fontWeight:
-                              isHighlighted ? FontWeight.w700 : FontWeight.w500,
+                          fontWeight: isHighlighted
+                              ? FontWeight.w700
+                              : FontWeight.w500,
                           color: isHighlighted
                               ? Colors.white
                               : const Color(0xFF18181B),

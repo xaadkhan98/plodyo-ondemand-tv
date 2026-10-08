@@ -38,7 +38,8 @@ class FakeAuthRepository implements AuthRepository {
     await Future.delayed(const Duration(milliseconds: 10));
 
     if (shouldSucceed) {
-      final res = responseToReturn ??
+      final res =
+          responseToReturn ??
           const AuthResponse(
             accessToken: 'valid_access_token',
             refreshToken: 'valid_refresh_token',
@@ -55,10 +56,7 @@ class FakeAuthRepository implements AuthRepository {
       return res;
     } else {
       throw errorToThrow ??
-          const AuthException(
-            message: 'Invalid credentials',
-            statusCode: 401,
-          );
+          const AuthException(message: 'Invalid credentials', statusCode: 401);
     }
   }
 
@@ -78,15 +76,24 @@ class FakeAuthRepository implements AuthRepository {
   }
 
   @override
-  Future<String> resetPassword({required String token, required String newPassword}) async {
+  Future<String> resetPassword({
+    required String token,
+    required String newPassword,
+  }) async {
     return 'Password updated';
   }
 
   @override
   Future<AuthMeResponse> getMe({String? accessToken}) async {
     return AuthMeResponse(
-      actor: _currentAuth?.actor ??
-          const Actor(userId: 'u1', email: 'a@b.com', fullName: 'A', role: 'SUPER_ADMIN'),
+      actor:
+          _currentAuth?.actor ??
+          const Actor(
+            userId: 'u1',
+            email: 'a@b.com',
+            fullName: 'A',
+            role: 'SUPER_ADMIN',
+          ),
       memberships: const [],
     );
   }
@@ -103,7 +110,11 @@ class FakeAuthRepository implements AuthRepository {
   }
 
   @override
-  Future<String> acceptInvite({required String token, required String password, String? fullName}) async {
+  Future<String> acceptInvite({
+    required String token,
+    required String password,
+    String? fullName,
+  }) async {
     return 'Invite accepted';
   }
 
@@ -127,23 +138,30 @@ void main() {
       cubit.close();
     });
 
-    test('validates empty inputs and emits SignInFailure without loading', () async {
-      final cubit = SignInCubit(authRepository: FakeAuthRepository());
+    test(
+      'validates empty inputs and emits SignInFailure without loading',
+      () async {
+        final cubit = SignInCubit(authRepository: FakeAuthRepository());
 
-      await cubit.signIn(email: '', password: '');
-      expect(
-        cubit.state,
-        const SignInFailure(errorMessage: 'Please enter both email and password.'),
-      );
+        await cubit.signIn(email: '', password: '');
+        expect(
+          cubit.state,
+          const SignInFailure(
+            errorMessage: 'Enter both an email address and a password.',
+          ),
+        );
 
-      await cubit.signIn(email: 'test@plodyo.com', password: '   ');
-      expect(
-        cubit.state,
-        const SignInFailure(errorMessage: 'Please enter both email and password.'),
-      );
+        await cubit.signIn(email: 'test@plodyo.com', password: '   ');
+        expect(
+          cubit.state,
+          const SignInFailure(
+            errorMessage: 'Enter both an email address and a password.',
+          ),
+        );
 
-      cubit.close();
-    });
+        cubit.close();
+      },
+    );
 
     test('emits [SignInLoading, SignInSuccess] on valid credentials', () async {
       final cubit = SignInCubit(
@@ -169,48 +187,54 @@ void main() {
       cubit.close();
     });
 
-    test('emits [SignInLoading, SignInFailure] on 401 Invalid credentials', () async {
-      final cubit = SignInCubit(
-        authRepository: FakeAuthRepository(
-          shouldSucceed: false,
-          errorToThrow: const AuthException(
-            message: 'Invalid credentials',
-            statusCode: 401,
+    test(
+      'emits [SignInLoading, SignInFailure] on 401 Invalid credentials',
+      () async {
+        final cubit = SignInCubit(
+          authRepository: FakeAuthRepository(
+            shouldSucceed: false,
+            errorToThrow: const AuthException(
+              message: 'Invalid credentials',
+              statusCode: 401,
+            ),
           ),
-        ),
-      );
+        );
 
-      expectLater(
-        cubit.stream,
-        emitsInOrder([
-          const SignInLoading(),
-          const SignInFailure(
-            errorMessage: 'Invalid credentials',
-            statusCode: 401,
-          ),
-        ]),
-      );
+        expectLater(
+          cubit.stream,
+          emitsInOrder([
+            const SignInLoading(),
+            const SignInFailure(
+              errorMessage: 'Invalid credentials',
+              statusCode: 401,
+            ),
+          ]),
+        );
 
-      await cubit.signIn(
-        email: 'wrong@plodyo.com',
-        password: 'wrongpassword',
-      );
+        await cubit.signIn(
+          email: 'wrong@plodyo.com',
+          password: 'wrongpassword',
+        );
 
-      cubit.close();
-    });
+        cubit.close();
+      },
+    );
 
-    test('clearError resets state from SignInFailure to SignInInitial', () async {
-      final cubit = SignInCubit(
-        authRepository: FakeAuthRepository(shouldSucceed: false),
-      );
+    test(
+      'clearError resets state from SignInFailure to SignInInitial',
+      () async {
+        final cubit = SignInCubit(
+          authRepository: FakeAuthRepository(shouldSucceed: false),
+        );
 
-      await cubit.signIn(email: '', password: '');
-      expect(cubit.state, isA<SignInFailure>());
+        await cubit.signIn(email: '', password: '');
+        expect(cubit.state, isA<SignInFailure>());
 
-      cubit.clearError();
-      expect(cubit.state, const SignInInitial());
+        cubit.clearError();
+        expect(cubit.state, const SignInInitial());
 
-      cubit.close();
-    });
+        cubit.close();
+      },
+    );
   });
 }

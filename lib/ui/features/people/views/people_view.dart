@@ -3,19 +3,14 @@ import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/widgets/plodyo_header.dart';
-import '../../../../core/widgets/plodyo_loading.dart';
+import '../../../../core/widgets/loading.dart';
 import '../../../../core/widgets/tv_section_badge.dart';
 import '../../../../data/models/auth_exception.dart';
 import '../../../../data/models/person_model.dart';
 import '../../../../data/repositories/auth_repository.dart';
 import '../../../../data/repositories/people_repository.dart';
 
-enum PeopleFilter {
-  all,
-  active,
-  invited,
-  disabled,
-}
+enum PeopleFilter { all, active, invited, disabled }
 
 /// People View matching the Plodyo TV specification.
 /// Displays everyone who can sign in within organization scope,
@@ -45,7 +40,6 @@ class _PeopleViewState extends State<PeopleView> {
   List<PersonModel> _people = [];
   bool _isLoading = false;
   String? _errorMessage;
-
 
   @override
   void initState() {
@@ -116,7 +110,9 @@ class _PeopleViewState extends State<PeopleView> {
         setState(() {
           _people = [];
           _isLoading = false;
-          _errorMessage = e is AuthException ? e.message : 'Could not load people.';
+          _errorMessage = e is AuthException
+              ? e.message
+              : 'Could not load people.';
         });
       }
     }
@@ -248,52 +244,61 @@ class _PeopleViewState extends State<PeopleView> {
             // Content Area: Loading, Error, Empty State, or Scrollable People List
             Expanded(
               child: _isLoading
-                  ? const Center(
-                      child: PlodyoPageLoading(),
-                    )
+                  ? const Center(child: Spinner())
                   : _errorMessage != null
-                      ? Center(
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(Icons.error_outline_rounded,
-                                  color: Color(0xFFDC2626), size: 36),
-                              const SizedBox(height: 12),
-                              Text(
-                                _errorMessage!,
-                                style: const TextStyle(
-                                    color: Color(0xFF71717A), fontSize: 14),
-                                textAlign: TextAlign.center,
-                              ),
-                              const SizedBox(height: 16),
-                              ElevatedButton(
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFF9333EA),
-                                  foregroundColor: Colors.white,
-                                  shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12)),
-                                ),
-                                onPressed: _loadPeople,
-                                child: const Text('Retry'),
-                              ),
-                            ],
+                  ? Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                            Icons.error_outline_rounded,
+                            color: Color(0xFFDC2626),
+                            size: 36,
                           ),
-                        )
-                      : peopleToDisplay.isEmpty
-                          ? _EmptyStateWidget(filter: _selectedFilter)
-                          : ListView.separated(
-                              physics: const BouncingScrollPhysics(),
-                              padding: const EdgeInsets.only(left: 48, right: 48, bottom: 32),
-                              itemCount: peopleToDisplay.length,
-                              separatorBuilder: (context, index) => const SizedBox(height: 12),
-                              itemBuilder: (context, index) {
-                                final person = peopleToDisplay[index];
-                                return _PersonCard(
-                                  person: person,
-                                  onTap: () => _showPersonDetailsDialog(person),
-                                );
-                              },
+                          const SizedBox(height: 12),
+                          Text(
+                            _errorMessage!,
+                            style: const TextStyle(
+                              color: Color(0xFF71717A),
+                              fontSize: 14,
                             ),
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 16),
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF9333EA),
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            onPressed: _loadPeople,
+                            child: const Text('Retry'),
+                          ),
+                        ],
+                      ),
+                    )
+                  : peopleToDisplay.isEmpty
+                  ? _EmptyStateWidget(filter: _selectedFilter)
+                  : ListView.separated(
+                      physics: const BouncingScrollPhysics(),
+                      padding: const EdgeInsets.only(
+                        left: 48,
+                        right: 48,
+                        bottom: 32,
+                      ),
+                      itemCount: peopleToDisplay.length,
+                      separatorBuilder: (context, index) =>
+                          const SizedBox(height: 12),
+                      itemBuilder: (context, index) {
+                        final person = peopleToDisplay[index];
+                        return _PersonCard(
+                          person: person,
+                          onTap: () => _showPersonDetailsDialog(person),
+                        );
+                      },
+                    ),
             ),
           ],
         ),
@@ -351,8 +356,8 @@ class _FilterPillState extends State<_FilterPill> {
     final innerShadowColor = active
         ? const Color(0xFF9333EA).withValues(alpha: 0.38)
         : (widget.isSelected
-            ? const Color(0xFF9333EA).withValues(alpha: 0.16)
-            : Colors.transparent);
+              ? const Color(0xFF9333EA).withValues(alpha: 0.16)
+              : Colors.transparent);
 
     return Focus(
       focusNode: _focusNode,
@@ -413,7 +418,9 @@ class _FilterPillState extends State<_FilterPill> {
                   children: [
                     Padding(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 20, vertical: 8),
+                        horizontal: 20,
+                        vertical: 8,
+                      ),
                       child: Text(
                         widget.label,
                         style: TextStyle(
@@ -496,10 +503,7 @@ class _PillInnerShadowPainter extends CustomPainter {
 /// Features avatar icon, full name, status badge, optional "You" tag,
 /// email, role shield, and last active timestamp.
 class _PersonCard extends StatefulWidget {
-  const _PersonCard({
-    required this.person,
-    required this.onTap,
-  });
+  const _PersonCard({required this.person, required this.onTap});
 
   final PersonModel person;
   final VoidCallback onTap;
@@ -524,7 +528,8 @@ class _PersonCardState extends State<_PersonCard> {
     final active = isFocused || _isHovered;
 
     String lastActiveText = widget.person.lastLoginAt ?? 'Last in active';
-    if (!lastActiveText.startsWith('Last') && !lastActiveText.startsWith('Invited')) {
+    if (!lastActiveText.startsWith('Last') &&
+        !lastActiveText.startsWith('Invited')) {
       lastActiveText = 'Last in $lastActiveText';
     }
 
@@ -634,7 +639,9 @@ class _PersonCardState extends State<_PersonCard> {
                               const SizedBox(width: 8),
                               Container(
                                 padding: const EdgeInsets.symmetric(
-                                    horizontal: 9, vertical: 3.5),
+                                  horizontal: 9,
+                                  vertical: 3.5,
+                                ),
                                 decoration: BoxDecoration(
                                   color: const Color(0xFFE2E8F0),
                                   borderRadius: BorderRadius.circular(12),

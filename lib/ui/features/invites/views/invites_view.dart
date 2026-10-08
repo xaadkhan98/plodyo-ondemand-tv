@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/widgets/plodyo_header.dart';
-import '../../../../core/widgets/plodyo_loading.dart';
+import '../../../../core/widgets/loading.dart';
 import '../../../../core/widgets/tv_section_badge.dart';
 import '../../../../data/models/auth_exception.dart';
 import '../../../../data/models/invite_model.dart';
@@ -11,13 +11,7 @@ import '../../../../data/models/roles.dart';
 import '../../../../data/repositories/auth_repository.dart';
 import '../../../../data/repositories/invites_repository.dart';
 
-enum InviteFilter {
-  all,
-  pending,
-  accepted,
-  expired,
-  revoked,
-}
+enum InviteFilter { all, pending, accepted, expired, revoked }
 
 /// Invites View matching the refined Plodyo TV specification.
 /// Features angled floating badge icon animation, custom filter pills,
@@ -185,9 +179,9 @@ class _InvitesViewState extends State<InvitesView> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(msg.isNotEmpty
-                ? msg
-                : 'Invitation revoked for ${invite.email}'),
+            content: Text(
+              msg.isNotEmpty ? msg : 'Invitation revoked for ${invite.email}',
+            ),
             backgroundColor: const Color(0xFFDC2626),
             behavior: SnackBarBehavior.floating,
             duration: const Duration(seconds: 2),
@@ -207,7 +201,6 @@ class _InvitesViewState extends State<InvitesView> {
       }
     }
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -334,74 +327,84 @@ class _InvitesViewState extends State<InvitesView> {
             // Scrollable Content: Loading, Error, or Invites List
             Expanded(
               child: _isLoading
-                  ? const Center(
-                      child: PlodyoPageLoading(),
-                    )
+                  ? const Center(child: Spinner())
                   : _errorMessage != null
-                      ? Center(
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(Icons.error_outline_rounded,
-                                  color: Color(0xFFDC2626), size: 36),
-                              const SizedBox(height: 12),
-                              Text(
-                                _errorMessage!,
-                                style: const TextStyle(
-                                    color: Color(0xFF71717A), fontSize: 14),
-                                textAlign: TextAlign.center,
-                              ),
-                              const SizedBox(height: 16),
-                              ElevatedButton(
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFF9333EA),
-                                  foregroundColor: Colors.white,
-                                  shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12)),
-                                ),
-                                onPressed: _loadInvites,
-                                child: const Text('Retry'),
-                              ),
-                            ],
+                  ? Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                            Icons.error_outline_rounded,
+                            color: Color(0xFFDC2626),
+                            size: 36,
                           ),
-                        )
-                      : invitesToDisplay.isEmpty
-                          ? Center(
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    Icons.mark_email_unread_outlined,
-                                    size: 48,
-                                    color: const Color(0xFF9333EA).withValues(alpha: 0.6),
-                                  ),
-                                  const SizedBox(height: 12),
-                                  Text(
-                                    'No ${_selectedFilter == InviteFilter.all ? "" : "${_selectedFilter.name} "}invites found.',
-                                    style: const TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w600,
-                                      color: Color(0xFF18181B),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            )
-                          : ListView.separated(
-                              physics: const BouncingScrollPhysics(),
-                              padding: const EdgeInsets.only(left: 48, right: 48, bottom: 32),
-                              itemCount: invitesToDisplay.length,
-                              separatorBuilder: (context, index) =>
-                                  const SizedBox(height: 14),
-                              itemBuilder: (context, index) {
-                                final invite = invitesToDisplay[index];
-                                return _InviteCard(
-                                  invite: invite,
-                                  onResend: () => _handleResend(invite),
-                                  onRevoke: () => _handleRevoke(invite),
-                                );
-                              },
+                          const SizedBox(height: 12),
+                          Text(
+                            _errorMessage!,
+                            style: const TextStyle(
+                              color: Color(0xFF71717A),
+                              fontSize: 14,
                             ),
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 16),
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF9333EA),
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            onPressed: _loadInvites,
+                            child: const Text('Retry'),
+                          ),
+                        ],
+                      ),
+                    )
+                  : invitesToDisplay.isEmpty
+                  ? Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.mark_email_unread_outlined,
+                            size: 48,
+                            color: const Color(
+                              0xFF9333EA,
+                            ).withValues(alpha: 0.6),
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            'No ${_selectedFilter == InviteFilter.all ? "" : "${_selectedFilter.name} "}invites found.',
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF18181B),
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  : ListView.separated(
+                      physics: const BouncingScrollPhysics(),
+                      padding: const EdgeInsets.only(
+                        left: 48,
+                        right: 48,
+                        bottom: 32,
+                      ),
+                      itemCount: invitesToDisplay.length,
+                      separatorBuilder: (context, index) =>
+                          const SizedBox(height: 14),
+                      itemBuilder: (context, index) {
+                        final invite = invitesToDisplay[index];
+                        return _InviteCard(
+                          invite: invite,
+                          onResend: () => _handleResend(invite),
+                          onRevoke: () => _handleRevoke(invite),
+                        );
+                      },
+                    ),
             ),
           ],
         ),
@@ -465,16 +468,14 @@ class _InviteSomeoneButtonState extends State<_InviteSomeoneButton> {
               padding: const EdgeInsets.symmetric(horizontal: 26, vertical: 14),
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
-                  colors: [
-                    Color(0xFFD946EF),
-                    Color(0xFF9333EA),
-                  ],
+                  colors: [Color(0xFFD946EF), Color(0xFF9333EA)],
                 ),
                 borderRadius: BorderRadius.circular(24),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFF9333EA)
-                        .withValues(alpha: isHighlighted ? 0.55 : 0.38),
+                    color: const Color(
+                      0xFF9333EA,
+                    ).withValues(alpha: isHighlighted ? 0.55 : 0.38),
                     blurRadius: isHighlighted ? 18 : 12,
                     offset: const Offset(0, 4),
                   ),
@@ -483,11 +484,7 @@ class _InviteSomeoneButtonState extends State<_InviteSomeoneButton> {
               child: const Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(
-                    Icons.add_rounded,
-                    color: Colors.white,
-                    size: 20,
-                  ),
+                  Icon(Icons.add_rounded, color: Colors.white, size: 20),
                   SizedBox(width: 8),
                   Text(
                     'Invite someone',
@@ -591,35 +588,38 @@ class _FilterPillState extends State<_FilterPill> {
                 boxShadow: widget.isSelected
                     ? [
                         BoxShadow(
-                          color:
-                              const Color(0xFF8B5CF6).withValues(alpha: 0.22),
+                          color: const Color(
+                            0xFF8B5CF6,
+                          ).withValues(alpha: 0.22),
                           blurRadius: 10,
                           offset: const Offset(0, 3),
                         ),
                       ]
                     : (active
-                        ? [
-                            BoxShadow(
-                              color:
-                                  const Color(0xFF8B5CF6).withValues(alpha: 0.2),
-                              blurRadius: 8,
-                              offset: const Offset(0, 2),
-                            ),
-                          ]
-                        : [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.03),
-                              blurRadius: 5,
-                              offset: const Offset(0, 1.5),
-                            ),
-                          ]),
+                          ? [
+                              BoxShadow(
+                                color: const Color(
+                                  0xFF8B5CF6,
+                                ).withValues(alpha: 0.2),
+                                blurRadius: 8,
+                                offset: const Offset(0, 2),
+                              ),
+                            ]
+                          : [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.03),
+                                blurRadius: 5,
+                                offset: const Offset(0, 1.5),
+                              ),
+                            ]),
               ),
               child: Text(
                 widget.label,
                 style: TextStyle(
                   fontSize: 14,
-                  fontWeight:
-                      widget.isSelected ? FontWeight.w700 : FontWeight.w500,
+                  fontWeight: widget.isSelected
+                      ? FontWeight.w700
+                      : FontWeight.w500,
                   color: textColor,
                 ),
               ),
@@ -673,7 +673,7 @@ class _InviteCardState extends State<_InviteCard> {
         'Sep',
         'Oct',
         'Nov',
-        'Dec'
+        'Dec',
       ];
       return '${date.day} ${months[date.month - 1]} ${date.year}';
     } catch (_) {
@@ -690,7 +690,8 @@ class _InviteCardState extends State<_InviteCard> {
     String subtitleText = role;
     if (widget.invite.isPending) {
       if (widget.invite.expiresAt != null) {
-        subtitleText = '$role \u00B7 Expires ${_formatDate(widget.invite.expiresAt)}';
+        subtitleText =
+            '$role \u00B7 Expires ${_formatDate(widget.invite.expiresAt)}';
       } else {
         subtitleText = '$role \u00B7 Expires in 7 days';
       }
@@ -873,14 +874,13 @@ class _ResendPillButtonState extends State<_ResendPillButton> {
               decoration: BoxDecoration(
                 color: isHighlighted ? const Color(0xFFFAF5FF) : Colors.white,
                 borderRadius: BorderRadius.circular(20),
-                border: Border.all(
-                  color: const Color(0xFF8B5CF6),
-                  width: 1.5,
-                ),
+                border: Border.all(color: const Color(0xFF8B5CF6), width: 1.5),
                 boxShadow: isHighlighted
                     ? [
                         BoxShadow(
-                          color: const Color(0xFF8B5CF6).withValues(alpha: 0.25),
+                          color: const Color(
+                            0xFF8B5CF6,
+                          ).withValues(alpha: 0.25),
                           blurRadius: 10,
                           offset: const Offset(0, 2),
                         ),
@@ -975,14 +975,13 @@ class _RevokePillButtonState extends State<_RevokePillButton> {
               decoration: BoxDecoration(
                 color: isHighlighted ? const Color(0xFFFEF2F2) : Colors.white,
                 borderRadius: BorderRadius.circular(20),
-                border: Border.all(
-                  color: const Color(0xFFFCA5A5),
-                  width: 1.5,
-                ),
+                border: Border.all(color: const Color(0xFFFCA5A5), width: 1.5),
                 boxShadow: isHighlighted
                     ? [
                         BoxShadow(
-                          color: const Color(0xFFEF4444).withValues(alpha: 0.25),
+                          color: const Color(
+                            0xFFEF4444,
+                          ).withValues(alpha: 0.25),
                           blurRadius: 10,
                           offset: const Offset(0, 2),
                         ),

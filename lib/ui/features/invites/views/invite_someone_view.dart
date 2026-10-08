@@ -4,7 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/widgets/plodyo_header.dart';
-import '../../../../core/widgets/plodyo_loading.dart';
+import '../../../../core/widgets/loading.dart';
 import '../../../../core/widgets/tv_section_badge.dart';
 import '../../../../data/models/invite_model.dart';
 import '../../../../data/models/partner_model.dart';
@@ -274,8 +274,9 @@ class _InviteSomeoneViewState extends State<InviteSomeoneView> {
         email: email,
         role: _selectedRole,
         partnerId: _selectedPartnerId ?? '',
-        propertyId:
-            _selectedRole == 'PROPERTY_ADMIN' ? _selectedPropertyId : null,
+        propertyId: _selectedRole == 'PROPERTY_ADMIN'
+            ? _selectedPropertyId
+            : null,
       );
 
       if (mounted) {
@@ -344,7 +345,12 @@ class _InviteSomeoneViewState extends State<InviteSomeoneView> {
             children: [
               // Top Plodyo Logo Header (Sticky)
               const Padding(
-                padding: EdgeInsets.only(left: 48, right: 48, top: 20, bottom: 8),
+                padding: EdgeInsets.only(
+                  left: 48,
+                  right: 48,
+                  top: 20,
+                  bottom: 8,
+                ),
                 child: PlodyoHeader(padding: EdgeInsets.zero),
               ),
 
@@ -380,7 +386,8 @@ class _InviteSomeoneViewState extends State<InviteSomeoneView> {
                                 const SizedBox(width: 18),
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Text(
                                         'Invite someone',
@@ -586,9 +593,7 @@ class _InviteSomeoneViewState extends State<InviteSomeoneView> {
                                   onPressed: _handleSendInvite,
                                 ),
                                 const SizedBox(width: 16),
-                                _CancelButton(
-                                  onPressed: _handleBack,
-                                ),
+                                _CancelButton(onPressed: _handleBack),
                               ],
                             ),
                             const SizedBox(height: 48),
@@ -653,10 +658,7 @@ class _InviteSomeoneViewState extends State<InviteSomeoneView> {
 
 /// Email Input Box styled exactly like design screenshot
 class _EmailInputBox extends StatefulWidget {
-  const _EmailInputBox({
-    required this.controller,
-    required this.showCursor,
-  });
+  const _EmailInputBox({required this.controller, required this.showCursor});
 
   final TextEditingController controller;
   final bool showCursor;
@@ -693,14 +695,12 @@ class _EmailInputBoxState extends State<_EmailInputBox> {
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: const Color(0xFF8B5CF6),
-              width: 2.0,
-            ),
+            border: Border.all(color: const Color(0xFF8B5CF6), width: 2.0),
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFF8B5CF6)
-                    .withValues(alpha: isHighlighted ? 0.25 : 0.12),
+                color: const Color(
+                  0xFF8B5CF6,
+                ).withValues(alpha: isHighlighted ? 0.25 : 0.12),
                 blurRadius: isHighlighted ? 12 : 6,
                 offset: const Offset(0, 2),
               ),
@@ -840,23 +840,22 @@ class _RoleCardState extends State<_RoleCard> {
               decoration: BoxDecoration(
                 color: widget.isSelected
                     ? const Color(0xFFFAF5FF)
-                    : (isHighlighted
-                        ? const Color(0xFFF8FAFC)
-                        : Colors.white),
+                    : (isHighlighted ? const Color(0xFFF8FAFC) : Colors.white),
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(
                   color: widget.isSelected
                       ? const Color(0xFF8B5CF6)
                       : (isHighlighted
-                          ? const Color(0xFFA78BFA)
-                          : const Color(0xFFCBD5E1)),
+                            ? const Color(0xFFA78BFA)
+                            : const Color(0xFFCBD5E1)),
                   width: widget.isSelected ? 2.0 : 1.5,
                 ),
                 boxShadow: widget.isSelected
                     ? [
                         BoxShadow(
-                          color: const Color(0xFF8B5CF6)
-                              .withValues(alpha: 0.18),
+                          color: const Color(
+                            0xFF8B5CF6,
+                          ).withValues(alpha: 0.18),
                           blurRadius: 10,
                           offset: const Offset(0, 3),
                         ),
@@ -967,23 +966,22 @@ class _PartnerSelectCardState extends State<_PartnerSelectCard> {
               decoration: BoxDecoration(
                 color: widget.isSelected
                     ? const Color(0xFFFAF5FF)
-                    : (isHighlighted
-                        ? const Color(0xFFF8FAFC)
-                        : Colors.white),
+                    : (isHighlighted ? const Color(0xFFF8FAFC) : Colors.white),
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(
                   color: widget.isSelected
                       ? const Color(0xFF8B5CF6)
                       : (isHighlighted
-                          ? const Color(0xFFA78BFA)
-                          : const Color(0xFFCBD5E1)),
+                            ? const Color(0xFFA78BFA)
+                            : const Color(0xFFCBD5E1)),
                   width: widget.isSelected ? 2.0 : 1.5,
                 ),
                 boxShadow: widget.isSelected
                     ? [
                         BoxShadow(
-                          color: const Color(0xFF8B5CF6)
-                              .withValues(alpha: 0.16),
+                          color: const Color(
+                            0xFF8B5CF6,
+                          ).withValues(alpha: 0.16),
                           blurRadius: 8,
                           offset: const Offset(0, 2),
                         ),
@@ -1065,10 +1063,7 @@ class _PartnerSelectCardState extends State<_PartnerSelectCard> {
 
 /// "Send invite" Gradient Pill Button
 class _SendInviteButton extends StatefulWidget {
-  const _SendInviteButton({
-    required this.isLoading,
-    required this.onPressed,
-  });
+  const _SendInviteButton({required this.isLoading, required this.onPressed});
 
   final bool isLoading;
   final VoidCallback onPressed;
@@ -1126,16 +1121,14 @@ class _SendInviteButtonState extends State<_SendInviteButton> {
               padding: const EdgeInsets.symmetric(horizontal: 26, vertical: 14),
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
-                  colors: [
-                    Color(0xFFD946EF),
-                    Color(0xFF9333EA),
-                  ],
+                  colors: [Color(0xFFD946EF), Color(0xFF9333EA)],
                 ),
                 borderRadius: BorderRadius.circular(26),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFF9333EA)
-                        .withValues(alpha: isHighlighted ? 0.5 : 0.35),
+                    color: const Color(
+                      0xFF9333EA,
+                    ).withValues(alpha: isHighlighted ? 0.5 : 0.35),
                     blurRadius: isHighlighted ? 16 : 12,
                     offset: const Offset(0, 4),
                   ),
@@ -1155,22 +1148,13 @@ class _SendInviteButtonState extends State<_SendInviteButton> {
                           ),
                         ),
                         SizedBox(width: 8),
-                        PlodyoThreeDotsLoading(
-                          dotSize: 5,
-                          spacing: 3.5,
-                          bounceHeight: 4,
-                          color: Colors.white,
-                        ),
+                        LoadingDots(color: Colors.white),
                       ],
                     )
                   : const Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(
-                          Icons.send_rounded,
-                          color: Colors.white,
-                          size: 17,
-                        ),
+                        Icon(Icons.send_rounded, color: Colors.white, size: 17),
                         SizedBox(width: 8),
                         Text(
                           'Send invite',
@@ -1247,14 +1231,13 @@ class _CancelButtonState extends State<_CancelButton> {
               decoration: BoxDecoration(
                 color: isHighlighted ? const Color(0xFFFAF5FF) : Colors.white,
                 borderRadius: BorderRadius.circular(26),
-                border: Border.all(
-                  color: const Color(0xFF8B5CF6),
-                  width: 1.5,
-                ),
+                border: Border.all(color: const Color(0xFF8B5CF6), width: 1.5),
                 boxShadow: isHighlighted
                     ? [
                         BoxShadow(
-                          color: const Color(0xFF8B5CF6).withValues(alpha: 0.25),
+                          color: const Color(
+                            0xFF8B5CF6,
+                          ).withValues(alpha: 0.25),
                           blurRadius: 10,
                           offset: const Offset(0, 2),
                         ),
@@ -1318,24 +1301,24 @@ class _DedicatedTvKeyboard extends StatelessWidget {
   final VoidCallback onClear;
 
   List<List<String>> get _standardRows => [
-        ['a', 'b', 'c', 'd', 'e', 'f'],
-        ['g', 'h', 'i', 'j', 'k', 'l'],
-        ['m', 'n', 'o', 'p', 'q', 'r'],
-        ['s', 't', 'u', 'v', 'w', 'x'],
-        ['y', 'z', '0', '1', '2', '3'],
-        ['4', '5', '6', '7', '8', '9'],
-        ['@', '.', '-', '_'],
-      ];
+    ['a', 'b', 'c', 'd', 'e', 'f'],
+    ['g', 'h', 'i', 'j', 'k', 'l'],
+    ['m', 'n', 'o', 'p', 'q', 'r'],
+    ['s', 't', 'u', 'v', 'w', 'x'],
+    ['y', 'z', '0', '1', '2', '3'],
+    ['4', '5', '6', '7', '8', '9'],
+    ['@', '.', '-', '_'],
+  ];
 
   List<List<String>> get _symbolsRows => [
-        ['!', '@', '#', '\$', '%', '^'],
-        ['&', '*', '(', ')', '_', '+'],
-        ['[', ']', '{', '}', ';', ':'],
-        ['\'', '"', ',', '.', '/', '?'],
-        ['~', '`', '<', '>', '=', '\\'],
-        ['4', '5', '6', '7', '8', '9'],
-        ['@', '.', '-', '_'],
-      ];
+    ['!', '@', '#', '\$', '%', '^'],
+    ['&', '*', '(', ')', '_', '+'],
+    ['[', ']', '{', '}', ';', ':'],
+    ['\'', '"', ',', '.', '/', '?'],
+    ['~', '`', '<', '>', '=', '\\'],
+    ['4', '5', '6', '7', '8', '9'],
+    ['@', '.', '-', '_'],
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -1507,24 +1490,20 @@ class _KeyButtonState extends State<_KeyButton> {
               decoration: BoxDecoration(
                 gradient: isHighlighted
                     ? const LinearGradient(
-                        colors: [
-                          Color(0xFFD946EF),
-                          Color(0xFF9333EA),
-                        ],
+                        colors: [Color(0xFFD946EF), Color(0xFF9333EA)],
                       )
                     : null,
                 color: isHighlighted ? null : Colors.white,
                 borderRadius: BorderRadius.circular(9),
                 border: isHighlighted
                     ? null
-                    : Border.all(
-                        color: const Color(0xFFE4E4E7),
-                        width: 1.0,
-                      ),
+                    : Border.all(color: const Color(0xFFE4E4E7), width: 1.0),
                 boxShadow: isHighlighted
                     ? [
                         BoxShadow(
-                          color: const Color(0xFFD946EF).withValues(alpha: 0.45),
+                          color: const Color(
+                            0xFFD946EF,
+                          ).withValues(alpha: 0.45),
                           blurRadius: 10,
                           offset: const Offset(0, 3),
                         ),
@@ -1550,8 +1529,9 @@ class _KeyButtonState extends State<_KeyButton> {
                         widget.label ?? '',
                         style: TextStyle(
                           fontSize: widget.fontSize,
-                          fontWeight:
-                              isHighlighted ? FontWeight.w700 : FontWeight.w500,
+                          fontWeight: isHighlighted
+                              ? FontWeight.w700
+                              : FontWeight.w500,
                           color: isHighlighted
                               ? Colors.white
                               : const Color(0xFF18181B),

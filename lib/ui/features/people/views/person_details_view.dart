@@ -4,7 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/widgets/plodyo_header.dart';
-import '../../../../core/widgets/plodyo_loading.dart';
+import '../../../../core/widgets/loading.dart';
 import '../../../../core/widgets/tv_section_badge.dart';
 import '../../../../data/models/person_model.dart';
 import '../../../../data/repositories/auth_repository.dart';
@@ -86,8 +86,9 @@ class _PersonDetailsViewState extends State<PersonDetailsView> {
     setState(() {
       _isEditingName = true;
       _nameController.text = _currentPerson.fullName;
-      _nameController.selection =
-          TextSelection.collapsed(offset: _currentPerson.fullName.length);
+      _nameController.selection = TextSelection.collapsed(
+        offset: _currentPerson.fullName.length,
+      );
       _showCursor = true;
     });
 
@@ -222,7 +223,8 @@ class _PersonDetailsViewState extends State<PersonDetailsView> {
       }
 
       if (_isEditingName) {
-        if (key == LogicalKeyboardKey.enter || key == LogicalKeyboardKey.numpadEnter) {
+        if (key == LogicalKeyboardKey.enter ||
+            key == LogicalKeyboardKey.numpadEnter) {
           _handleSaveName();
           return KeyEventResult.handled;
         }
@@ -235,7 +237,8 @@ class _PersonDetailsViewState extends State<PersonDetailsView> {
           }
         }
 
-        if (key == LogicalKeyboardKey.backspace || key == LogicalKeyboardKey.delete) {
+        if (key == LogicalKeyboardKey.backspace ||
+            key == LogicalKeyboardKey.delete) {
           _handleVirtualBackspace();
           return KeyEventResult.handled;
         }
@@ -260,8 +263,12 @@ class _PersonDetailsViewState extends State<PersonDetailsView> {
         title: Row(
           children: [
             Icon(
-              willDisable ? Icons.block_rounded : Icons.check_circle_outline_rounded,
-              color: willDisable ? const Color(0xFFDC2626) : const Color(0xFF16A34A),
+              willDisable
+                  ? Icons.block_rounded
+                  : Icons.check_circle_outline_rounded,
+              color: willDisable
+                  ? const Color(0xFFDC2626)
+                  : const Color(0xFF16A34A),
             ),
             const SizedBox(width: 10),
             Text(
@@ -323,13 +330,20 @@ class _PersonDetailsViewState extends State<PersonDetailsView> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('Cancel', style: TextStyle(color: Color(0xFF64748B))),
+            child: const Text(
+              'Cancel',
+              style: TextStyle(color: Color(0xFF64748B)),
+            ),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: willDisable ? const Color(0xFFDC2626) : const Color(0xFF16A34A),
+              backgroundColor: willDisable
+                  ? const Color(0xFFDC2626)
+                  : const Color(0xFF16A34A),
               foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
               padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
             ),
             onPressed: () async {
@@ -390,17 +404,20 @@ class _PersonDetailsViewState extends State<PersonDetailsView> {
     if (_currentPerson.isSuperAdmin) {
       return 'All partners and properties';
     }
-    if (_currentPerson.propertyName != null && _currentPerson.propertyName!.isNotEmpty) {
+    if (_currentPerson.propertyName != null &&
+        _currentPerson.propertyName!.isNotEmpty) {
       return '${_currentPerson.partnerName ?? "Partner"} \u00B7 ${_currentPerson.propertyName}';
     }
-    if (_currentPerson.partnerName != null && _currentPerson.partnerName!.isNotEmpty) {
+    if (_currentPerson.partnerName != null &&
+        _currentPerson.partnerName!.isNotEmpty) {
       return _currentPerson.partnerName!;
     }
     return 'All partners and properties';
   }
 
   String get _lastSignedInText {
-    if (_currentPerson.lastLoginAt != null && _currentPerson.lastLoginAt!.isNotEmpty) {
+    if (_currentPerson.lastLoginAt != null &&
+        _currentPerson.lastLoginAt!.isNotEmpty) {
       final text = _currentPerson.lastLoginAt!;
       if (text.startsWith('Last in ')) {
         return text.replaceFirst('Last in ', '');
@@ -411,7 +428,8 @@ class _PersonDetailsViewState extends State<PersonDetailsView> {
   }
 
   String get _createdText {
-    if (_currentPerson.createdAt != null && _currentPerson.createdAt!.isNotEmpty) {
+    if (_currentPerson.createdAt != null &&
+        _currentPerson.createdAt!.isNotEmpty) {
       return _currentPerson.createdAt!;
     }
     return '10 Sept 2026, 23:56';
@@ -430,7 +448,12 @@ class _PersonDetailsViewState extends State<PersonDetailsView> {
             children: [
               // Top Plodyo Logo Header (Sticky)
               const Padding(
-                padding: EdgeInsets.only(left: 48, right: 48, top: 20, bottom: 8),
+                padding: EdgeInsets.only(
+                  left: 48,
+                  right: 48,
+                  top: 20,
+                  bottom: 8,
+                ),
                 child: PlodyoHeader(padding: EdgeInsets.zero),
               ),
 
@@ -478,7 +501,10 @@ class _PersonDetailsViewState extends State<PersonDetailsView> {
                         if (_currentPerson.isCurrentUser) ...[
                           const SizedBox(width: 8),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 9,
+                              vertical: 3,
+                            ),
                             decoration: BoxDecoration(
                               color: const Color(0xFFE2E8F0),
                               borderRadius: BorderRadius.circular(12),
@@ -504,7 +530,11 @@ class _PersonDetailsViewState extends State<PersonDetailsView> {
               Expanded(
                 child: SingleChildScrollView(
                   physics: const BouncingScrollPhysics(),
-                  padding: const EdgeInsets.only(left: 48, right: 48, bottom: 48),
+                  padding: const EdgeInsets.only(
+                    left: 48,
+                    right: 48,
+                    bottom: 48,
+                  ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -760,10 +790,7 @@ class _PersonDetailsViewState extends State<PersonDetailsView> {
 
 /// Full Name Input Box with purple border, "Full name" label, and cursor
 class _FullNameInputBox extends StatefulWidget {
-  const _FullNameInputBox({
-    required this.controller,
-    required this.showCursor,
-  });
+  const _FullNameInputBox({required this.controller, required this.showCursor});
 
   final TextEditingController controller;
   final bool showCursor;
@@ -800,14 +827,12 @@ class _FullNameInputBoxState extends State<_FullNameInputBox> {
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: const Color(0xFF8B5CF6),
-              width: 2.0,
-            ),
+            border: Border.all(color: const Color(0xFF8B5CF6), width: 2.0),
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFF8B5CF6)
-                    .withValues(alpha: isHighlighted ? 0.28 : 0.14),
+                color: const Color(
+                  0xFF8B5CF6,
+                ).withValues(alpha: isHighlighted ? 0.28 : 0.14),
                 blurRadius: isHighlighted ? 12 : 6,
                 offset: const Offset(0, 2),
               ),
@@ -878,10 +903,7 @@ class _FullNameInputBoxState extends State<_FullNameInputBox> {
 
 /// Gradient "✓ Save name" Pill Button with focus glow
 class _SaveNameButton extends StatefulWidget {
-  const _SaveNameButton({
-    required this.onPressed,
-    this.isLoading = false,
-  });
+  const _SaveNameButton({required this.onPressed, this.isLoading = false});
 
   final VoidCallback onPressed;
   final bool isLoading;
@@ -939,16 +961,14 @@ class _SaveNameButtonState extends State<_SaveNameButton> {
               padding: const EdgeInsets.symmetric(horizontal: 26, vertical: 12),
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
-                  colors: [
-                    Color(0xFFD946EF),
-                    Color(0xFF9333EA),
-                  ],
+                  colors: [Color(0xFFD946EF), Color(0xFF9333EA)],
                 ),
                 borderRadius: BorderRadius.circular(24),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFF9333EA)
-                        .withValues(alpha: isHighlighted ? 0.55 : 0.35),
+                    color: const Color(
+                      0xFF9333EA,
+                    ).withValues(alpha: isHighlighted ? 0.55 : 0.35),
                     blurRadius: isHighlighted ? 16 : 10,
                     offset: const Offset(0, 4),
                   ),
@@ -967,12 +987,7 @@ class _SaveNameButtonState extends State<_SaveNameButton> {
                           ),
                         ),
                         SizedBox(width: 8),
-                        PlodyoThreeDotsLoading(
-                          color: Colors.white,
-                          dotSize: 5,
-                          spacing: 3.5,
-                          bounceHeight: 4,
-                        ),
+                        LoadingDots(color: Colors.white),
                       ],
                     )
                   : const Row(
@@ -1120,24 +1135,24 @@ class _DedicatedTvKeyboard extends StatelessWidget {
   final VoidCallback onClear;
 
   List<List<String>> get _standardRows => [
-        ['a', 'b', 'c', 'd', 'e', 'f'],
-        ['g', 'h', 'i', 'j', 'k', 'l'],
-        ['m', 'n', 'o', 'p', 'q', 'r'],
-        ['s', 't', 'u', 'v', 'w', 'x'],
-        ['y', 'z', '0', '1', '2', '3'],
-        ['4', '5', '6', '7', '8', '9'],
-        ['-', '.', '\''],
-      ];
+    ['a', 'b', 'c', 'd', 'e', 'f'],
+    ['g', 'h', 'i', 'j', 'k', 'l'],
+    ['m', 'n', 'o', 'p', 'q', 'r'],
+    ['s', 't', 'u', 'v', 'w', 'x'],
+    ['y', 'z', '0', '1', '2', '3'],
+    ['4', '5', '6', '7', '8', '9'],
+    ['-', '.', '\''],
+  ];
 
   List<List<String>> get _symbolsRows => [
-        ['!', '@', '#', '\$', '%', '^'],
-        ['&', '*', '(', ')', '_', '+'],
-        ['[', ']', '{', '}', ';', ':'],
-        ['\'', '"', ',', '.', '/', '?'],
-        ['~', '`', '<', '>', '=', '\\'],
-        ['4', '5', '6', '7', '8', '9'],
-        ['-', '.', '\''],
-      ];
+    ['!', '@', '#', '\$', '%', '^'],
+    ['&', '*', '(', ')', '_', '+'],
+    ['[', ']', '{', '}', ';', ':'],
+    ['\'', '"', ',', '.', '/', '?'],
+    ['~', '`', '<', '>', '=', '\\'],
+    ['4', '5', '6', '7', '8', '9'],
+    ['-', '.', '\''],
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -1313,24 +1328,20 @@ class _KeyButtonState extends State<_KeyButton> {
               decoration: BoxDecoration(
                 gradient: isHighlighted
                     ? const LinearGradient(
-                        colors: [
-                          Color(0xFFD946EF),
-                          Color(0xFF9333EA),
-                        ],
+                        colors: [Color(0xFFD946EF), Color(0xFF9333EA)],
                       )
                     : null,
                 color: isHighlighted ? null : Colors.white,
                 borderRadius: BorderRadius.circular(9),
                 border: isHighlighted
                     ? null
-                    : Border.all(
-                        color: const Color(0xFFE4E4E7),
-                        width: 1.0,
-                      ),
+                    : Border.all(color: const Color(0xFFE4E4E7), width: 1.0),
                 boxShadow: isHighlighted
                     ? [
                         BoxShadow(
-                          color: const Color(0xFFD946EF).withValues(alpha: 0.45),
+                          color: const Color(
+                            0xFFD946EF,
+                          ).withValues(alpha: 0.45),
                           blurRadius: 10,
                           offset: const Offset(0, 3),
                         ),
@@ -1356,8 +1367,9 @@ class _KeyButtonState extends State<_KeyButton> {
                         widget.label ?? '',
                         style: TextStyle(
                           fontSize: widget.fontSize,
-                          fontWeight:
-                              isHighlighted ? FontWeight.w700 : FontWeight.w500,
+                          fontWeight: isHighlighted
+                              ? FontWeight.w700
+                              : FontWeight.w500,
                           color: isHighlighted
                               ? Colors.white
                               : const Color(0xFF18181B),
@@ -1436,7 +1448,9 @@ class _AllPeopleBackButtonState extends State<_AllPeopleBackButton> {
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFF9333EA).withValues(alpha: active ? 0.35 : 0.18),
+                    color: const Color(
+                      0xFF9333EA,
+                    ).withValues(alpha: active ? 0.35 : 0.18),
                     blurRadius: active ? 18 : 12,
                     spreadRadius: active ? 2 : 1,
                     offset: const Offset(0, 3),
@@ -1472,10 +1486,7 @@ class _AllPeopleBackButtonState extends State<_AllPeopleBackButton> {
 
 /// Detail Info Card for the 2x2 grid and Access scope card
 class _DetailInfoCard extends StatefulWidget {
-  const _DetailInfoCard({
-    required this.label,
-    required this.value,
-  });
+  const _DetailInfoCard({required this.label, required this.value});
 
   final String label;
   final String value;
@@ -1514,9 +1525,7 @@ class _DetailInfoCardState extends State<_DetailInfoCard> {
             color: Colors.white,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: active
-                  ? const Color(0xFF8B5CF6)
-                  : const Color(0xFFCBD5E1),
+              color: active ? const Color(0xFF8B5CF6) : const Color(0xFFCBD5E1),
               width: active ? 2.0 : 1.3,
             ),
             boxShadow: [
@@ -1672,7 +1681,9 @@ class _ActionButtonState extends State<_ActionButton> {
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
-                      color: active ? const Color(0xFF8B5CF6) : widget.textColor,
+                      color: active
+                          ? const Color(0xFF8B5CF6)
+                          : widget.textColor,
                     ),
                   ),
                 ],
