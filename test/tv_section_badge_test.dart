@@ -3,13 +3,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:plodyo_ondemand_tv/core/widgets/tv_section_badge.dart';
 import 'package:plodyo_ondemand_tv/core/widgets/plodyo_loading.dart';
 import 'package:plodyo_ondemand_tv/ui/features/auth/views/sign_in_view.dart';
-import 'package:plodyo_ondemand_tv/ui/features/partners/views/partners_view.dart';
-import 'package:plodyo_ondemand_tv/ui/features/properties/views/properties_view.dart';
-import 'package:plodyo_ondemand_tv/ui/features/rooms/views/rooms_view.dart';
-import 'package:plodyo_ondemand_tv/ui/features/people/views/people_view.dart';
-import 'package:plodyo_ondemand_tv/ui/features/invites/views/invites_view.dart';
-import 'package:plodyo_ondemand_tv/ui/features/settings/views/settings_view.dart';
-import 'package:plodyo_ondemand_tv/ui/features/search/views/search_view.dart';
 
 void main() {
   group('TvSectionBadge Component Tests', () {

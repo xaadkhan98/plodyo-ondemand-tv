@@ -20,9 +20,7 @@ import '../../ui/features/rooms/views/add_many_rooms_view.dart';
 import '../../ui/features/settings/views/settings_view.dart';
 import '../../ui/features/people/views/people_view.dart';
 import '../../ui/features/people/views/person_details_view.dart';
-import '../../ui/features/details/views/details_view.dart';
 import '../../data/repositories/auth_repository.dart';
-import '../../data/models/media_item.dart';
 import '../../data/models/partner_model.dart';
 import '../../data/models/person_model.dart';
 
@@ -111,33 +109,6 @@ final GoRouter appRouter = GoRouter(
       ),
     ),
 
-    // Details View (Full Screen on TV)
-    GoRoute(
-      path: '/details',
-      name: 'details',
-      builder: (context, state) {
-        final item = state.extra as MediaItem? ??
-            const MediaItem(
-              id: 'm1',
-              title: 'Neon Odyssey 2099',
-              category: 'Sci-Fi & Cyberpunk',
-              posterUrl: 'https://picsum.photos/seed/neon/400/600',
-              backdropUrl: 'https://picsum.photos/seed/neon_hero/1280/720',
-              rating: 8.9,
-              duration: '2h 18m',
-              releaseYear: 2025,
-              description:
-                  'In a rain-soaked metropolis ruled by rogue AI corporations, a synthetic detective is pulled into one final case.',
-            );
-        return DetailsView(
-          item: item,
-          onBack: () => context.pop(),
-          onMediaSelected: (newItem) {
-            context.pushReplacement('/details', extra: newItem);
-          },
-        );
-      },
-    ),
 
     // Shell Route containing Persistent Sidebar Navigation Rail
     ShellRoute(
@@ -174,19 +145,10 @@ final GoRouter appRouter = GoRouter(
             GoRoute(
               path: 'details',
               name: 'partnerDetails',
+              // The record travels as `extra`; without one (a restart, a deep link) go back to the list.
+              redirect: (context, state) => state.extra is PartnerModel ? null : '/partners',
               builder: (context, state) {
-                final partner = state.extra as PartnerModel? ??
-                    const PartnerModel(
-                      id: 'p2',
-                      name: 'HotelA1',
-                      partnerType: 'INDEPENDENT',
-                      contactEmail: 'mudsr3@gmail.com',
-                      contactName: 'Ali',
-                      phone: null,
-                      roomLimit: 0,
-                      status: 'PENDING_APPROVAL',
-                      createdAt: '10 Sept 2026, 21:33',
-                    );
+                final partner = state.extra as PartnerModel;
                 return PartnerDetailsView(partner: partner);
               },
             ),
@@ -250,18 +212,10 @@ final GoRouter appRouter = GoRouter(
             GoRoute(
               path: 'details',
               name: 'personDetails',
+              // The record travels as `extra`; without one (a restart, a deep link) go back to the list.
+              redirect: (context, state) => state.extra is PersonModel ? null : '/people',
               builder: (context, state) {
-                final person = state.extra as PersonModel? ??
-                    const PersonModel(
-                      id: 'person-1',
-                      fullName: 'Super Admin',
-                      email: 'superadmin@email.com',
-                      role: 'SUPER_ADMIN',
-                      status: 'ACTIVE',
-                      lastLoginAt: '12 Sept 2026, 16:13',
-                      createdAt: '10 Sept 2026, 23:56',
-                      isCurrentUser: false,
-                    );
+                final person = state.extra as PersonModel;
                 return PersonDetailsView(person: person);
               },
             ),

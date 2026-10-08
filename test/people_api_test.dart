@@ -100,14 +100,6 @@ class _MockTestPeopleRepo implements PeopleRepository {
   }) async {
     return 'Person deleted';
   }
-
-  @override
-  Future<PersonModel> disableUser({
-    required String accessToken,
-    required String personId,
-  }) async {
-    return _people.firstWhere((p) => p.id == personId);
-  }
 }
 
 void main() {

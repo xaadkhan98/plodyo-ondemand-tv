@@ -18,9 +18,6 @@ import 'package:plodyo_ondemand_tv/main.dart';
 import 'package:plodyo_ondemand_tv/ui/features/auth/cubit/sign_in_cubit.dart';
 import 'package:plodyo_ondemand_tv/ui/features/auth/views/sign_in_view.dart';
 import 'package:plodyo_ondemand_tv/ui/features/auth/widgets/tv_keyboard.dart';
-import 'package:plodyo_ondemand_tv/ui/features/search/views/search_view.dart';
-import 'package:plodyo_ondemand_tv/ui/features/home/views/home_view.dart';
-import 'package:plodyo_ondemand_tv/ui/features/categories/views/categories_view.dart';
 import 'package:plodyo_ondemand_tv/ui/features/partners/views/partners_view.dart';
 import 'package:plodyo_ondemand_tv/ui/features/invites/views/invites_view.dart';
 import 'package:plodyo_ondemand_tv/ui/features/properties/views/properties_view.dart';
@@ -207,25 +204,7 @@ class _MockPartnersRepo implements PartnersRepository {
   }
 
   @override
-  Future<PartnerModel> updatePartner({
-    required String accessToken,
-    required String partnerId,
-    String? name,
-    String? contactName,
-    String? contactEmail,
-    String? phone,
-    String? contractReference,
-  }) async {
-    return _partners.firstWhere((p) => p.id == partnerId);
-  }
-
-  @override
   Future<PartnerModel> suspendPartner({required String accessToken, required String partnerId}) async {
-    return _partners.firstWhere((p) => p.id == partnerId);
-  }
-
-  @override
-  Future<PartnerModel> activatePartner({required String accessToken, required String partnerId}) async {
     return _partners.firstWhere((p) => p.id == partnerId);
   }
 }
@@ -572,77 +551,6 @@ void main() {
     await tester.tap(find.text('Register a new venue'));
     await tester.pump();
     expect(registerVenueCalled, isTrue);
-  });
-
-  testWidgets('SearchView renders 6-column keyboard and empty prompt state', (WidgetTester tester) async {
-    tester.view.physicalSize = const Size(1920, 1080);
-    tester.view.devicePixelRatio = 1.0;
-    addTearDown(() => tester.view.resetPhysicalSize());
-
-    await tester.pumpWidget(
-      MaterialApp(
-        home: SearchView(
-          onMediaSelected: (_) {},
-        ),
-      ),
-    );
-    await tester.pump();
-
-    expect(find.text('Search'), findsOneWidget);
-    expect(find.text('What would you like to read?'), findsOneWidget);
-  });
-
-  testWidgets('HomeView renders Plodyo header, New this week, and shimmer placeholders', (WidgetTester tester) async {
-    tester.view.physicalSize = const Size(1920, 1080);
-    tester.view.devicePixelRatio = 1.0;
-    addTearDown(() => tester.view.resetPhysicalSize());
-
-    await tester.pumpWidget(
-      const MaterialApp(
-        home: Scaffold(
-          body: HomeView(),
-        ),
-      ),
-    );
-    await tester.pump();
-
-    expect(find.text('Plodyo TV'), findsOneWidget);
-    expect(find.text('New this week'), findsOneWidget);
-  });
-
-  testWidgets('CategoriesView renders 8 category cards with Magic selected by default', (WidgetTester tester) async {
-    tester.view.physicalSize = const Size(1920, 1080);
-    tester.view.devicePixelRatio = 1.0;
-    addTearDown(() => tester.view.resetPhysicalSize());
-
-    CategoryItemData? selectedCategory;
-
-    await tester.pumpWidget(
-      MaterialApp(
-        home: CategoriesView(
-          onCategorySelected: (cat) {
-            selectedCategory = cat;
-          },
-        ),
-      ),
-    );
-    await tester.pump(const Duration(milliseconds: 200));
-
-    expect(find.text('Categories'), findsOneWidget);
-    expect(find.text('Pick a theme to explore.'), findsOneWidget);
-    expect(find.text('Nature'), findsOneWidget);
-    expect(find.text('Friends'), findsOneWidget);
-    expect(find.text('Family'), findsOneWidget);
-    expect(find.text('Adventure'), findsOneWidget);
-    expect(find.text('Magic'), findsOneWidget);
-    expect(find.text('Learning'), findsOneWidget);
-    expect(find.text('Animals'), findsOneWidget);
-    expect(find.text('Space'), findsOneWidget);
-
-    await tester.tap(find.text('Space'));
-    await tester.pump(const Duration(milliseconds: 200));
-
-    expect(selectedCategory?.id, 'space');
   });
 
   testWidgets('PartnersView renders filter pills and partner cards', (WidgetTester tester) async {
