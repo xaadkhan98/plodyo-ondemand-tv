@@ -147,7 +147,9 @@ void main() {
         return http.Response(jsonEncode(payload), 200);
       });
 
-      final service = PeopleApiService(apiClient: ApiClient(httpClient: mockClient));
+      final service = PeopleApiService(
+        apiClient: ApiClient(httpClient: mockClient),
+      );
       final repo = PeopleRepositoryImpl(apiService: service);
 
       final response = await repo.getPeople(accessToken: 'test_token');
@@ -184,7 +186,9 @@ void main() {
         return http.Response(jsonEncode(payload), 200);
       });
 
-      final service = PeopleApiService(apiClient: ApiClient(httpClient: mockClient));
+      final service = PeopleApiService(
+        apiClient: ApiClient(httpClient: mockClient),
+      );
       final repo = PeopleRepositoryImpl(apiService: service);
 
       final updated = await repo.updateStatus(
@@ -214,7 +218,9 @@ void main() {
         return http.Response(jsonEncode(payload), 200);
       });
 
-      final service = PeopleApiService(apiClient: ApiClient(httpClient: mockClient));
+      final service = PeopleApiService(
+        apiClient: ApiClient(httpClient: mockClient),
+      );
       final repo = PeopleRepositoryImpl(apiService: service);
 
       final updated = await repo.updateName(
@@ -229,7 +235,9 @@ void main() {
   });
 
   group('PeopleView Widget Tests', () {
-    testWidgets('renders People title, subtitle, filter chips and cards', (tester) async {
+    testWidgets('renders People title, subtitle, filter chips and cards', (
+      tester,
+    ) async {
       tester.view.physicalSize = const Size(1920, 1080);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(() => tester.view.resetPhysicalSize());
@@ -251,7 +259,8 @@ void main() {
       expect(find.text('People'), findsOneWidget);
       expect(
         find.text(
-            'Everyone who can sign in within your scope. Disabling an account ends its sessions on every device at once.'),
+          'Everyone who can sign in within your scope. Disabling an account ends its sessions on every device at once.',
+        ),
         findsOneWidget,
       );
 
@@ -281,7 +290,9 @@ void main() {
   });
 
   group('PersonDetailsView Widget Tests', () {
-    testWidgets('renders 2x2 grid, Access section, and action buttons', (tester) async {
+    testWidgets('renders 2x2 grid, Access section, and action buttons', (
+      tester,
+    ) async {
       tester.view.physicalSize = const Size(1920, 1080);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(() => tester.view.resetPhysicalSize());
@@ -329,7 +340,9 @@ void main() {
       // Verify Access Section
       expect(find.text('Access'), findsOneWidget);
       expect(
-        find.text('Only the scopes inside your own are listed. This account may hold others elsewhere that you cannot see.'),
+        find.text(
+          'Only the scopes inside your own are listed. This account may hold others elsewhere that you cannot see.',
+        ),
         findsOneWidget,
       );
       expect(find.text('All partners and properties'), findsOneWidget);
@@ -344,59 +357,62 @@ void main() {
       expect(backPressed, isTrue);
     });
 
-    testWidgets('clicking Change Name shows inline UI with TV keyboard and hides action buttons', (tester) async {
-      tester.view.physicalSize = const Size(1920, 1080);
-      tester.view.devicePixelRatio = 1.0;
-      addTearDown(() => tester.view.resetPhysicalSize());
+    testWidgets(
+      'clicking Change Name shows inline UI with TV keyboard and hides action buttons',
+      (tester) async {
+        tester.view.physicalSize = const Size(1920, 1080);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(() => tester.view.resetPhysicalSize());
 
-      const samplePerson = PersonModel(
-        id: 'person-1',
-        fullName: 'Super Admin',
-        email: 'superadmin@email.com',
-        role: 'SUPER_ADMIN',
-        status: 'ACTIVE',
-      );
+        const samplePerson = PersonModel(
+          id: 'person-1',
+          fullName: 'Super Admin',
+          email: 'superadmin@email.com',
+          role: 'SUPER_ADMIN',
+          status: 'ACTIVE',
+        );
 
-      await tester.pumpWidget(
-        const MaterialApp(
-          home: PersonDetailsView(person: samplePerson),
-        ),
-      );
+        await tester.pumpWidget(
+          const MaterialApp(home: PersonDetailsView(person: samplePerson)),
+        );
 
-      await tester.pump(const Duration(milliseconds: 300));
+        await tester.pump(const Duration(milliseconds: 300));
 
-      // Initially action buttons are visible
-      expect(find.text('Change name'), findsOneWidget);
-      expect(find.text('Disable account'), findsOneWidget);
+        // Initially action buttons are visible
+        expect(find.text('Change name'), findsOneWidget);
+        expect(find.text('Disable account'), findsOneWidget);
 
-      // Click "Change name"
-      await tester.tap(find.text('Change name'));
-      await tester.pump(const Duration(milliseconds: 300));
+        // Click "Change name"
+        await tester.tap(find.text('Change name'));
+        await tester.pump(const Duration(milliseconds: 300));
 
-      // Now "Disable account" should be hidden
-      expect(find.text('Disable account'), findsNothing);
+        // Now "Disable account" should be hidden
+        expect(find.text('Disable account'), findsNothing);
 
-      // Inline Change Name header & description should be visible
-      expect(
-        find.text('This is the only route in the API that can set a display name — there is no self-service profile screen.'),
-        findsOneWidget,
-      );
-      expect(find.text('Full name'), findsOneWidget);
-      expect(find.text('Save name'), findsOneWidget);
-      expect(find.text('Cancel'), findsOneWidget);
+        // Inline Change Name header & description should be visible
+        expect(
+          find.text(
+            'This is the only route in the API that can set a display name — there is no self-service profile screen.',
+          ),
+          findsOneWidget,
+        );
+        expect(find.text('Full name'), findsOneWidget);
+        expect(find.text('Save name'), findsOneWidget);
+        expect(find.text('Cancel'), findsOneWidget);
 
-      // Dedicated TV keyboard should be visible
-      expect(find.text('Clear'), findsOneWidget);
-      expect(find.text('↑ abc'), findsOneWidget);
-      expect(find.text('!#?'), findsOneWidget);
+        // Dedicated TV keyboard should be visible
+        expect(find.text('Clear'), findsOneWidget);
+        expect(find.text('↑ abc'), findsOneWidget);
+        expect(find.text('!#?'), findsOneWidget);
 
-      // Test Cancel button restores the original action buttons
-      await tester.tap(find.text('Cancel'));
-      await tester.pump(const Duration(milliseconds: 300));
+        // Test Cancel button restores the original action buttons
+        await tester.tap(find.text('Cancel'));
+        await tester.pump(const Duration(milliseconds: 300));
 
-      expect(find.text('Change name'), findsOneWidget);
-      expect(find.text('Disable account'), findsOneWidget);
-      expect(find.text('Full name'), findsNothing);
-    });
+        expect(find.text('Change name'), findsOneWidget);
+        expect(find.text('Disable account'), findsOneWidget);
+        expect(find.text('Full name'), findsNothing);
+      },
+    );
   });
 }

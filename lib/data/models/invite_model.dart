@@ -109,18 +109,18 @@ class InviteModel extends Equatable {
 
   @override
   List<Object?> get props => [
-        id,
-        email,
-        role,
-        partnerId,
-        propertyId,
-        status,
-        sentAt,
-        acceptedAt,
-        expiresAt,
-        createdAt,
-        partnerName,
-        propertyName,
-        accountExists,
-      ];
+    id,
+    email,
+    role,
+    partnerId,
+    propertyId,
+    status,
+    sentAt,
+    acceptedAt,
+    expiresAt,
+    createdAt,
+    partnerName,
+    propertyName,
+    accountExists,
+  ];
 }

@@ -32,8 +32,10 @@ class ApiConstants {
   static const String meEndpoint = '/ondemand/auth/me';
 
   // Public Routes
-  static const String publicInvitePreviewEndpoint = '/ondemand/public/invites'; // /:token
-  static const String publicRegistrationsEndpoint = '/ondemand/public/registrations';
+  static const String publicInvitePreviewEndpoint =
+      '/ondemand/public/invites'; // /:token
+  static const String publicRegistrationsEndpoint =
+      '/ondemand/public/registrations';
 
   // Admin Invites Routes
   static const String adminInvitesEndpoint = '/ondemand/admin/invites';

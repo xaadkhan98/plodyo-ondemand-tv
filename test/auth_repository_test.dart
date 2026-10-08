@@ -37,7 +37,9 @@ void main() {
         );
       });
 
-      final service = AuthApiService(apiClient: ApiClient(httpClient: mockClient));
+      final service = AuthApiService(
+        apiClient: ApiClient(httpClient: mockClient),
+      );
       final response = await service.login(
         email: 'ops@grandhotel.com',
         password: 'secret123',
@@ -48,30 +50,37 @@ void main() {
       expect(response.actor.role, 'PARTNER_ADMIN');
     });
 
-    test('login throws AuthException on HTTP 401 Invalid credentials', () async {
-      final mockClient = MockClient((request) async {
-        return http.Response(
-          jsonEncode({
-            'statusCode': 401,
-            'message': 'Invalid credentials',
-            'error': 'Unauthorized',
-          }),
-          401,
-          headers: {'content-type': 'application/json'},
+    test(
+      'login throws AuthException on HTTP 401 Invalid credentials',
+      () async {
+        final mockClient = MockClient((request) async {
+          return http.Response(
+            jsonEncode({
+              'statusCode': 401,
+              'message': 'Invalid credentials',
+              'error': 'Unauthorized',
+            }),
+            401,
+            headers: {'content-type': 'application/json'},
+          );
+        });
+
+        final service = AuthApiService(
+          apiClient: ApiClient(httpClient: mockClient),
         );
-      });
 
-      final service = AuthApiService(apiClient: ApiClient(httpClient: mockClient));
-
-      expect(
-        () => service.login(email: 'bad@user.com', password: 'wrong'),
-        throwsA(isA<AuthException>().having(
-          (e) => e.message,
-          'message',
-          'Invalid credentials',
-        )),
-      );
-    });
+        expect(
+          () => service.login(email: 'bad@user.com', password: 'wrong'),
+          throwsA(
+            isA<AuthException>().having(
+              (e) => e.message,
+              'message',
+              'Invalid credentials',
+            ),
+          ),
+        );
+      },
+    );
 
     test('login throws AuthException on HTTP 400 validation error', () async {
       final mockClient = MockClient((request) async {
@@ -86,15 +95,19 @@ void main() {
         );
       });
 
-      final service = AuthApiService(apiClient: ApiClient(httpClient: mockClient));
+      final service = AuthApiService(
+        apiClient: ApiClient(httpClient: mockClient),
+      );
 
       expect(
         () => service.login(email: 'test@user.com', password: '123'),
-        throwsA(isA<AuthException>().having(
-          (e) => e.message,
-          'message',
-          contains('password must be at least 12 characters'),
-        )),
+        throwsA(
+          isA<AuthException>().having(
+            (e) => e.message,
+            'message',
+            contains('password must be at least 12 characters'),
+          ),
+        ),
       );
     });
   });
@@ -122,7 +135,9 @@ void main() {
       });
 
       final repo = AuthRepositoryImpl(
-        apiService: AuthApiService(apiClient: ApiClient(httpClient: mockClient)),
+        apiService: AuthApiService(
+          apiClient: ApiClient(httpClient: mockClient),
+        ),
       );
 
       expect(repo.isAuthenticated, isFalse);

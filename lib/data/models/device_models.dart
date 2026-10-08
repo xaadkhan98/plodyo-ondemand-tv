@@ -39,10 +39,10 @@ class DeviceSession extends Equatable {
   }
 
   Map<String, dynamic> toJson() => {
-        'session_id': sessionId,
-        'room_id': roomId,
-        'started_at': startedAt,
-      };
+    'session_id': sessionId,
+    'room_id': roomId,
+    'started_at': startedAt,
+  };
 
   @override
   List<Object?> get props => [sessionId, roomId, startedAt];
@@ -50,10 +50,7 @@ class DeviceSession extends Equatable {
 
 /// Config language entry from GET /ondemand/device/config
 class DeviceLanguage extends Equatable {
-  const DeviceLanguage({
-    required this.code,
-    required this.name,
-  });
+  const DeviceLanguage({required this.code, required this.name});
 
   final String code;
   final String name;
@@ -65,10 +62,7 @@ class DeviceLanguage extends Equatable {
     );
   }
 
-  Map<String, dynamic> toJson() => {
-        'code': code,
-        'name': name,
-      };
+  Map<String, dynamic> toJson() => {'code': code, 'name': name};
 
   @override
   List<Object?> get props => [code, name];
@@ -140,15 +134,15 @@ class DeviceStoryItem extends Equatable {
   }
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'title': title,
-        'description': description,
-        'artwork_url': artworkUrl,
-        'duration': duration,
-        'language': language,
-        'age_group': ageGroup,
-        if (mediaUrl != null) 'media_url': mediaUrl,
-      };
+    'id': id,
+    'title': title,
+    'description': description,
+    'artwork_url': artworkUrl,
+    'duration': duration,
+    'language': language,
+    'age_group': ageGroup,
+    if (mediaUrl != null) 'media_url': mediaUrl,
+  };
 
   DeviceStoryItem copyWith({
     String? id,
@@ -174,13 +168,13 @@ class DeviceStoryItem extends Equatable {
 
   @override
   List<Object?> get props => [
-        id,
-        title,
-        description,
-        artworkUrl,
-        duration,
-        language,
-        ageGroup,
-        mediaUrl,
-      ];
+    id,
+    title,
+    description,
+    artworkUrl,
+    duration,
+    language,
+    ageGroup,
+    mediaUrl,
+  ];
 }

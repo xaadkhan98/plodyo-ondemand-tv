@@ -56,9 +56,8 @@ abstract class PartnersRepository {
 
 /// Concrete implementation of [PartnersRepository] calling live backend API.
 class PartnersRepositoryImpl implements PartnersRepository {
-  PartnersRepositoryImpl({
-    PartnersApiService? apiService,
-  }) : _apiService = apiService ?? PartnersApiService();
+  PartnersRepositoryImpl({PartnersApiService? apiService})
+    : _apiService = apiService ?? PartnersApiService();
 
   final PartnersApiService _apiService;
 
@@ -161,4 +160,3 @@ class PartnersRepositoryImpl implements PartnersRepository {
     );
   }
 }
-

@@ -7,9 +7,8 @@ import '../models/auth_exception.dart';
 
 /// Central HTTP API Client handling headers, bearer tokens, client-secrets, and standard error handling.
 class ApiClient {
-  ApiClient({
-    http.Client? httpClient,
-  }) : _httpClient = httpClient ?? http.Client();
+  ApiClient({http.Client? httpClient})
+    : _httpClient = httpClient ?? http.Client();
 
   final http.Client _httpClient;
 
@@ -160,9 +159,13 @@ class ApiClient {
     if (error is AuthException) {
       throw error;
     } else if (error is SocketException) {
-      throw AuthException.network('Cannot reach Plodyo TV. Check your network or local server.');
+      throw AuthException.network(
+        'Cannot reach Plodyo TV. Check your network or local server.',
+      );
     } else if (error is TimeoutException) {
-      throw AuthException.network('Request timed out. Plodyo TV server took too long to respond.');
+      throw AuthException.network(
+        'Request timed out. Plodyo TV server took too long to respond.',
+      );
     } else if (error is http.ClientException) {
       throw AuthException.network('Network request failed: ${error.message}');
     } else {

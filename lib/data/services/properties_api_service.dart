@@ -5,9 +5,8 @@ import 'api_client.dart';
 
 /// Service communicating with OnDemand Plodyo Admin Properties endpoints.
 class PropertiesApiService {
-  PropertiesApiService({
-    ApiClient? apiClient,
-  }) : _client = apiClient ?? ApiClient();
+  PropertiesApiService({ApiClient? apiClient})
+    : _client = apiClient ?? ApiClient();
 
   final ApiClient _client;
 

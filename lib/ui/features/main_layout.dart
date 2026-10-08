@@ -19,10 +19,7 @@ class MainTvLayout extends StatelessWidget {
       body: Stack(
         children: [
           // Main View Content Canvas (padded by 74px to leave room for the collapsed rail)
-          Positioned.fill(
-            left: 74,
-            child: child,
-          ),
+          Positioned.fill(left: 74, child: child),
 
           // Floating TV Sidebar Rail on Top with Dynamic Expansion
           Positioned(

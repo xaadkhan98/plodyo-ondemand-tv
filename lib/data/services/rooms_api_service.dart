@@ -5,9 +5,7 @@ import 'api_client.dart';
 
 /// Service communicating with OnDemand Plodyo Admin Rooms endpoints.
 class RoomsApiService {
-  RoomsApiService({
-    ApiClient? apiClient,
-  }) : _client = apiClient ?? ApiClient();
+  RoomsApiService({ApiClient? apiClient}) : _client = apiClient ?? ApiClient();
 
   final ApiClient _client;
 
@@ -21,7 +19,8 @@ class RoomsApiService {
     String? clientSecret,
   }) async {
     final queryParams = <String, String>{
-      if (propertyId != null && propertyId.isNotEmpty) 'property_id': propertyId,
+      if (propertyId != null && propertyId.isNotEmpty)
+        'property_id': propertyId,
       if (status != null && status.isNotEmpty) 'status': status,
       if (page != null) 'page': page.toString(),
       if (pageSize != null) 'page_size': pageSize.toString(),

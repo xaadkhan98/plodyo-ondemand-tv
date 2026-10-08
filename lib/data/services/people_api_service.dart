@@ -5,9 +5,7 @@ import 'api_client.dart';
 
 /// Service communicating with OnDemand Plodyo Admin People / Users endpoints.
 class PeopleApiService {
-  PeopleApiService({
-    ApiClient? apiClient,
-  }) : _client = apiClient ?? ApiClient();
+  PeopleApiService({ApiClient? apiClient}) : _client = apiClient ?? ApiClient();
 
   final ApiClient _client;
 

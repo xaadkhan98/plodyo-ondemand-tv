@@ -141,26 +141,28 @@ class _ConsoleOverviewViewState extends State<ConsoleOverviewView> {
 
                       // Role badge for the signed-in account
                       if (sharedAuthRepository.currentUser case final actor?)
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 14, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFDCFCE7),
-                          borderRadius: BorderRadius.circular(24),
-                          border: Border.all(
-                            color: const Color(0xFFBBF7D0),
-                            width: 1.2,
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFDCFCE7),
+                            borderRadius: BorderRadius.circular(24),
+                            border: Border.all(
+                              color: const Color(0xFFBBF7D0),
+                              width: 1.2,
+                            ),
+                          ),
+                          child: Text(
+                            roleLabel(actor.role),
+                            style: GoogleFonts.nunito(
+                              fontSize: 13.5,
+                              fontWeight: FontWeight.w700,
+                              color: const Color(0xFF166534),
+                            ),
                           ),
                         ),
-                        child: Text(
-                          roleLabel(actor.role),
-                          style: GoogleFonts.nunito(
-                            fontSize: 13.5,
-                            fontWeight: FontWeight.w700,
-                            color: const Color(0xFF166534),
-                          ),
-                        ),
-                      ),
                     ],
                   ),
                   const SizedBox(height: 10),
@@ -188,125 +190,125 @@ class _ConsoleOverviewViewState extends State<ConsoleOverviewView> {
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                // Left Column (Cards 0, 2, 4: Partners, Properties, People)
-                Expanded(
-                  child: Column(
-                    children: [
-                      _ConsoleActionCard(
-                        card: consoleCards[0],
-                        focusNode: _focusNodes[0],
-                        autofocus: true,
-                        onKeyNavigate: (key) {
-                          if (key == LogicalKeyboardKey.arrowRight) {
-                            _focusNodes[1].requestFocus();
-                            return true;
-                          } else if (key == LogicalKeyboardKey.arrowDown) {
-                            _focusNodes[2].requestFocus();
-                            return true;
-                          }
-                          return false;
-                        },
+                    // Left Column (Cards 0, 2, 4: Partners, Properties, People)
+                    Expanded(
+                      child: Column(
+                        children: [
+                          _ConsoleActionCard(
+                            card: consoleCards[0],
+                            focusNode: _focusNodes[0],
+                            autofocus: true,
+                            onKeyNavigate: (key) {
+                              if (key == LogicalKeyboardKey.arrowRight) {
+                                _focusNodes[1].requestFocus();
+                                return true;
+                              } else if (key == LogicalKeyboardKey.arrowDown) {
+                                _focusNodes[2].requestFocus();
+                                return true;
+                              }
+                              return false;
+                            },
+                          ),
+                          const SizedBox(height: 16),
+                          _ConsoleActionCard(
+                            card: consoleCards[2],
+                            focusNode: _focusNodes[2],
+                            onKeyNavigate: (key) {
+                              if (key == LogicalKeyboardKey.arrowRight) {
+                                _focusNodes[3].requestFocus();
+                                return true;
+                              } else if (key == LogicalKeyboardKey.arrowDown) {
+                                _focusNodes[4].requestFocus();
+                                return true;
+                              } else if (key == LogicalKeyboardKey.arrowUp) {
+                                _focusNodes[0].requestFocus();
+                                return true;
+                              }
+                              return false;
+                            },
+                          ),
+                          const SizedBox(height: 16),
+                          _ConsoleActionCard(
+                            card: consoleCards[4],
+                            focusNode: _focusNodes[4],
+                            onKeyNavigate: (key) {
+                              if (key == LogicalKeyboardKey.arrowRight) {
+                                _focusNodes[5].requestFocus();
+                                return true;
+                              } else if (key == LogicalKeyboardKey.arrowUp) {
+                                _focusNodes[2].requestFocus();
+                                return true;
+                              }
+                              return false;
+                            },
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 16),
-                      _ConsoleActionCard(
-                        card: consoleCards[2],
-                        focusNode: _focusNodes[2],
-                        onKeyNavigate: (key) {
-                          if (key == LogicalKeyboardKey.arrowRight) {
-                            _focusNodes[3].requestFocus();
-                            return true;
-                          } else if (key == LogicalKeyboardKey.arrowDown) {
-                            _focusNodes[4].requestFocus();
-                            return true;
-                          } else if (key == LogicalKeyboardKey.arrowUp) {
-                            _focusNodes[0].requestFocus();
-                            return true;
-                          }
-                          return false;
-                        },
-                      ),
-                      const SizedBox(height: 16),
-                      _ConsoleActionCard(
-                        card: consoleCards[4],
-                        focusNode: _focusNodes[4],
-                        onKeyNavigate: (key) {
-                          if (key == LogicalKeyboardKey.arrowRight) {
-                            _focusNodes[5].requestFocus();
-                            return true;
-                          } else if (key == LogicalKeyboardKey.arrowUp) {
-                            _focusNodes[2].requestFocus();
-                            return true;
-                          }
-                          return false;
-                        },
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 22),
+                    ),
+                    const SizedBox(width: 22),
 
-                // Right Column (Cards 1, 3, 5: Invites, Rooms, Account)
-                Expanded(
-                  child: Column(
-                    children: [
-                      _ConsoleActionCard(
-                        card: consoleCards[1],
-                        focusNode: _focusNodes[1],
-                        onKeyNavigate: (key) {
-                          if (key == LogicalKeyboardKey.arrowLeft) {
-                            _focusNodes[0].requestFocus();
-                            return true;
-                          } else if (key == LogicalKeyboardKey.arrowDown) {
-                            _focusNodes[3].requestFocus();
-                            return true;
-                          }
-                          return false;
-                        },
+                    // Right Column (Cards 1, 3, 5: Invites, Rooms, Account)
+                    Expanded(
+                      child: Column(
+                        children: [
+                          _ConsoleActionCard(
+                            card: consoleCards[1],
+                            focusNode: _focusNodes[1],
+                            onKeyNavigate: (key) {
+                              if (key == LogicalKeyboardKey.arrowLeft) {
+                                _focusNodes[0].requestFocus();
+                                return true;
+                              } else if (key == LogicalKeyboardKey.arrowDown) {
+                                _focusNodes[3].requestFocus();
+                                return true;
+                              }
+                              return false;
+                            },
+                          ),
+                          const SizedBox(height: 16),
+                          _ConsoleActionCard(
+                            card: consoleCards[3],
+                            focusNode: _focusNodes[3],
+                            onKeyNavigate: (key) {
+                              if (key == LogicalKeyboardKey.arrowLeft) {
+                                _focusNodes[2].requestFocus();
+                                return true;
+                              } else if (key == LogicalKeyboardKey.arrowDown) {
+                                _focusNodes[5].requestFocus();
+                                return true;
+                              } else if (key == LogicalKeyboardKey.arrowUp) {
+                                _focusNodes[1].requestFocus();
+                                return true;
+                              }
+                              return false;
+                            },
+                          ),
+                          const SizedBox(height: 16),
+                          _ConsoleActionCard(
+                            card: consoleCards[5],
+                            focusNode: _focusNodes[5],
+                            onKeyNavigate: (key) {
+                              if (key == LogicalKeyboardKey.arrowLeft) {
+                                _focusNodes[4].requestFocus();
+                                return true;
+                              } else if (key == LogicalKeyboardKey.arrowUp) {
+                                _focusNodes[3].requestFocus();
+                                return true;
+                              }
+                              return false;
+                            },
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 16),
-                      _ConsoleActionCard(
-                        card: consoleCards[3],
-                        focusNode: _focusNodes[3],
-                        onKeyNavigate: (key) {
-                          if (key == LogicalKeyboardKey.arrowLeft) {
-                            _focusNodes[2].requestFocus();
-                            return true;
-                          } else if (key == LogicalKeyboardKey.arrowDown) {
-                            _focusNodes[5].requestFocus();
-                            return true;
-                          } else if (key == LogicalKeyboardKey.arrowUp) {
-                            _focusNodes[1].requestFocus();
-                            return true;
-                          }
-                          return false;
-                        },
-                      ),
-                      const SizedBox(height: 16),
-                      _ConsoleActionCard(
-                        card: consoleCards[5],
-                        focusNode: _focusNodes[5],
-                        onKeyNavigate: (key) {
-                          if (key == LogicalKeyboardKey.arrowLeft) {
-                            _focusNodes[4].requestFocus();
-                            return true;
-                          } else if (key == LogicalKeyboardKey.arrowUp) {
-                            _focusNodes[3].requestFocus();
-                            return true;
-                          }
-                          return false;
-                        },
-                      ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
-          ),
+          ],
         ),
-      ],
-    ),
-  ),
-);
+      ),
+    );
   }
 }
 

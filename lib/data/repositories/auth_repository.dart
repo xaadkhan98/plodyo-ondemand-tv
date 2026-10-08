@@ -64,9 +64,8 @@ abstract class AuthRepository {
 
 /// Concrete implementation of [AuthRepository] interacting with [AuthApiService].
 class AuthRepositoryImpl implements AuthRepository {
-  AuthRepositoryImpl({
-    AuthApiService? apiService,
-  }) : _apiService = apiService ?? AuthApiService();
+  AuthRepositoryImpl({AuthApiService? apiService})
+    : _apiService = apiService ?? AuthApiService();
 
   final AuthApiService _apiService;
 
@@ -86,10 +85,7 @@ class AuthRepositoryImpl implements AuthRepository {
     required String email,
     required String password,
   }) async {
-    final response = await _apiService.login(
-      email: email,
-      password: password,
-    );
+    final response = await _apiService.login(email: email, password: password);
     _currentAuth = response;
     return response;
   }

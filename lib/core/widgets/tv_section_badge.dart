@@ -46,10 +46,7 @@ class _TvSectionBadgeState extends State<TvSectionBadge>
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: widget.duration,
-    );
+    _controller = AnimationController(vsync: this, duration: widget.duration);
 
     if (!WidgetsBinding.instance.runtimeType.toString().contains('Test')) {
       _controller.repeat(reverse: true);
@@ -57,15 +54,13 @@ class _TvSectionBadgeState extends State<TvSectionBadge>
       _controller.forward();
     }
 
-    _floatAnimation = Tween<double>(
-      begin: -widget.floatOffset,
-      end: widget.floatOffset,
-    ).animate(
-      CurvedAnimation(
-        parent: _controller,
-        curve: Curves.easeInOutSine,
-      ),
-    );
+    _floatAnimation =
+        Tween<double>(
+          begin: -widget.floatOffset,
+          end: widget.floatOffset,
+        ).animate(
+          CurvedAnimation(parent: _controller, curve: Curves.easeInOutSine),
+        );
   }
 
   @override
@@ -83,10 +78,7 @@ class _TvSectionBadgeState extends State<TvSectionBadge>
       builder: (context, child) {
         return Transform.translate(
           offset: Offset(0, _floatAnimation.value),
-          child: Transform.rotate(
-            angle: angleRad,
-            child: child,
-          ),
+          child: Transform.rotate(angle: angleRad, child: child),
         );
       },
       child: Container(
@@ -99,10 +91,7 @@ class _TvSectionBadgeState extends State<TvSectionBadge>
             colors: widget.gradientColors,
           ),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: Colors.white,
-            width: 2.5,
-          ),
+          border: Border.all(color: Colors.white, width: 2.5),
           boxShadow: [
             BoxShadow(
               color: widget.glowColor.withValues(alpha: 0.45),
@@ -113,11 +102,7 @@ class _TvSectionBadgeState extends State<TvSectionBadge>
           ],
         ),
         child: Center(
-          child: Icon(
-            widget.icon,
-            color: Colors.white,
-            size: widget.iconSize,
-          ),
+          child: Icon(widget.icon, color: Colors.white, size: widget.iconSize),
         ),
       ),
     );

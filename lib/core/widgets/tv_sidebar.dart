@@ -9,7 +9,10 @@ class TvNavigationItem {
     this.svgAsset,
     required this.label,
     required this.path,
-  }) : assert(icon != null || svgAsset != null, 'Must provide either icon or svgAsset');
+  }) : assert(
+         icon != null || svgAsset != null,
+         'Must provide either icon or svgAsset',
+       );
 
   final IconData? icon;
   final String? svgAsset;
@@ -139,10 +142,7 @@ class _TvSidebarState extends State<TvSidebar> {
           decoration: BoxDecoration(
             color: Colors.white,
             border: const Border(
-              right: BorderSide(
-                color: Color(0xFFF1EBF5),
-                width: 1.2,
-              ),
+              right: BorderSide(color: Color(0xFFF1EBF5), width: 1.2),
             ),
             boxShadow: [
               BoxShadow(
@@ -152,8 +152,9 @@ class _TvSidebarState extends State<TvSidebar> {
                 offset: Offset(isExpanded ? 5 : 2, 0),
               ),
               BoxShadow(
-                color: const Color(0xFF9333EA)
-                    .withValues(alpha: isExpanded ? 0.08 : 0.02),
+                color: const Color(
+                  0xFF9333EA,
+                ).withValues(alpha: isExpanded ? 0.08 : 0.02),
                 blurRadius: isExpanded ? 18 : 8,
                 offset: Offset(isExpanded ? 3 : 1, 0),
               ),
@@ -175,7 +176,8 @@ class _TvSidebarState extends State<TvSidebar> {
                       const SizedBox(height: 8),
                   itemBuilder: (context, index) {
                     final item = TvSidebar.navItems[index];
-                    final isSelected = widget.currentPath == item.path ||
+                    final isSelected =
+                        widget.currentPath == item.path ||
                         (item.path != '/' &&
                             widget.currentPath.startsWith(item.path));
 
@@ -232,17 +234,10 @@ class _TvSidebarItemWidgetState extends State<_TvSidebarItemWidget> {
         widget.item.svgAsset!,
         width: size,
         height: size,
-        colorFilter: ColorFilter.mode(
-          color,
-          BlendMode.srcIn,
-        ),
+        colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
       );
     }
-    return Icon(
-      widget.item.icon,
-      size: size,
-      color: color,
-    );
+    return Icon(widget.item.icon, size: size, color: color);
   }
 
   @override
@@ -317,15 +312,13 @@ class _TvSidebarItemWidgetState extends State<_TvSidebarItemWidget> {
                 decoration: BoxDecoration(
                   color: backgroundColor,
                   borderRadius: BorderRadius.circular(13),
-                  border: Border.all(
-                    color: borderColor,
-                    width: 1.2,
-                  ),
+                  border: Border.all(color: borderColor, width: 1.2),
                   boxShadow: isSelected
                       ? [
                           BoxShadow(
-                            color: const Color(0xFF9333EA)
-                                .withValues(alpha: 0.16),
+                            color: const Color(
+                              0xFF9333EA,
+                            ).withValues(alpha: 0.16),
                             blurRadius: 8,
                             offset: const Offset(0, 2),
                           ),
@@ -343,10 +336,7 @@ class _TvSidebarItemWidgetState extends State<_TvSidebarItemWidget> {
                               SizedBox(
                                 width: 32,
                                 child: Center(
-                                  child: _buildIcon(
-                                    foregroundColor,
-                                    27,
-                                  ),
+                                  child: _buildIcon(foregroundColor, 27),
                                 ),
                               ),
                               const SizedBox(width: 12),
@@ -358,8 +348,8 @@ class _TvSidebarItemWidgetState extends State<_TvSidebarItemWidget> {
                                     fontWeight: isSelected
                                         ? FontWeight.w800
                                         : (active
-                                            ? FontWeight.w700
-                                            : FontWeight.w600),
+                                              ? FontWeight.w700
+                                              : FontWeight.w600),
                                     color: foregroundColor,
                                     letterSpacing: -0.2,
                                   ),
@@ -371,12 +361,7 @@ class _TvSidebarItemWidgetState extends State<_TvSidebarItemWidget> {
                           ),
                         ),
                       )
-                    : Center(
-                        child: _buildIcon(
-                          foregroundColor,
-                          27,
-                        ),
-                      ),
+                    : Center(child: _buildIcon(foregroundColor, 27)),
               ),
             ),
           ),

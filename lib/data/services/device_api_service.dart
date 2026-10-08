@@ -5,17 +5,13 @@ import 'api_client.dart';
 
 /// Service communicating with OnDemand Plodyo Device (Room TV) endpoints.
 class DeviceApiService {
-  DeviceApiService({
-    ApiClient? apiClient,
-  }) : _client = apiClient ?? ApiClient();
+  DeviceApiService({ApiClient? apiClient}) : _client = apiClient ?? ApiClient();
 
   final ApiClient _client;
 
   /// POST /ondemand/device/pair
   /// Authenticates a new device using the 8-character pairing code and returns its persistent device token.
-  Future<DevicePairResponse> pair({
-    required String pairingCode,
-  }) async {
+  Future<DevicePairResponse> pair({required String pairingCode}) async {
     final res = await _client.post(
       ApiConstants.devicePairEndpoint,
       body: {'pairing_code': pairingCode.trim()},
@@ -25,9 +21,7 @@ class DeviceApiService {
 
   /// GET /ondemand/device/session
   /// Opens a room_sessions row for this device and returns its session id and room id.
-  Future<DeviceSession> getSession({
-    required String deviceToken,
-  }) async {
+  Future<DeviceSession> getSession({required String deviceToken}) async {
     final res = await _client.get(
       ApiConstants.deviceSessionEndpoint,
       deviceToken: deviceToken,
@@ -37,9 +31,7 @@ class DeviceApiService {
 
   /// GET /ondemand/device/config
   /// Retrieves available languages, age-groups, and default language for the room.
-  Future<DeviceConfig> getConfig({
-    required String deviceToken,
-  }) async {
+  Future<DeviceConfig> getConfig({required String deviceToken}) async {
     final res = await _client.get(
       ApiConstants.deviceConfigEndpoint,
       deviceToken: deviceToken,

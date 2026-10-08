@@ -35,11 +35,7 @@ class AuthException implements Exception {
             validationErrors: errors,
           );
         } else if (rawMsg is String) {
-          return AuthException(
-            message: rawMsg,
-            statusCode: code,
-            error: err,
-          );
+          return AuthException(message: rawMsg, statusCode: code, error: err);
         }
       }
     } catch (_) {
@@ -55,7 +51,8 @@ class AuthException implements Exception {
   /// Network or unexpected exception helper.
   factory AuthException.network([String? details]) {
     return AuthException(
-      message: details ?? 'Cannot reach Plodyo TV. Check the network connection.',
+      message:
+          details ?? 'Cannot reach Plodyo TV. Check the network connection.',
       statusCode: 0,
       error: 'NetworkError',
     );

@@ -46,9 +46,8 @@ abstract class PeopleRepository {
 
 /// Concrete implementation of [PeopleRepository] calling live backend API.
 class PeopleRepositoryImpl implements PeopleRepository {
-  PeopleRepositoryImpl({
-    PeopleApiService? apiService,
-  }) : _apiService = apiService ?? PeopleApiService();
+  PeopleRepositoryImpl({PeopleApiService? apiService})
+    : _apiService = apiService ?? PeopleApiService();
 
   final PeopleApiService _apiService;
 
@@ -74,10 +73,7 @@ class PeopleRepositoryImpl implements PeopleRepository {
     required String accessToken,
     required String personId,
   }) {
-    return _apiService.getPerson(
-      accessToken: accessToken,
-      personId: personId,
-    );
+    return _apiService.getPerson(accessToken: accessToken, personId: personId);
   }
 
   @override
@@ -130,4 +126,3 @@ class PeopleRepositoryImpl implements PeopleRepository {
     );
   }
 }
-

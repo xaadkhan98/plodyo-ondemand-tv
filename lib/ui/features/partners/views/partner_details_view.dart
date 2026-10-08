@@ -59,10 +59,18 @@ class _PartnerDetailsViewState extends State<PartnerDetailsView> {
 
   void _showEditDetailsDialog() {
     final nameController = TextEditingController(text: _currentPartner.name);
-    final emailController = TextEditingController(text: _currentPartner.contactEmail);
-    final contactNameController = TextEditingController(text: _currentPartner.contactName ?? '');
-    final phoneController = TextEditingController(text: _currentPartner.phone ?? '');
-    final contractRefController = TextEditingController(text: _currentPartner.contractReference ?? '');
+    final emailController = TextEditingController(
+      text: _currentPartner.contactEmail,
+    );
+    final contactNameController = TextEditingController(
+      text: _currentPartner.contactName ?? '',
+    );
+    final phoneController = TextEditingController(
+      text: _currentPartner.phone ?? '',
+    );
+    final contractRefController = TextEditingController(
+      text: _currentPartner.contractReference ?? '',
+    );
     String partnerType = _currentPartner.partnerType;
 
     showDialog<void>(
@@ -71,7 +79,9 @@ class _PartnerDetailsViewState extends State<PartnerDetailsView> {
         builder: (context, setDialogState) {
           return AlertDialog(
             backgroundColor: Colors.white,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
             title: const Row(
               children: [
                 Icon(Icons.edit_note_rounded, color: Color(0xFF9333EA)),
@@ -100,7 +110,9 @@ class _PartnerDetailsViewState extends State<PartnerDetailsView> {
                         fillColor: const Color(0xFFFAF7FC),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(color: Color(0xFFE4E4E7)),
+                          borderSide: const BorderSide(
+                            color: Color(0xFFE4E4E7),
+                          ),
                         ),
                       ),
                     ),
@@ -113,7 +125,9 @@ class _PartnerDetailsViewState extends State<PartnerDetailsView> {
                         fillColor: const Color(0xFFFAF7FC),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(color: Color(0xFFE4E4E7)),
+                          borderSide: const BorderSide(
+                            color: Color(0xFFE4E4E7),
+                          ),
                         ),
                       ),
                     ),
@@ -127,7 +141,9 @@ class _PartnerDetailsViewState extends State<PartnerDetailsView> {
                         fillColor: const Color(0xFFFAF7FC),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(color: Color(0xFFE4E4E7)),
+                          borderSide: const BorderSide(
+                            color: Color(0xFFE4E4E7),
+                          ),
                         ),
                       ),
                     ),
@@ -141,7 +157,9 @@ class _PartnerDetailsViewState extends State<PartnerDetailsView> {
                         fillColor: const Color(0xFFFAF7FC),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(color: Color(0xFFE4E4E7)),
+                          borderSide: const BorderSide(
+                            color: Color(0xFFE4E4E7),
+                          ),
                         ),
                       ),
                     ),
@@ -155,7 +173,9 @@ class _PartnerDetailsViewState extends State<PartnerDetailsView> {
                         fillColor: const Color(0xFFFAF7FC),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(color: Color(0xFFE4E4E7)),
+                          borderSide: const BorderSide(
+                            color: Color(0xFFE4E4E7),
+                          ),
                         ),
                       ),
                     ),
@@ -178,7 +198,9 @@ class _PartnerDetailsViewState extends State<PartnerDetailsView> {
                           selected: partnerType == 'INDEPENDENT',
                           selectedColor: const Color(0xFFFAF5FF),
                           onSelected: (val) {
-                            if (val) setDialogState(() => partnerType = 'INDEPENDENT');
+                            if (val) {
+                              setDialogState(() => partnerType = 'INDEPENDENT');
+                            }
                           },
                         ),
                         ChoiceChip(
@@ -198,13 +220,18 @@ class _PartnerDetailsViewState extends State<PartnerDetailsView> {
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(ctx).pop(),
-                child: const Text('Cancel', style: TextStyle(color: Color(0xFF71717A))),
+                child: const Text(
+                  'Cancel',
+                  style: TextStyle(color: Color(0xFF71717A)),
+                ),
               ),
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF9333EA),
                   foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
                 ),
                 onPressed: () {
                   final newName = nameController.text.trim();
@@ -220,7 +247,8 @@ class _PartnerDetailsViewState extends State<PartnerDetailsView> {
                       phone: phoneController.text.trim().isNotEmpty
                           ? phoneController.text.trim()
                           : null,
-                      contractReference: contractRefController.text.trim().isNotEmpty
+                      contractReference:
+                          contractRefController.text.trim().isNotEmpty
                           ? contractRefController.text.trim()
                           : null,
                       partnerType: partnerType,
@@ -248,7 +276,9 @@ class _PartnerDetailsViewState extends State<PartnerDetailsView> {
   }
 
   void _promptChangeRoomLimit() {
-    final limitController = TextEditingController(text: '${_currentPartner.roomLimit}');
+    final limitController = TextEditingController(
+      text: '${_currentPartner.roomLimit}',
+    );
     showDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -283,16 +313,23 @@ class _PartnerDetailsViewState extends State<PartnerDetailsView> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('Cancel', style: TextStyle(color: Color(0xFF71717A))),
+            child: const Text(
+              'Cancel',
+              style: TextStyle(color: Color(0xFF71717A)),
+            ),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF9333EA),
               foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
             ),
             onPressed: () async {
-              final newLimit = int.tryParse(limitController.text.trim()) ?? _currentPartner.roomLimit;
+              final newLimit =
+                  int.tryParse(limitController.text.trim()) ??
+                  _currentPartner.roomLimit;
               Navigator.of(ctx).pop();
               try {
                 final token = _authRepository.currentAuth?.accessToken ?? '';
@@ -303,9 +340,7 @@ class _PartnerDetailsViewState extends State<PartnerDetailsView> {
                 );
               } catch (_) {}
 
-              final updated = _currentPartner.copyWith(
-                roomLimit: newLimit,
-              );
+              final updated = _currentPartner.copyWith(roomLimit: newLimit);
               if (mounted) {
                 setState(() {
                   _currentPartner = updated;
@@ -363,13 +398,18 @@ class _PartnerDetailsViewState extends State<PartnerDetailsView> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('Cancel', style: TextStyle(color: Color(0xFF71717A))),
+            child: const Text(
+              'Cancel',
+              style: TextStyle(color: Color(0xFF71717A)),
+            ),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF15803D),
               foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
             ),
             onPressed: () async {
               final limit = int.tryParse(limitController.text.trim()) ?? 60;
@@ -395,7 +435,9 @@ class _PartnerDetailsViewState extends State<PartnerDetailsView> {
                 widget.onPartnerUpdated?.call(updated);
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text('Partner "${_currentPartner.name}" approved successfully!'),
+                    content: Text(
+                      'Partner "${_currentPartner.name}" approved successfully!',
+                    ),
                     backgroundColor: const Color(0xFF15803D),
                     behavior: SnackBarBehavior.floating,
                   ),
@@ -445,18 +487,27 @@ class _PartnerDetailsViewState extends State<PartnerDetailsView> {
         ),
         content: const Text(
           'Are you sure you want to suspend this partner? Their venue rooms will be prevented from signing into Plodyo TV.',
-          style: TextStyle(color: Color(0xFF71717A), fontSize: 13.5, height: 1.4),
+          style: TextStyle(
+            color: Color(0xFF71717A),
+            fontSize: 13.5,
+            height: 1.4,
+          ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('Cancel', style: TextStyle(color: Color(0xFF71717A))),
+            child: const Text(
+              'Cancel',
+              style: TextStyle(color: Color(0xFF71717A)),
+            ),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFFDC2626),
               foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
             ),
             onPressed: () async {
               Navigator.of(ctx).pop();
@@ -479,7 +530,9 @@ class _PartnerDetailsViewState extends State<PartnerDetailsView> {
                 widget.onPartnerUpdated?.call(updated);
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text('Partner "${_currentPartner.name}" has been suspended.'),
+                    content: Text(
+                      'Partner "${_currentPartner.name}" has been suspended.',
+                    ),
                     backgroundColor: const Color(0xFFDC2626),
                     behavior: SnackBarBehavior.floating,
                   ),
@@ -528,13 +581,18 @@ class _PartnerDetailsViewState extends State<PartnerDetailsView> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('Cancel', style: TextStyle(color: Color(0xFF71717A))),
+            child: const Text(
+              'Cancel',
+              style: TextStyle(color: Color(0xFF71717A)),
+            ),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFFDC2626),
               foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
             ),
             onPressed: () async {
               final reason = reasonController.text.trim();
@@ -550,7 +608,9 @@ class _PartnerDetailsViewState extends State<PartnerDetailsView> {
 
               final updated = _currentPartner.copyWith(
                 status: 'REJECTED',
-                rejectionReason: reason.isNotEmpty ? reason : 'Application not approved',
+                rejectionReason: reason.isNotEmpty
+                    ? reason
+                    : 'Application not approved',
                 reviewedAt: 'Just now',
               );
               if (mounted) {
@@ -560,7 +620,9 @@ class _PartnerDetailsViewState extends State<PartnerDetailsView> {
                 widget.onPartnerUpdated?.call(updated);
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text('Partner "${_currentPartner.name}" rejected.'),
+                    content: Text(
+                      'Partner "${_currentPartner.name}" rejected.',
+                    ),
                     backgroundColor: const Color(0xFFDC2626),
                     behavior: SnackBarBehavior.floating,
                   ),
@@ -578,9 +640,15 @@ class _PartnerDetailsViewState extends State<PartnerDetailsView> {
   Widget build(BuildContext context) {
     final partner = _currentPartner;
 
-    final businessTypeValue = partner.partnerType == 'INDEPENDENT' ? 'Independent' : 'Host';
-    final contactNameValue = partner.contactName?.isNotEmpty == true ? partner.contactName! : 'Not given';
-    final phoneValue = partner.phone?.isNotEmpty == true ? partner.phone! : 'Not given';
+    final businessTypeValue = partner.partnerType == 'INDEPENDENT'
+        ? 'Independent'
+        : 'Host';
+    final contactNameValue = partner.contactName?.isNotEmpty == true
+        ? partner.contactName!
+        : 'Not given';
+    final phoneValue = partner.phone?.isNotEmpty == true
+        ? partner.phone!
+        : 'Not given';
     final roomLimitValue = partner.roomLimit == 0
         ? '0 \u2014 no rooms may sign in yet'
         : '${partner.roomLimit} rooms';
@@ -589,8 +657,8 @@ class _PartnerDetailsViewState extends State<PartnerDetailsView> {
         : 'None';
     final registeredValue = partner.createdAt.isNotEmpty
         ? (partner.createdAt.contains('T')
-            ? partner.createdAt.split('T').first
-            : partner.createdAt)
+              ? partner.createdAt.split('T').first
+              : partner.createdAt)
         : '12 Sept 2026, 16:13';
     final reviewedValue = partner.reviewedAt?.isNotEmpty == true
         ? partner.reviewedAt!
@@ -752,9 +820,7 @@ class _PartnerDetailsViewState extends State<PartnerDetailsView> {
                             onTap: _promptSuspendPartner,
                           ),
                         ] else if (partner.isPendingApproval) ...[
-                          _GradientApproveButton(
-                            onTap: _promptApprovePartner,
-                          ),
+                          _GradientApproveButton(onTap: _promptApprovePartner),
                           const SizedBox(width: 14),
                           _OutlineActionButton(
                             icon: Icons.close_rounded,
@@ -846,12 +912,17 @@ class _BackPillButtonState extends State<_BackPillButton> {
             curve: Curves.easeOutCubic,
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 140),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7.5),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 7.5,
+              ),
               decoration: BoxDecoration(
                 color: active ? const Color(0xFFFAF5FF) : Colors.white,
                 borderRadius: BorderRadius.circular(22),
                 border: Border.all(
-                  color: active ? const Color(0xFF8B5CF6) : const Color(0xFFCBD5E1),
+                  color: active
+                      ? const Color(0xFF8B5CF6)
+                      : const Color(0xFFCBD5E1),
                   width: active ? 1.8 : 1.2,
                 ),
                 boxShadow: [
@@ -898,10 +969,7 @@ class _BackPillButtonState extends State<_BackPillButton> {
 
 /// Clean Detail Information Card Container with grey label and bold dark value
 class _DetailInfoCard extends StatefulWidget {
-  const _DetailInfoCard({
-    required this.label,
-    required this.value,
-  });
+  const _DetailInfoCard({required this.label, required this.value});
 
   final String label;
   final String value;
@@ -943,7 +1011,9 @@ class _DetailInfoCardState extends State<_DetailInfoCard> {
               color: Colors.white,
               borderRadius: BorderRadius.circular(14),
               border: Border.all(
-                color: active ? const Color(0xFF8B5CF6) : const Color(0xFFCBD5E1),
+                color: active
+                    ? const Color(0xFF8B5CF6)
+                    : const Color(0xFFCBD5E1),
                 width: active ? 1.8 : 1.2,
               ),
               boxShadow: [
@@ -1086,11 +1156,7 @@ class _OutlineActionButtonState extends State<_OutlineActionButton> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   if (widget.icon != null) ...[
-                    Icon(
-                      widget.icon,
-                      size: 18,
-                      color: widget.textColor,
-                    ),
+                    Icon(widget.icon, size: 18, color: widget.textColor),
                     const SizedBox(width: 8),
                   ],
                   Text(
@@ -1177,14 +1243,13 @@ class _GradientApproveButtonState extends State<_GradientApproveButton> {
                 gradient: const LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
-                  colors: [
-                    Color(0xFFE11D89),
-                    Color(0xFF9333EA),
-                  ],
+                  colors: [Color(0xFFE11D89), Color(0xFF9333EA)],
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFF9333EA).withValues(alpha: active ? 0.6 : 0.4),
+                    color: const Color(
+                      0xFF9333EA,
+                    ).withValues(alpha: active ? 0.6 : 0.4),
                     blurRadius: active ? 18 : 12,
                     spreadRadius: active ? 2 : 0.5,
                     offset: const Offset(0, 4),
@@ -1197,11 +1262,7 @@ class _GradientApproveButtonState extends State<_GradientApproveButton> {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(
-                    widget.icon,
-                    size: 18,
-                    color: Colors.white,
-                  ),
+                  Icon(widget.icon, size: 18, color: Colors.white),
                   const SizedBox(width: 6),
                   Text(
                     widget.label,

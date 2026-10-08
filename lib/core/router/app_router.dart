@@ -25,7 +25,8 @@ import '../../data/models/partner_model.dart';
 import '../../data/models/person_model.dart';
 
 final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>();
-final GlobalKey<NavigatorState> _shellNavigatorKey = GlobalKey<NavigatorState>();
+final GlobalKey<NavigatorState> _shellNavigatorKey =
+    GlobalKey<NavigatorState>();
 
 /// Declarative GoRouter configuration for the TV app
 final GoRouter appRouter = GoRouter(
@@ -109,25 +110,15 @@ final GoRouter appRouter = GoRouter(
       ),
     ),
 
-
     // Shell Route containing Persistent Sidebar Navigation Rail
     ShellRoute(
       navigatorKey: _shellNavigatorKey,
       builder: (context, state, child) {
-        return MainTvLayout(
-          currentPath: state.uri.path,
-          child: child,
-        );
+        return MainTvLayout(currentPath: state.uri.path, child: child);
       },
       routes: [
-        GoRoute(
-          path: '/',
-          redirect: (context, state) => '/overview',
-        ),
-        GoRoute(
-          path: '/home',
-          redirect: (context, state) => '/overview',
-        ),
+        GoRoute(path: '/', redirect: (context, state) => '/overview'),
+        GoRoute(path: '/home', redirect: (context, state) => '/overview'),
         GoRoute(
           path: '/overview',
           name: 'overview',
@@ -146,7 +137,8 @@ final GoRouter appRouter = GoRouter(
               path: 'details',
               name: 'partnerDetails',
               // The record travels as `extra`; without one (a restart, a deep link) go back to the list.
-              redirect: (context, state) => state.extra is PartnerModel ? null : '/partners',
+              redirect: (context, state) =>
+                  state.extra is PartnerModel ? null : '/partners',
               builder: (context, state) {
                 final partner = state.extra as PartnerModel;
                 return PartnerDetailsView(partner: partner);
@@ -213,7 +205,8 @@ final GoRouter appRouter = GoRouter(
               path: 'details',
               name: 'personDetails',
               // The record travels as `extra`; without one (a restart, a deep link) go back to the list.
-              redirect: (context, state) => state.extra is PersonModel ? null : '/people',
+              redirect: (context, state) =>
+                  state.extra is PersonModel ? null : '/people',
               builder: (context, state) {
                 final person = state.extra as PersonModel;
                 return PersonDetailsView(person: person);
@@ -224,9 +217,8 @@ final GoRouter appRouter = GoRouter(
         GoRoute(
           path: '/settings',
           name: 'settings',
-          builder: (context, state) => SettingsView(
-            authRepository: sharedAuthRepository,
-          ),
+          builder: (context, state) =>
+              SettingsView(authRepository: sharedAuthRepository),
         ),
       ],
     ),

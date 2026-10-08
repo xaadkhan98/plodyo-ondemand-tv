@@ -88,17 +88,17 @@ class RoomModel extends Equatable {
 
   @override
   List<Object?> get props => [
-        id,
-        propertyId,
-        propertyName,
-        roomLabel,
-        status,
-        defaultLanguage,
-        provisionedAt,
-        lastSeenAt,
-        createdAt,
-        updatedAt,
-      ];
+    id,
+    propertyId,
+    propertyName,
+    roomLabel,
+    status,
+    defaultLanguage,
+    provisionedAt,
+    lastSeenAt,
+    createdAt,
+    updatedAt,
+  ];
 }
 
 /// Response payload from POST /ondemand/admin/rooms/:id/provision
@@ -119,9 +119,9 @@ class ProvisionRoomResponse extends Equatable {
   }
 
   Map<String, dynamic> toJson() => {
-        'pairing_code': pairingCode,
-        'expires_at': expiresAt,
-      };
+    'pairing_code': pairingCode,
+    'expires_at': expiresAt,
+  };
 
   @override
   List<Object?> get props => [pairingCode, expiresAt];
@@ -129,10 +129,7 @@ class ProvisionRoomResponse extends Equatable {
 
 /// Response payload from POST /ondemand/admin/rooms/bulk
 class BulkCreateRoomsResponse extends Equatable {
-  const BulkCreateRoomsResponse({
-    required this.created,
-    required this.rooms,
-  });
+  const BulkCreateRoomsResponse({required this.created, required this.rooms});
 
   final int created;
   final List<RoomModel> rooms;

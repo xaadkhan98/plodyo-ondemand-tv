@@ -5,9 +5,8 @@ import 'api_client.dart';
 
 /// Service communicating with OnDemand Plodyo Admin Partners endpoints.
 class PartnersApiService {
-  PartnersApiService({
-    ApiClient? apiClient,
-  }) : _client = apiClient ?? ApiClient();
+  PartnersApiService({ApiClient? apiClient})
+    : _client = apiClient ?? ApiClient();
 
   final ApiClient _client;
 
@@ -123,7 +122,8 @@ class PartnersApiService {
       'name': name,
       'partner_type': partnerType,
       'contact_email': contactEmail,
-      if (contactName != null && contactName.isNotEmpty) 'contact_name': contactName,
+      if (contactName != null && contactName.isNotEmpty)
+        'contact_name': contactName,
       if (phone != null && phone.isNotEmpty) 'phone': phone,
       if (contractReference != null && contractReference.isNotEmpty)
         'contract_reference': contractReference,
@@ -138,6 +138,7 @@ class PartnersApiService {
     );
     return PartnerModel.fromJson(res as Map<String, dynamic>);
   }
+
   Future<PartnerModel> updatePartner({
     required String accessToken,
     required String partnerId,
@@ -150,8 +151,10 @@ class PartnersApiService {
   }) async {
     final body = <String, dynamic>{
       if (name != null && name.isNotEmpty) 'name': name,
-      if (contactName != null && contactName.isNotEmpty) 'contact_name': contactName,
-      if (contactEmail != null && contactEmail.isNotEmpty) 'contact_email': contactEmail,
+      if (contactName != null && contactName.isNotEmpty)
+        'contact_name': contactName,
+      if (contactEmail != null && contactEmail.isNotEmpty)
+        'contact_email': contactEmail,
       if (phone != null && phone.isNotEmpty) 'phone': phone,
       if (contractReference != null && contractReference.isNotEmpty)
         'contract_reference': contractReference,
@@ -194,4 +197,3 @@ class PartnersApiService {
     return PartnerModel.fromJson(res as Map<String, dynamic>);
   }
 }
-

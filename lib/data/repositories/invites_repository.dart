@@ -35,9 +35,8 @@ abstract class InvitesRepository {
 
 /// Concrete implementation of [InvitesRepository] calling live backend API.
 class InvitesRepositoryImpl implements InvitesRepository {
-  InvitesRepositoryImpl({
-    InvitesApiService? apiService,
-  }) : _apiService = apiService ?? InvitesApiService();
+  InvitesRepositoryImpl({InvitesApiService? apiService})
+    : _apiService = apiService ?? InvitesApiService();
 
   final InvitesApiService _apiService;
 
@@ -95,4 +94,3 @@ class InvitesRepositoryImpl implements InvitesRepository {
     );
   }
 }
-

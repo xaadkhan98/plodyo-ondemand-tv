@@ -45,9 +45,8 @@ abstract class DeviceRepository {
 
 /// Concrete implementation of [DeviceRepository] talking directly to [DeviceApiService].
 class DeviceRepositoryImpl implements DeviceRepository {
-  DeviceRepositoryImpl({
-    DeviceApiService? apiService,
-  }) : _apiService = apiService ?? DeviceApiService();
+  DeviceRepositoryImpl({DeviceApiService? apiService})
+    : _apiService = apiService ?? DeviceApiService();
 
   final DeviceApiService _apiService;
 
@@ -111,10 +110,7 @@ class DeviceRepositoryImpl implements DeviceRepository {
   @override
   Future<DeviceStoryItem> getStoryDetail(String storyId) {
     final token = _deviceToken ?? '';
-    return _apiService.getStoryDetail(
-      deviceToken: token,
-      storyId: storyId,
-    );
+    return _apiService.getStoryDetail(deviceToken: token, storyId: storyId);
   }
 
   @override
@@ -123,5 +119,4 @@ class DeviceRepositoryImpl implements DeviceRepository {
     _currentConfig = null;
     _currentSession = null;
   }
-
 }

@@ -35,9 +35,15 @@ class PersonModel extends Equatable {
   bool get isInvited => status.toUpperCase() == 'INVITED';
   bool get isDisabled => status.toUpperCase() == 'DISABLED';
 
-  bool get isSuperAdmin => role.toUpperCase() == 'SUPER_ADMIN' || role.toUpperCase() == 'SUPER ADMIN';
-  bool get isPartnerAdmin => role.toUpperCase() == 'PARTNER_ADMIN' || role.toUpperCase() == 'PARTNER ADMIN';
-  bool get isPropertyAdmin => role.toUpperCase() == 'PROPERTY_ADMIN' || role.toUpperCase() == 'PROPERTY ADMIN';
+  bool get isSuperAdmin =>
+      role.toUpperCase() == 'SUPER_ADMIN' ||
+      role.toUpperCase() == 'SUPER ADMIN';
+  bool get isPartnerAdmin =>
+      role.toUpperCase() == 'PARTNER_ADMIN' ||
+      role.toUpperCase() == 'PARTNER ADMIN';
+  bool get isPropertyAdmin =>
+      role.toUpperCase() == 'PROPERTY_ADMIN' ||
+      role.toUpperCase() == 'PROPERTY ADMIN';
 
   String get roleDisplayName => roleLabel(role);
 
@@ -78,29 +84,46 @@ class PersonModel extends Equatable {
       primaryMembership = memberships.first as Map<String, dynamic>;
     }
 
-    final role = json['role'] as String? ??
+    final role =
+        json['role'] as String? ??
         json['role_name'] as String? ??
         primaryMembership?['role'] as String? ??
         'PARTNER_ADMIN';
-    final partnerId = json['partner_id'] as String? ??
+    final partnerId =
+        json['partner_id'] as String? ??
         json['partnerId'] as String? ??
         primaryMembership?['partner_id'] as String?;
-    final propertyId = json['property_id'] as String? ??
+    final propertyId =
+        json['property_id'] as String? ??
         json['propertyId'] as String? ??
         primaryMembership?['property_id'] as String?;
 
     return PersonModel(
-      id: json['id'] as String? ?? json['user_id'] as String? ?? json['_id'] as String? ?? '',
-      fullName: json['full_name'] as String? ?? json['fullName'] as String? ?? json['name'] as String? ?? '',
+      id:
+          json['id'] as String? ??
+          json['user_id'] as String? ??
+          json['_id'] as String? ??
+          '',
+      fullName:
+          json['full_name'] as String? ??
+          json['fullName'] as String? ??
+          json['name'] as String? ??
+          '',
       email: json['email'] as String? ?? '',
       role: role,
       status: json['status'] as String? ?? 'ACTIVE',
-      lastLoginAt: json['last_login_at'] as String? ?? json['lastLoginAt'] as String?,
-      isCurrentUser: json['is_current_user'] as bool? ?? json['isCurrentUser'] as bool? ?? false,
+      lastLoginAt:
+          json['last_login_at'] as String? ?? json['lastLoginAt'] as String?,
+      isCurrentUser:
+          json['is_current_user'] as bool? ??
+          json['isCurrentUser'] as bool? ??
+          false,
       partnerId: partnerId,
-      partnerName: json['partner_name'] as String? ?? json['partnerName'] as String?,
+      partnerName:
+          json['partner_name'] as String? ?? json['partnerName'] as String?,
       propertyId: propertyId,
-      propertyName: json['property_name'] as String? ?? json['propertyName'] as String?,
+      propertyName:
+          json['property_name'] as String? ?? json['propertyName'] as String?,
       createdAt: json['created_at'] as String? ?? json['createdAt'] as String?,
     );
   }
@@ -124,17 +147,17 @@ class PersonModel extends Equatable {
 
   @override
   List<Object?> get props => [
-        id,
-        fullName,
-        email,
-        role,
-        status,
-        lastLoginAt,
-        isCurrentUser,
-        partnerId,
-        partnerName,
-        propertyId,
-        propertyName,
-        createdAt,
-      ];
+    id,
+    fullName,
+    email,
+    role,
+    status,
+    lastLoginAt,
+    isCurrentUser,
+    partnerId,
+    partnerName,
+    propertyId,
+    propertyName,
+    createdAt,
+  ];
 }

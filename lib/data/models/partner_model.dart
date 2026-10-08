@@ -22,7 +22,8 @@ class PartnerModel extends Equatable {
   final String id;
   final String name;
   final String partnerType; // "INDEPENDENT" | "HOST"
-  final String status; // "PENDING_APPROVAL" | "ACTIVE" | "SUSPENDED" | "REJECTED"
+  final String
+  status; // "PENDING_APPROVAL" | "ACTIVE" | "SUSPENDED" | "REJECTED"
   final String contactEmail;
   final String? contactName;
   final String? phone;
@@ -113,19 +114,19 @@ class PartnerModel extends Equatable {
 
   @override
   List<Object?> get props => [
-        id,
-        name,
-        partnerType,
-        status,
-        contactEmail,
-        contactName,
-        phone,
-        contractReference,
-        roomLimit,
-        reviewedAt,
-        reviewedBy,
-        rejectionReason,
-        createdAt,
-        updatedAt,
-      ];
+    id,
+    name,
+    partnerType,
+    status,
+    contactEmail,
+    contactName,
+    phone,
+    contractReference,
+    roomLimit,
+    reviewedAt,
+    reviewedBy,
+    rejectionReason,
+    createdAt,
+    updatedAt,
+  ];
 }

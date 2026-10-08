@@ -93,16 +93,16 @@ class PropertyModel extends Equatable {
 
   @override
   List<Object?> get props => [
-        id,
-        partnerId,
-        partnerName,
-        name,
-        status,
-        country,
-        city,
-        timezone,
-        defaultLanguage,
-        createdAt,
-        updatedAt,
-      ];
+    id,
+    partnerId,
+    partnerName,
+    name,
+    status,
+    country,
+    city,
+    timezone,
+    defaultLanguage,
+    createdAt,
+    updatedAt,
+  ];
 }
