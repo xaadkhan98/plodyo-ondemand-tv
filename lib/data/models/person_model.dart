@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'roles.dart';
 
 /// Represents a user / person in the Plodyo TV console.
 class PersonModel extends Equatable {
@@ -38,12 +39,7 @@ class PersonModel extends Equatable {
   bool get isPartnerAdmin => role.toUpperCase() == 'PARTNER_ADMIN' || role.toUpperCase() == 'PARTNER ADMIN';
   bool get isPropertyAdmin => role.toUpperCase() == 'PROPERTY_ADMIN' || role.toUpperCase() == 'PROPERTY ADMIN';
 
-  String get roleDisplayName {
-    if (isSuperAdmin) return 'Super admin';
-    if (isPartnerAdmin) return 'Partner admin';
-    if (isPropertyAdmin) return 'Property admin';
-    return role;
-  }
+  String get roleDisplayName => roleLabel(role);
 
   PersonModel copyWith({
     String? id,

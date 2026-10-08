@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../../../core/constants/languages.dart';
 import '../../../../core/widgets/plodyo_header.dart';
 import '../../../../core/widgets/plodyo_loading.dart';
 import '../../../../core/widgets/tv_section_badge.dart';
@@ -204,49 +205,6 @@ class _RoomsViewState extends State<RoomsView> {
     }
   }
 
-  String? _getLanguageDisplayName(String? code) {
-    if (code == null || code.isEmpty) return null;
-    switch (code.toLowerCase()) {
-      case 'en':
-        return '🇬🇧 English';
-      case 'es':
-        return '🇪🇸 Spanish';
-      case 'fr':
-        return '🇫🇷 French';
-      case 'de':
-        return '🇩🇪 German';
-      case 'it':
-        return '🇮🇹 Italian';
-      case 'pt':
-        return '🇵🇹 Portuguese';
-      case 'nl':
-        return '🇳🇱 Dutch';
-      case 'pl':
-        return '🇵🇱 Polish';
-      case 'ar':
-        return '🇸🇦 Arabic';
-      case 'hi':
-        return '🇮🇳 Hindi';
-      case 'ur':
-        return '🇵🇰 Urdu';
-      case 'bn':
-        return '🇧🇩 Bengali';
-      case 'zh':
-        return '🇨🇳 Mandarin';
-      case 'ja':
-        return '🇯🇵 Japanese';
-      case 'ko':
-        return '🇰🇷 Korean';
-      case 'tr':
-        return '🇹🇷 Turkish';
-      case 'ru':
-        return '🇷🇺 Russian';
-      case 'sv':
-        return '🇸🇪 Swedish';
-      default:
-        return '🌐 $code';
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -510,14 +468,13 @@ class _RoomsViewState extends State<RoomsView> {
                                 final room = _rooms[index];
                                 final propName = _getPropertyDisplayName(room);
                                 final dateText = _formatRoomDate(room);
-                                final langDisplay =
-                                    _getLanguageDisplayName(room.defaultLanguage);
+                                final langDisplay = languageLabel(room.defaultLanguage);
 
                                 return _RoomCard(
                                   room: room,
                                   propertyName: propName,
                                   dateText: dateText,
-                                  languageDisplay: langDisplay,
+                                  languageDisplay: langDisplay.isEmpty ? null : langDisplay,
                                   isInitiallyFocused: index == 0,
                                   onTap: () {
                                     widget.onRoomSelected?.call(room);

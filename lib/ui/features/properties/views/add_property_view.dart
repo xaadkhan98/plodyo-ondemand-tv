@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../../../core/constants/languages.dart';
+import '../../../../core/widgets/language_flag.dart';
 import '../../../../core/widgets/plodyo_header.dart';
 import '../../../../core/widgets/plodyo_loading.dart';
 import '../../../../core/widgets/tv_section_badge.dart';
@@ -19,17 +21,6 @@ enum PropertyFormField {
   timezone,
 }
 
-class LanguageOption {
-  const LanguageOption({
-    required this.name,
-    required this.flag,
-    required this.code,
-  });
-
-  final String name;
-  final String flag;
-  final String code;
-}
 
 /// "Add a property" full-screen view matching the exact Plodyo TV specification.
 /// Features Partner Selection list, styled property inputs with active field indicator,
@@ -62,14 +53,10 @@ class _AddPropertyViewState extends State<AddPropertyView> {
 
   PropertyFormField _activeField = PropertyFormField.name;
 
-  final TextEditingController _nameController =
-      TextEditingController(text: 'Grand Plaza Downtown');
-  final TextEditingController _countryController =
-      TextEditingController(text: 'US');
-  final TextEditingController _cityController =
-      TextEditingController(text: 'Austin');
-  final TextEditingController _timezoneController =
-      TextEditingController(text: 'America/Chicago');
+  final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _countryController = TextEditingController();
+  final TextEditingController _cityController = TextEditingController();
+  final TextEditingController _timezoneController = TextEditingController();
 
   List<PartnerModel> _availablePartners = [];
   String? _selectedPartnerId;
@@ -87,26 +74,6 @@ class _AddPropertyViewState extends State<AddPropertyView> {
   bool _isUpperCase = false;
   bool _showSymbols = false;
 
-  static const List<LanguageOption> _languages = [
-    LanguageOption(name: 'English', flag: '🇬🇧', code: 'en'),
-    LanguageOption(name: 'Spanish', flag: '🇪🇸', code: 'es'),
-    LanguageOption(name: 'French', flag: '🇫🇷', code: 'fr'),
-    LanguageOption(name: 'German', flag: '🇩🇪', code: 'de'),
-    LanguageOption(name: 'Italian', flag: '🇮🇹', code: 'it'),
-    LanguageOption(name: 'Portuguese', flag: '🇵🇹', code: 'pt'),
-    LanguageOption(name: 'Dutch', flag: '🇳🇱', code: 'nl'),
-    LanguageOption(name: 'Polish', flag: '🇵🇱', code: 'pl'),
-    LanguageOption(name: 'Arabic', flag: '🇸🇦', code: 'ar'),
-    LanguageOption(name: 'Hindi', flag: '🇮🇳', code: 'hi'),
-    LanguageOption(name: 'Urdu', flag: '🇵🇰', code: 'ur'),
-    LanguageOption(name: 'Bengali', flag: '🇧🇩', code: 'bn'),
-    LanguageOption(name: 'Mandarin', flag: '🇨🇳', code: 'zh'),
-    LanguageOption(name: 'Japanese', flag: '🇯🇵', code: 'ja'),
-    LanguageOption(name: 'Korean', flag: '🇰🇷', code: 'ko'),
-    LanguageOption(name: 'Turkish', flag: '🇹🇷', code: 'tr'),
-    LanguageOption(name: 'Russian', flag: '🇷🇺', code: 'ru'),
-    LanguageOption(name: 'Swedish', flag: '🇸🇪', code: 'sv'),
-  ];
 
   @override
   void initState() {
@@ -635,7 +602,7 @@ class _AddPropertyViewState extends State<AddPropertyView> {
                                 return Wrap(
                                   spacing: 12,
                                   runSpacing: 12,
-                                  children: _languages.map((lang) {
+                                  children: languages.map((lang) {
                                     final isSelected =
                                         _selectedLanguageCode == lang.code;
                                     return SizedBox(
@@ -1013,7 +980,7 @@ class _LanguageCard extends StatefulWidget {
     required this.onTap,
   });
 
-  final LanguageOption language;
+  final Language language;
   final bool isSelected;
   final VoidCallback onTap;
 
@@ -1100,10 +1067,7 @@ class _LanguageCardState extends State<_LanguageCard> {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(
-                    widget.language.flag,
-                    style: const TextStyle(fontSize: 18),
-                  ),
+                  LanguageFlag(code: widget.language.code),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(

@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/widgets/plodyo_header.dart';
 import '../../../../core/widgets/plodyo_loading.dart';
 import '../../../../core/widgets/tv_section_badge.dart';
+import '../../../../data/models/auth_exception.dart';
 import '../../../../data/models/partner_model.dart';
 import '../../../../data/repositories/auth_repository.dart';
 import '../../../../data/repositories/partners_repository.dart';
@@ -46,54 +47,6 @@ class _PartnersViewState extends State<PartnersView> {
   bool _isLoading = false;
   String? _errorMessage;
 
-  // Exact sample partners matching the design screenshot
-  static final List<PartnerModel> _samplePartners = [
-    const PartnerModel(
-      id: 'p1',
-      name: 'hotel-ab',
-      partnerType: 'INDEPENDENT',
-      contactEmail: 'mudsr3@gmail.com',
-      roomLimit: 8,
-      status: 'ACTIVE',
-      createdAt: '2026-08-01',
-    ),
-    const PartnerModel(
-      id: 'p2',
-      name: 'HotelA1',
-      partnerType: 'INDEPENDENT',
-      contactEmail: 'mudsr3@gmail.com',
-      roomLimit: 0,
-      status: 'PENDING_APPROVAL',
-      createdAt: '2026-08-05',
-    ),
-    const PartnerModel(
-      id: 'p3',
-      name: 'Hotelgrandplaza',
-      partnerType: 'INDEPENDENT',
-      contactEmail: 'opss@email.com',
-      roomLimit: 0,
-      status: 'PENDING_APPROVAL',
-      createdAt: '2026-08-10',
-    ),
-    const PartnerModel(
-      id: 'p4',
-      name: 'AirBnb207',
-      partnerType: 'INDEPENDENT',
-      contactEmail: 'xaadkhan98+airbnb@gmail.com',
-      roomLimit: 10,
-      status: 'ACTIVE',
-      createdAt: '2026-08-12',
-    ),
-    const PartnerModel(
-      id: 'p5',
-      name: 'Indie Test Hotel',
-      partnerType: 'INDEPENDENT',
-      contactEmail: 'indie-test@example.com',
-      roomLimit: 0,
-      status: 'PENDING_APPROVAL',
-      createdAt: '2026-08-14',
-    ),
-  ];
 
   @override
   void initState() {
@@ -125,7 +78,7 @@ class _PartnersViewState extends State<PartnersView> {
   }
 
   List<PartnerModel> get _filteredPartners {
-    final list = _partners.isNotEmpty ? _partners : _samplePartners;
+    final list = _partners;
     if (_selectedFilter == PartnerFilter.all) return list;
     final query = _apiStatusQuery;
     return list.where((p) => p.status == query).toList();
@@ -146,17 +99,17 @@ class _PartnersViewState extends State<PartnersView> {
 
       if (mounted) {
         setState(() {
-          _partners = response.data.isNotEmpty ? response.data : _samplePartners;
+          _partners = response.data;
           _isLoading = false;
           _errorMessage = null;
         });
       }
-    } catch (_) {
+    } catch (e) {
       if (mounted) {
         setState(() {
-          _partners = _samplePartners;
+          _partners = [];
           _isLoading = false;
-          _errorMessage = null;
+          _errorMessage = e is AuthException ? e.message : 'Could not load partners.';
         });
       }
     }

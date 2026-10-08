@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/widgets/plodyo_header.dart';
 import '../../../../core/widgets/plodyo_loading.dart';
 import '../../../../core/widgets/tv_section_badge.dart';
+import '../../../../data/models/auth_exception.dart';
 import '../../../../data/models/person_model.dart';
 import '../../../../data/repositories/auth_repository.dart';
 import '../../../../data/repositories/people_repository.dart';
@@ -45,59 +46,6 @@ class _PeopleViewState extends State<PeopleView> {
   bool _isLoading = false;
   String? _errorMessage;
 
-  // Default sample people matching the design screenshot
-  static final List<PersonModel> _samplePeople = [
-    const PersonModel(
-      id: 'person-1',
-      fullName: 'Super Admin',
-      email: 'superadmin@email.com',
-      role: 'SUPER_ADMIN',
-      status: 'ACTIVE',
-      lastLoginAt: '12 Sept 2026',
-      isCurrentUser: false,
-      partnerName: 'Plodyo Central',
-    ),
-    const PersonModel(
-      id: 'person-2',
-      fullName: 'Saad Hotel1',
-      email: 'xaadkhan98+hotel1@gmail.com',
-      role: 'PARTNER_ADMIN',
-      status: 'ACTIVE',
-      lastLoginAt: '4 Sept 2026',
-      isCurrentUser: false,
-      partnerName: 'Hotel1 Group',
-    ),
-    const PersonModel(
-      id: 'person-3',
-      fullName: 'Saad Khan',
-      email: 'xaadkhan98@gmail.com',
-      role: 'SUPER_ADMIN',
-      status: 'ACTIVE',
-      lastLoginAt: '13 Sept 2026',
-      isCurrentUser: true,
-      partnerName: 'Plodyo Central',
-    ),
-    const PersonModel(
-      id: 'person-4',
-      fullName: 'Sarah Jenkins',
-      email: 'sarah.j@hotelgrand.com',
-      role: 'PROPERTY_ADMIN',
-      status: 'INVITED',
-      lastLoginAt: 'Invited 10 Sept 2026',
-      isCurrentUser: false,
-      partnerName: 'Grand Plaza Hotels',
-    ),
-    const PersonModel(
-      id: 'person-5',
-      fullName: 'David Ross',
-      email: 'david.r@partnercorp.org',
-      role: 'PARTNER_ADMIN',
-      status: 'DISABLED',
-      lastLoginAt: 'Last in 28 Aug 2026',
-      isCurrentUser: false,
-      partnerName: 'AirBnb207',
-    ),
-  ];
 
   @override
   void initState() {
@@ -127,7 +75,7 @@ class _PeopleViewState extends State<PeopleView> {
   }
 
   List<PersonModel> get _filteredPeople {
-    final list = _people.isNotEmpty ? _people : _samplePeople;
+    final list = _people;
     if (_selectedFilter == PeopleFilter.all) return list;
     return list.where((p) {
       switch (_selectedFilter) {
@@ -158,17 +106,17 @@ class _PeopleViewState extends State<PeopleView> {
 
       if (mounted) {
         setState(() {
-          _people = response.data.isNotEmpty ? response.data : _samplePeople;
+          _people = response.data;
           _isLoading = false;
           _errorMessage = null;
         });
       }
-    } catch (_) {
+    } catch (e) {
       if (mounted) {
         setState(() {
-          _people = _samplePeople;
+          _people = [];
           _isLoading = false;
-          _errorMessage = null;
+          _errorMessage = e is AuthException ? e.message : 'Could not load people.';
         });
       }
     }

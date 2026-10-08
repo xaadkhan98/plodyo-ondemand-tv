@@ -141,12 +141,9 @@ class _SignInViewState extends State<SignInView> {
         } else if (_signInButtonFocusNode.hasFocus) {
           _handleSignIn();
         } else if (_forgotPasswordFocusNode.hasFocus) {
-          context.push('/forgot-password');
+          _openForgotPassword();
         } else if (_registerVenueFocusNode.hasFocus) {
-          _showInfoDialog(
-            'Register Venue',
-            'To register a new venue, please visit plodyo.com/register on your phone or computer.',
-          );
+          _openRegisterVenue();
         } else if (_activeField == ActiveAuthField.email &&
             _emailController.text.trim().isNotEmpty &&
             _passwordController.text.isEmpty) {
@@ -242,41 +239,10 @@ class _SignInViewState extends State<SignInView> {
     );
   }
 
-  void _showInfoDialog(String title, String message) {
-    showDialog<void>(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text(
-          title,
-          style: const TextStyle(
-            color: Color(0xFF18181B),
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-        content: Text(
-          message,
-          style: const TextStyle(
-            color: Color(0xFF71717A),
-            fontSize: 14,
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text(
-              'OK',
-              style: TextStyle(
-                color: Color(0xFF9333EA),
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  // Shared by the buttons and the screen-level Enter handler so the two paths cannot diverge.
+  void _openForgotPassword() => widget.onForgotPassword != null ? widget.onForgotPassword!() : context.push('/forgot-password');
+
+  void _openRegisterVenue() => widget.onRegisterVenue != null ? widget.onRegisterVenue!() : context.push('/register-venue');
 
   @override
   Widget build(BuildContext context) {
@@ -435,13 +401,7 @@ class _SignInViewState extends State<SignInView> {
                                     _buildPillActionCard(
                                       focusNode: _forgotPasswordFocusNode,
                                       label: 'Forgot password?',
-                                      onPressed: () {
-                                        if (widget.onForgotPassword != null) {
-                                          widget.onForgotPassword!();
-                                        } else {
-                                          context.push('/forgot-password');
-                                        }
-                                      },
+                                      onPressed: _openForgotPassword,
                                     ),
                                     const SizedBox(height: 12),
 
@@ -449,13 +409,7 @@ class _SignInViewState extends State<SignInView> {
                                     _buildPillActionCard(
                                       focusNode: _registerVenueFocusNode,
                                       label: 'Register a new venue',
-                                      onPressed: () {
-                                        if (widget.onRegisterVenue != null) {
-                                          widget.onRegisterVenue!();
-                                        } else {
-                                          context.push('/register-venue');
-                                        }
-                                      },
+                                      onPressed: _openRegisterVenue,
                                     ),
                                   ],
                                 ),

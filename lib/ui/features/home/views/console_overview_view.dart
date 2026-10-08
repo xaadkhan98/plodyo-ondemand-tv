@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/widgets/plodyo_header.dart';
 import '../../../../core/widgets/tv_section_badge.dart';
+import '../../../../data/models/roles.dart';
+import '../../../../data/repositories/auth_repository.dart';
 
 class ConsoleCardData {
   const ConsoleCardData({
@@ -137,7 +139,8 @@ class _ConsoleOverviewViewState extends State<ConsoleOverviewView> {
                       ),
                       const SizedBox(width: 14),
 
-                      // "Superadmin" Pill Badge
+                      // Role badge for the signed-in account
+                      if (sharedAuthRepository.currentUser case final actor?)
                       Container(
                         padding: const EdgeInsets.symmetric(
                             horizontal: 14, vertical: 6),
@@ -150,7 +153,7 @@ class _ConsoleOverviewViewState extends State<ConsoleOverviewView> {
                           ),
                         ),
                         child: Text(
-                          'Superadmin',
+                          roleLabel(actor.role),
                           style: GoogleFonts.nunito(
                             fontSize: 13.5,
                             fontWeight: FontWeight.w700,

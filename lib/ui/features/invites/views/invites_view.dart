@@ -7,6 +7,7 @@ import '../../../../core/widgets/plodyo_loading.dart';
 import '../../../../core/widgets/tv_section_badge.dart';
 import '../../../../data/models/auth_exception.dart';
 import '../../../../data/models/invite_model.dart';
+import '../../../../data/models/roles.dart';
 import '../../../../data/repositories/auth_repository.dart';
 import '../../../../data/repositories/invites_repository.dart';
 
@@ -685,26 +686,23 @@ class _InviteCardState extends State<_InviteCard> {
     final isFocused = _focusNode.hasFocus;
     final isHighlighted = isFocused || _isHovered;
 
-    String subtitleText = 'Partner admin';
+    final role = roleLabel(widget.invite.role);
+    String subtitleText = role;
     if (widget.invite.isPending) {
       if (widget.invite.expiresAt != null) {
-        subtitleText =
-            'Partner admin \u00B7 Expires ${_formatDate(widget.invite.expiresAt)}';
+        subtitleText = '$role \u00B7 Expires ${_formatDate(widget.invite.expiresAt)}';
       } else {
-        subtitleText = 'Partner admin \u00B7 Expires in 7 days';
+        subtitleText = '$role \u00B7 Expires in 7 days';
       }
     } else if (widget.invite.isAccepted) {
       final date = widget.invite.acceptedAt ?? widget.invite.createdAt;
-      subtitleText =
-          'Partner admin \u00B7 Accepted ${_formatDate(date)}';
+      subtitleText = '$role \u00B7 Accepted ${_formatDate(date)}';
     } else if (widget.invite.isRevoked) {
       final date = widget.invite.sentAt ?? widget.invite.createdAt;
-      subtitleText =
-          'Partner admin \u00B7 Sent ${_formatDate(date)}';
+      subtitleText = '$role \u00B7 Sent ${_formatDate(date)}';
     } else if (widget.invite.isExpired) {
       final date = widget.invite.expiresAt ?? widget.invite.createdAt;
-      subtitleText =
-          'Partner admin \u00B7 Expired ${_formatDate(date)}';
+      subtitleText = '$role \u00B7 Expired ${_formatDate(date)}';
     }
 
     return Focus(

@@ -24,8 +24,7 @@ class TvPairingView extends StatefulWidget {
 }
 
 class _TvPairingViewState extends State<TvPairingView> {
-  final TextEditingController _codeController =
-      TextEditingController(text: '4F7K-92QT');
+  final TextEditingController _codeController = TextEditingController();
   final FocusNode _screenFocusNode = FocusNode();
   final FocusNode _inputCardFocusNode = FocusNode();
   final FocusNode _pairButtonFocusNode = FocusNode();
@@ -498,14 +497,12 @@ class _TvPairingViewState extends State<TvPairingView> {
                   Row(
                     children: [
                       Text(
-                        displayCode.isEmpty ? '4F7K-92QT' : displayCode,
+                        displayCode,
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w700,
                           letterSpacing: 1.5,
-                          color: displayCode.isEmpty
-                              ? const Color(0xFFA1A1AA)
-                              : const Color(0xFF18181B),
+                          color: const Color(0xFF18181B),
                         ),
                       ),
                       if (_showCursor)

@@ -6,6 +6,7 @@ import '../../../../core/widgets/plodyo_header.dart';
 import '../../../../core/widgets/plodyo_loading.dart';
 import '../../../../core/widgets/tv_section_badge.dart';
 import '../../../../data/models/actor.dart';
+import '../../../../data/models/roles.dart';
 import '../../../../data/repositories/auth_repository.dart';
 
 /// Settings View displaying authenticated TV account info, role badge, scope, and sign out flow
@@ -45,94 +46,35 @@ class _SettingsViewState extends State<SettingsView> {
   @override
   void initState() {
     super.initState();
-    _name = _cleanName(widget.name ?? 'Dana Okafor');
-    _email = widget.email ?? 'ops@grandhotel.com';
-    _role = widget.role ?? 'Partner admin';
-    _scope = widget.scope ?? 'All partners and properties';
     _authRepository = widget.authRepository ?? sharedAuthRepository;
-
     _loadUserDetails();
   }
 
-  @override
-  void dispose() {
-    super.dispose();
-  }
-
-  static String _cleanName(String rawName) {
-    return rawName
-        .replaceAll(RegExp(r'\s*\(\s*demo\s*\)', caseSensitive: false), '')
-        .replaceAll(RegExp(r'\bdemo\b', caseSensitive: false), '')
-        .trim();
-  }
-
   Future<void> _loadUserDetails() async {
-    setState(() => _isLoading = true);
-
+    Actor? actor;
     try {
-      final meResponse = await _authRepository.getMe();
-      final actor = meResponse.actor;
-
-      if (mounted) {
-        setState(() {
-          final rawName = widget.name ??
-              (actor.fullName.isNotEmpty ? actor.fullName : 'Dana Okafor');
-          _name = _cleanName(rawName);
-          _email = widget.email ??
-              (actor.email.isNotEmpty ? actor.email : 'ops@grandhotel.com');
-          _role = widget.role ??
-              (actor.role.isNotEmpty ? _formatRole(actor.role) : 'Partner admin');
-          _scope = widget.scope ?? _computeScope(actor);
-          _isLoading = false;
-        });
-      }
+      actor = (await _authRepository.getMe()).actor;
     } catch (_) {
-      if (mounted) {
-        final currentActor = _authRepository.currentUser;
-        setState(() {
-          final rawName = widget.name ?? currentActor?.fullName ?? 'Dana Okafor';
-          _name = _cleanName(rawName);
-          _email = widget.email ?? currentActor?.email ?? 'ops@grandhotel.com';
-          _role = widget.role ??
-              (currentActor != null
-                  ? _formatRole(currentActor.role)
-                  : 'Partner admin');
-          _scope = widget.scope ??
-              (currentActor != null
-                  ? _computeScope(currentActor)
-                  : 'All partners and properties');
-          _isLoading = false;
-        });
-      }
+      // Offline or expired: fall back to the account this session signed in with.
+      actor = _authRepository.currentUser;
     }
+    if (!mounted) return;
+    setState(() {
+      _name = widget.name ?? _orNotSet(actor?.fullName);
+      _email = widget.email ?? _orNotSet(actor?.email);
+      _role = widget.role ?? (actor == null ? 'Not set' : roleLabel(actor.role));
+      _scope = widget.scope ?? (actor == null ? 'Not set' : _describeScope(actor));
+      _isLoading = false;
+    });
   }
 
-  static String _formatRole(String role) {
-    switch (role.toUpperCase()) {
-      case 'SUPER_ADMIN':
-        return 'Super admin';
-      case 'PARTNER_ADMIN':
-        return 'Partner admin';
-      case 'PROPERTY_ADMIN':
-        return 'Property admin';
-      default:
-        return role;
-    }
-  }
+  static String _orNotSet(String? value) => (value == null || value.isEmpty) ? 'Not set' : value;
 
-  static String _computeScope(Actor actor) {
-    if (actor.role == 'SUPER_ADMIN' ||
-        (actor.partnerId == null && actor.propertyId == null)) {
-      return 'All partners and properties';
-    } else if (actor.role == 'PARTNER_ADMIN' || actor.propertyId == null) {
-      return actor.partnerId != null
-          ? 'Partner: ${actor.partnerId}'
-          : 'Partner scope';
-    } else {
-      return actor.propertyId != null
-          ? 'Property: ${actor.propertyId}'
-          : 'Property scope';
-    }
+  // Ids are shown in full: they are what support asks for when a scope looks wrong.
+  static String _describeScope(Actor actor) {
+    if (actor.partnerId == null) return 'All partners and properties';
+    if (actor.propertyId == null) return 'Partner ${actor.partnerId}';
+    return 'Property ${actor.propertyId}';
   }
 
   Future<void> _handleSignOut() async {
