@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -53,8 +52,6 @@ class _SignInViewState extends State<SignInView> {
   bool _isInternalCubit = false;
 
   ActiveAuthField _activeField = ActiveAuthField.email;
-  bool _showCursor = true;
-  Timer? _cursorTimer;
 
   @override
   void initState() {
@@ -65,15 +62,6 @@ class _SignInViewState extends State<SignInView> {
       _cubit = SignInCubit(authRepository: sharedAuthRepository);
       _isInternalCubit = true;
     }
-
-    // Blinking cursor simulation for TV input
-    _cursorTimer = Timer.periodic(const Duration(milliseconds: 550), (timer) {
-      if (mounted) {
-        setState(() {
-          _showCursor = !_showCursor;
-        });
-      }
-    });
 
     _emailFocusNode.addListener(() {
       if (_emailFocusNode.hasFocus) {
@@ -100,7 +88,6 @@ class _SignInViewState extends State<SignInView> {
 
   @override
   void dispose() {
-    _cursorTimer?.cancel();
     _emailController.dispose();
     _passwordController.dispose();
     _screenFocusNode.dispose();
@@ -219,12 +206,18 @@ class _SignInViewState extends State<SignInView> {
 
       // Backspace
       if (key == LogicalKeyboardKey.backspace) {
+        if (_emailFocusNode.hasFocus || _passwordFocusNode.hasFocus) {
+          return KeyEventResult.ignored;
+        }
         _handleBackspace();
         return KeyEventResult.handled;
       }
 
       // Space
       if (key == LogicalKeyboardKey.space) {
+        if (_emailFocusNode.hasFocus || _passwordFocusNode.hasFocus) {
+          return KeyEventResult.ignored;
+        }
         _handleSpace();
         return KeyEventResult.handled;
       }
@@ -273,6 +266,9 @@ class _SignInViewState extends State<SignInView> {
       if (event.character != null &&
           event.character!.isNotEmpty &&
           event.character!.codeUnitAt(0) >= 32) {
+        if (_emailFocusNode.hasFocus || _passwordFocusNode.hasFocus) {
+          return KeyEventResult.ignored;
+        }
         _handleVirtualKeyPress(event.character!);
         return KeyEventResult.handled;
       }
@@ -404,7 +400,6 @@ class _SignInViewState extends State<SignInView> {
             },
             child: Focus(
               focusNode: _screenFocusNode,
-              autofocus: true,
               onKeyEvent: _handlePhysicalKey,
               child: Scaffold(
                 backgroundColor: const Color(0xFFFAF7FC),
@@ -497,7 +492,6 @@ class _SignInViewState extends State<SignInView> {
                                       icon: Icons.mail_outline_rounded,
                                       controller: _emailController,
                                       focusNode: _emailFocusNode,
-                                      autofocus: true,
                                     ),
                                     const SizedBox(height: 14),
 
@@ -723,13 +717,10 @@ class _SignInViewState extends State<SignInView> {
     required TextEditingController controller,
     required FocusNode focusNode,
     bool isPassword = false,
-    bool autofocus = false,
   }) {
     final isActive = _activeField == field;
 
     return Focus(
-      focusNode: focusNode,
-      autofocus: autofocus,
       onKeyEvent: (node, event) {
         if (event is KeyDownEvent) {
           final key = event.logicalKey;
@@ -824,54 +815,55 @@ class _SignInViewState extends State<SignInView> {
                         Row(
                           children: [
                             Flexible(
-                              child: Text(
-                                controller.text.isEmpty
-                                    ? hintText
-                                    : (isPassword
-                                        ? '•' * controller.text.length
-                                        : controller.text),
-                                style: TextStyle(
-                                  fontSize: isPassword
-                                      ? (controller.text.isEmpty ? 16.5 : 19)
-                                      : 16.5,
-                                  fontWeight: FontWeight.w600,
-                                  letterSpacing: isPassword
-                                      ? (controller.text.isEmpty ? 0.2 : 2.5)
-                                      : 0.2,
-                                  color: controller.text.isEmpty
-                                      ? const Color(0xFFA1A1AA)
-                                      : const Color(0xFF18181B),
-                                ),
+                              child: TextField(
+                                controller: controller,
+                                focusNode: focusNode,
+                                obscureText: isPassword,
+                                autofocus: field == ActiveAuthField.email,
+                                autocorrect: false,
+                                enableSuggestions: !isPassword,
+                                keyboardType: isPassword
+                                    ? TextInputType.visiblePassword
+                                    : TextInputType.emailAddress,
+                                textInputAction: isPassword
+                                    ? TextInputAction.done
+                                    : TextInputAction.next,
                                 maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: isPassword ? 19 : 16.5,
+                                  fontWeight: FontWeight.w600,
+                                  letterSpacing: isPassword ? 2.5 : 0.2,
+                                  color: const Color(0xFF18181B),
+                                ),
+                                decoration: InputDecoration(
+                                  isDense: true,
+                                  contentPadding: EdgeInsets.zero,
+                                  border: InputBorder.none,
+                                  hintText: hintText,
+                                  hintStyle: const TextStyle(
+                                    fontSize: 16.5,
+                                    fontWeight: FontWeight.w600,
+                                    color: Color(0xFFA1A1AA),
+                                  ),
+                                ),
+                                onChanged: (_) {
+                                  _cubit.clearError();
+                                  setState(() {});
+                                },
+                                onSubmitted: (_) {
+                                  if (isPassword) {
+                                    _handleSignIn();
+                                  } else {
+                                    _passwordFocusNode.requestFocus();
+                                  }
+                                },
                               ),
                             ),
-                            if (isActive && !isPassword) ...[
-                              const SizedBox(width: 2),
-                              Opacity(
-                                opacity: _showCursor ? 1.0 : 0.0,
-                                child: Container(
-                                  width: 2,
-                                  height: 18,
-                                  color: const Color(0xFF8B5CF6),
-                                ),
-                              ),
-                            ],
                           ],
                         ),
                       ],
                     ),
                   ),
-                  if (isActive && isPassword) ...[
-                    Opacity(
-                      opacity: _showCursor ? 1.0 : 0.0,
-                      child: Container(
-                        width: 2,
-                        height: 18,
-                        color: const Color(0xFF8B5CF6),
-                      ),
-                    ),
-                  ],
                 ],
               ),
             ),
