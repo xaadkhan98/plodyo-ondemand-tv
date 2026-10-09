@@ -39,6 +39,12 @@ class InviteModel extends Equatable {
   bool get isExpired => status == 'EXPIRED';
   bool get isRevoked => status == 'REVOKED';
 
+  /// Refused for an accepted or revoked invite.
+  bool get canResend => isPending || isExpired;
+
+  /// Refused once accepted, and a no-op once revoked.
+  bool get canRevoke => !isAccepted && !isRevoked;
+
   factory InviteModel.fromJson(Map<String, dynamic> json) {
     return InviteModel(
       id: json['id'] as String? ?? '',
@@ -75,52 +81,20 @@ class InviteModel extends Equatable {
     };
   }
 
-  InviteModel copyWith({
-    String? id,
-    String? email,
-    String? role,
-    String? partnerId,
-    String? propertyId,
-    String? status,
-    String? sentAt,
-    String? acceptedAt,
-    String? expiresAt,
-    String? createdAt,
-    String? partnerName,
-    String? propertyName,
-    bool? accountExists,
-  }) {
-    return InviteModel(
-      id: id ?? this.id,
-      email: email ?? this.email,
-      role: role ?? this.role,
-      partnerId: partnerId ?? this.partnerId,
-      propertyId: propertyId ?? this.propertyId,
-      status: status ?? this.status,
-      sentAt: sentAt ?? this.sentAt,
-      acceptedAt: acceptedAt ?? this.acceptedAt,
-      expiresAt: expiresAt ?? this.expiresAt,
-      createdAt: createdAt ?? this.createdAt,
-      partnerName: partnerName ?? this.partnerName,
-      propertyName: propertyName ?? this.propertyName,
-      accountExists: accountExists ?? this.accountExists,
-    );
-  }
-
   @override
   List<Object?> get props => [
-        id,
-        email,
-        role,
-        partnerId,
-        propertyId,
-        status,
-        sentAt,
-        acceptedAt,
-        expiresAt,
-        createdAt,
-        partnerName,
-        propertyName,
-        accountExists,
-      ];
+    id,
+    email,
+    role,
+    partnerId,
+    propertyId,
+    status,
+    sentAt,
+    acceptedAt,
+    expiresAt,
+    createdAt,
+    partnerName,
+    propertyName,
+    accountExists,
+  ];
 }

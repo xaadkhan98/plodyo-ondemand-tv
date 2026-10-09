@@ -1,31 +1,25 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
-import 'package:google_fonts/google_fonts.dart';
-import '../../../../core/widgets/plodyo_header.dart';
-import '../../../../core/widgets/plodyo_loading.dart';
-import '../../../../core/widgets/tv_section_badge.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
+
+import '../../../../core/theme/tv_scale.dart';
+import '../../../../core/widgets/console_page.dart';
+import '../../../../core/widgets/page_title.dart';
+import '../../../../core/widgets/section_heading.dart';
+import '../../../../core/widgets/status_badge.dart';
+import '../../../../core/widgets/tv_button.dart';
+import '../../../../core/widgets/two_column_grid.dart';
 import '../../../../data/models/actor.dart';
+import '../../../../data/models/membership.dart';
+import '../../../../data/models/roles.dart';
 import '../../../../data/repositories/auth_repository.dart';
 
-/// Settings View displaying authenticated TV account info, role badge, scope, and sign out flow
-/// matching the exact Plodyo TV specification and design aesthetics.
+/// Who this console session is signed in as, and how to sign it out. Re-read from /auth/me on open,
+/// so a role change shows without waiting for the token to expire.
 class SettingsView extends StatefulWidget {
-  const SettingsView({
-    super.key,
-    this.authRepository,
-    this.name,
-    this.email,
-    this.role,
-    this.scope,
-    this.onSignOut,
-  });
+  const SettingsView({super.key, this.authRepository, this.onSignOut});
 
   final AuthRepository? authRepository;
-  final String? name;
-  final String? email;
-  final String? role;
-  final String? scope;
   final VoidCallback? onSignOut;
 
   @override
@@ -33,623 +27,130 @@ class SettingsView extends StatefulWidget {
 }
 
 class _SettingsViewState extends State<SettingsView> {
-  late final AuthRepository _authRepository;
-
-  bool _isLoading = true;
-
-  String _name = '';
-  String _email = '';
-  String _role = '';
-  String _scope = '';
+  late final AuthRepository _auth =
+      widget.authRepository ?? sharedAuthRepository;
+  late Actor? _actor = _auth.currentUser;
+  List<Membership> _memberships = const [];
 
   @override
   void initState() {
     super.initState();
-    _name = _cleanName(widget.name ?? 'Dana Okafor');
-    _email = widget.email ?? 'ops@grandhotel.com';
-    _role = widget.role ?? 'Partner admin';
-    _scope = widget.scope ?? 'All partners and properties';
-    _authRepository = widget.authRepository ?? sharedAuthRepository;
-
-    _loadUserDetails();
+    _refresh();
   }
 
-  @override
-  void dispose() {
-    super.dispose();
-  }
-
-  static String _cleanName(String rawName) {
-    return rawName
-        .replaceAll(RegExp(r'\s*\(\s*demo\s*\)', caseSensitive: false), '')
-        .replaceAll(RegExp(r'\bdemo\b', caseSensitive: false), '')
-        .trim();
-  }
-
-  Future<void> _loadUserDetails() async {
-    setState(() => _isLoading = true);
-
+  Future<void> _refresh() async {
     try {
-      final meResponse = await _authRepository.getMe();
-      final actor = meResponse.actor;
-
-      if (mounted) {
-        setState(() {
-          final rawName = widget.name ??
-              (actor.fullName.isNotEmpty ? actor.fullName : 'Dana Okafor');
-          _name = _cleanName(rawName);
-          _email = widget.email ??
-              (actor.email.isNotEmpty ? actor.email : 'ops@grandhotel.com');
-          _role = widget.role ??
-              (actor.role.isNotEmpty ? _formatRole(actor.role) : 'Partner admin');
-          _scope = widget.scope ?? _computeScope(actor);
-          _isLoading = false;
-        });
-      }
+      final me = await _auth.getMe();
+      if (!mounted) return;
+      setState(() {
+        _actor = me.actor;
+        _memberships = me.memberships;
+      });
     } catch (_) {
-      if (mounted) {
-        final currentActor = _authRepository.currentUser;
-        setState(() {
-          final rawName = widget.name ?? currentActor?.fullName ?? 'Dana Okafor';
-          _name = _cleanName(rawName);
-          _email = widget.email ?? currentActor?.email ?? 'ops@grandhotel.com';
-          _role = widget.role ??
-              (currentActor != null
-                  ? _formatRole(currentActor.role)
-                  : 'Partner admin');
-          _scope = widget.scope ??
-              (currentActor != null
-                  ? _computeScope(currentActor)
-                  : 'All partners and properties');
-          _isLoading = false;
-        });
-      }
+      // Offline or expired: the account this session signed in with is still the right thing to show.
     }
   }
 
-  static String _formatRole(String role) {
-    switch (role.toUpperCase()) {
-      case 'SUPER_ADMIN':
-        return 'Super admin';
-      case 'PARTNER_ADMIN':
-        return 'Partner admin';
-      case 'PROPERTY_ADMIN':
-        return 'Property admin';
-      default:
-        return role;
-    }
-  }
-
-  static String _computeScope(Actor actor) {
-    if (actor.role == 'SUPER_ADMIN' ||
-        (actor.partnerId == null && actor.propertyId == null)) {
-      return 'All partners and properties';
-    } else if (actor.role == 'PARTNER_ADMIN' || actor.propertyId == null) {
-      return actor.partnerId != null
-          ? 'Partner: ${actor.partnerId}'
-          : 'Partner scope';
-    } else {
-      return actor.propertyId != null
-          ? 'Property: ${actor.propertyId}'
-          : 'Property scope';
-    }
-  }
-
-  Future<void> _handleSignOut() async {
-    await _authRepository.signOut();
-    if (mounted) {
-      if (widget.onSignOut != null) {
-        widget.onSignOut!();
-      } else {
-        context.go('/sign-in');
-      }
-    }
-  }
-
-  void _confirmSignOut() {
-    showDialog<void>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        backgroundColor: Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Row(
-          children: [
-            Icon(Icons.logout_rounded, color: Color(0xFFEF4444), size: 24),
-            SizedBox(width: 10),
-            Text(
-              'Sign out this TV?',
-              style: TextStyle(
-                color: Color(0xFF18181B),
-                fontWeight: FontWeight.w800,
-                fontSize: 20,
-              ),
-            ),
-          ],
-        ),
-        content: const Text(
-          'Ends every session started from this login on this device. You will need to sign in again to access Plodyo TV.',
-          style: TextStyle(
-            color: Color(0xFF71717A),
-            fontSize: 14,
-            height: 1.4,
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(),
-            child: const Text(
-              'Cancel',
-              style: TextStyle(
-                color: Color(0xFF71717A),
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFEF4444),
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-            ),
-            onPressed: () {
-              Navigator.of(dialogContext).pop();
-              _handleSignOut();
-            },
-            child: const Text(
-              'Sign out',
-              style: TextStyle(fontWeight: FontWeight.w700),
-            ),
-          ),
-        ],
-      ),
-    );
+  Future<void> _signOut() async {
+    await _auth.signOut();
+    if (!mounted) return;
+    widget.onSignOut != null ? widget.onSignOut!() : context.go('/sign-in');
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFFAF7FC),
-      body: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Top Plodyo Logo Header (Sticky)
-            const Padding(
-              padding: EdgeInsets.only(left: 48, right: 48, top: 20, bottom: 8),
-              child: PlodyoHeader(padding: EdgeInsets.zero),
-            ),
+    final actor = _actor;
+    // The membership the session is scoped to is already shown under Account.
+    final others = [
+      for (final m in _memberships)
+        if (m.role != actor?.role ||
+            m.partnerId != actor?.partnerId ||
+            m.propertyId != actor?.propertyId)
+          m,
+    ];
 
-            // Header Row (Sticky): Floating Angled Settings Badge Icon + Title + Subtitle
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 8),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Animated Settings Badge: Floating vertically & angled to the left (-8 degrees)
-                  const TvSectionBadge(
-                    icon: Icons.settings_rounded,
-                    gradientColors: [
-                      Color(0xFFF472B6),
-                      Color(0xFFE879F9),
-                      Color(0xFF9333EA),
-                      Color(0xFF7E22CE),
-                    ],
-                  ),
-                  const SizedBox(width: 16),
-
-                  // Title & Subtitle
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Settings',
-                          style: GoogleFonts.baloo2(
-                            fontSize: 34,
-                            fontWeight: FontWeight.w900,
-                            color: const Color(0xFFA855F7),
-                            letterSpacing: -0.5,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'The account this console session is signed in with.',
-                          style: GoogleFonts.nunito(
-                            fontSize: 15,
-                            height: 1.4,
-                            fontWeight: FontWeight.w400,
-                            color: const Color(0xFF4B5563),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 6),
-
-            // Scrollable Body Content: Account 2x2 Grid + Sign Out
-            Expanded(
-              child: SingleChildScrollView(
-                physics: const BouncingScrollPhysics(),
-                padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Account Section Header
-                    Row(
-                      children: [
-                        Text(
-                          'Account',
-                          style: GoogleFonts.baloo2(
-                            fontSize: 20,
-                            fontWeight: FontWeight.w800,
-                            color: const Color(0xFF18181B),
-                            letterSpacing: -0.3,
-                          ),
-                        ),
-                        if (_isLoading) ...[
-                          const SizedBox(width: 12),
-                          const PlodyoThreeDotsLoading(
-                            dotSize: 6,
-                            spacing: 4,
-                            bounceHeight: 4,
-                          ),
-                        ],
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-
-            // 2x2 Grid of Account Info Cards
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Column 1
-                Expanded(
-                  child: Column(
-                    children: [
-                      // Card 1: Name
-                      _SettingsInfoCard(
-                        icon: Icons.person_outline_rounded,
-                        label: 'Name',
-                        value: _isLoading ? 'Loading...' : _name,
-                      ),
-                      const SizedBox(height: 16),
-
-                      // Card 3: Role
-                      _SettingsInfoCard(
-                        icon: Icons.shield_outlined,
-                        label: 'Role',
-                        value: _isLoading ? '...' : _role,
-                        isBadge: true,
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 16),
-
-                // Column 2
-                Expanded(
-                  child: Column(
-                    children: [
-                      // Card 2: Email
-                      _SettingsInfoCard(
-                        icon: Icons.mail_outline_rounded,
-                        label: 'Email',
-                        value: _isLoading ? 'Loading...' : _email,
-                      ),
-                      const SizedBox(height: 16),
-
-                      // Card 4: Scope
-                      _SettingsInfoCard(
-                        icon: Icons.domain_rounded,
-                        label: 'Scope',
-                        value: _isLoading ? 'Loading...' : _scope,
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 36),
-
-            // Sign out Section
-            const Text(
-              'Sign out',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.w800,
-                color: Color(0xFF18181B),
-                letterSpacing: -0.3,
-              ),
-            ),
-            const SizedBox(height: 6),
-            const Text(
-              'Ends every session started from this login, on every device.',
-              style: TextStyle(
-                fontSize: 13.5,
-                fontWeight: FontWeight.w400,
-                color: Color(0xFF64748B),
-                height: 1.4,
-              ),
-            ),
-            const SizedBox(height: 18),
-
-            // Sign out Outlined Button
-            _SignOutButton(onPressed: _confirmSignOut),
-
-            const SizedBox(height: 48),
-          ],
-        ),
-      ),
-    ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// Styled Information Card for the Settings 2x2 Grid
-class _SettingsInfoCard extends StatefulWidget {
-  const _SettingsInfoCard({
-    required this.icon,
-    required this.label,
-    required this.value,
-    this.isBadge = false,
-  });
-
-  final IconData icon;
-  final String label;
-  final String value;
-  final bool isBadge;
-
-  @override
-  State<_SettingsInfoCard> createState() => _SettingsInfoCardState();
-}
-
-class _SettingsInfoCardState extends State<_SettingsInfoCard> {
-  final FocusNode _focusNode = FocusNode();
-  bool _isHovered = false;
-
-  @override
-  void dispose() {
-    _focusNode.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final isFocused = _focusNode.hasFocus;
-    final active = isFocused || _isHovered;
-
-    return Focus(
-      focusNode: _focusNode,
-      onFocusChange: (_) => setState(() {}),
-      child: MouseRegion(
-        onEnter: (_) => setState(() => _isHovered = true),
-        onExit: (_) => setState(() => _isHovered = false),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 140),
-          curve: Curves.easeOutCubic,
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 20),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: active
-                  ? const Color(0xFF8B5CF6)
-                  : const Color(0xFFCBD5E1),
-              width: active ? 2.0 : 1.3,
-            ),
-            boxShadow: [
-              if (active)
-                BoxShadow(
-                  color: const Color(0xFF9333EA).withValues(alpha: 0.28),
-                  blurRadius: 18,
-                  spreadRadius: 1.5,
-                  offset: const Offset(0, 4),
-                )
-              else ...const [
-                BoxShadow(
-                  color: Color(0x0A000000),
-                  blurRadius: 8,
-                  offset: Offset(0, 3),
-                ),
-                BoxShadow(
-                  color: Color(0x059333EA),
-                  blurRadius: 12,
-                  offset: Offset(0, 4),
-                ),
-              ],
-            ],
+    return ConsolePage(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const PageTitle(
+            icon: LucideIcons.settings,
+            title: 'Settings',
+            subtitle: 'The account this console session is signed in with.',
           ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
+          const SizedBox(height: 2.5 * rem),
+          const SectionHeading('Account'),
+          const SizedBox(height: 1.25 * rem),
+          TwoColumnGrid(
             children: [
-              // Icon Container on the left
-              Container(
-                width: 46,
-                height: 46,
-                decoration: BoxDecoration(
-                  color: active
-                      ? const Color(0xFFF3E8FF)
-                      : const Color(0xFFFAF5FF),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: active
-                        ? const Color(0xFFDDD6FE)
-                        : const Color(0xFFF1EBF5),
-                    width: 1.2,
-                  ),
-                ),
-                child: Center(
-                  child: Icon(
-                    widget.icon,
-                    size: 24,
-                    color: const Color(0xFF9333EA),
+              DetailCard.text(
+                icon: LucideIcons.userRound,
+                label: 'Name',
+                value: (actor?.fullName.isNotEmpty ?? false)
+                    ? actor!.fullName
+                    : 'Not set',
+              ),
+              DetailCard.text(
+                icon: LucideIcons.mail,
+                label: 'Email',
+                value: actor?.email ?? 'Not set',
+              ),
+              DetailCard(
+                icon: LucideIcons.shieldCheck,
+                label: 'Role',
+                value: Align(
+                  alignment: Alignment.centerLeft,
+                  child: StatusBadge(
+                    actor == null ? 'Not set' : roleLabel(actor.role),
+                    tone: BadgeTone.positive,
                   ),
                 ),
               ),
-              const SizedBox(width: 16),
-
-              // Label & Value
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      widget.label,
-                      style: const TextStyle(
-                        fontSize: 13.5,
-                        fontWeight: FontWeight.w500,
-                        color: Color(0xFF64748B),
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    if (widget.isBadge)
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 4.5),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFDCFCE7),
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                        child: Text(
-                          widget.value,
-                          style: const TextStyle(
-                            fontSize: 13.5,
-                            fontWeight: FontWeight.w700,
-                            color: Color(0xFF16A34A),
-                          ),
-                        ),
-                      )
-                    else
-                      Text(
-                        widget.value,
-                        style: const TextStyle(
-                          fontSize: 16.5,
-                          fontWeight: FontWeight.w700,
-                          color: Color(0xFF18181B),
-                        ),
-                      ),
-                  ],
-                ),
+              DetailCard.text(
+                icon: LucideIcons.building2,
+                label: 'Scope',
+                value: actor == null
+                    ? 'Not set'
+                    : describeScope(actor.partnerId, actor.propertyId),
               ),
             ],
           ),
-        ),
-      ),
-    );
-  }
-}
-
-/// Outlined "Sign out" Pill Button with focus/hover effects
-class _SignOutButton extends StatefulWidget {
-  const _SignOutButton({required this.onPressed});
-
-  final VoidCallback onPressed;
-
-  @override
-  State<_SignOutButton> createState() => _SignOutButtonState();
-}
-
-class _SignOutButtonState extends State<_SignOutButton> {
-  final FocusNode _focusNode = FocusNode();
-  bool _isHovered = false;
-
-  @override
-  void dispose() {
-    _focusNode.dispose();
-    super.dispose();
-  }
-
-  KeyEventResult _handleKeyEvent(FocusNode node, KeyEvent event) {
-    if (event is KeyDownEvent) {
-      final key = event.logicalKey;
-      if (key == LogicalKeyboardKey.select ||
-          key == LogicalKeyboardKey.enter ||
-          key == LogicalKeyboardKey.space ||
-          key == LogicalKeyboardKey.gameButtonA) {
-        widget.onPressed();
-        return KeyEventResult.handled;
-      }
-    }
-    return KeyEventResult.ignored;
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final isFocused = _focusNode.hasFocus;
-    final active = isFocused || _isHovered;
-
-    return Focus(
-      focusNode: _focusNode,
-      onKeyEvent: _handleKeyEvent,
-      onFocusChange: (_) => setState(() {}),
-      child: MouseRegion(
-        cursor: SystemMouseCursors.click,
-        onEnter: (_) => setState(() => _isHovered = true),
-        onExit: (_) => setState(() => _isHovered = false),
-        child: GestureDetector(
-          onTap: widget.onPressed,
-          child: AnimatedScale(
-            scale: active ? 1.04 : 1.0,
-            duration: const Duration(milliseconds: 140),
-            curve: Curves.easeOutCubic,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(26),
-                border: Border.all(
-                  color: active
-                      ? const Color(0xFFEF4444)
-                      : const Color(0xFFFCA5A5),
-                  width: active ? 2.0 : 1.4,
-                ),
-                boxShadow: [
-                  if (active)
-                    BoxShadow(
-                      color: const Color(0xFFEF4444).withValues(alpha: 0.25),
-                      blurRadius: 14,
-                      offset: const Offset(0, 3),
-                    )
-                  else
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.02),
-                      blurRadius: 5,
-                      offset: const Offset(0, 1.5),
-                    ),
-                ],
-              ),
-              child: const Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.logout_rounded,
-                    size: 20,
-                    color: Color(0xFFEF4444),
-                  ),
-                  SizedBox(width: 8),
-                  Text(
-                    'Sign out',
-                    style: TextStyle(
-                      fontSize: 15.5,
-                      fontWeight: FontWeight.w700,
-                      color: Color(0xFFEF4444),
-                    ),
-                  ),
-                ],
-              ),
+          if (others.isNotEmpty) ...[
+            const SizedBox(height: 3 * rem),
+            const SectionHeading(
+              'Other access',
+              description:
+                  'This account also holds the scopes below. Signing in here uses the one above; there is no way to switch between them yet.',
             ),
+            const SizedBox(height: 1.25 * rem),
+            TwoColumnGrid(
+              children: [
+                for (final m in others)
+                  DetailCard.text(
+                    icon: LucideIcons.building2,
+                    label: roleLabel(m.role),
+                    value: describeScope(m.partnerId, m.propertyId),
+                  ),
+              ],
+            ),
+          ],
+          const SizedBox(height: 3 * rem),
+          const SectionHeading(
+            'Sign out',
+            description:
+                'Ends every session started from this login, on every device.',
           ),
-        ),
+          const SizedBox(height: 1.25 * rem),
+          TvButton(
+            label: 'Sign out',
+            icon: LucideIcons.logOut,
+            variant: TvButtonVariant.danger,
+            size: TvButtonSize.md,
+            autofocus: true,
+            onSelect: _signOut,
+          ),
+          const SizedBox(height: 2.5 * rem),
+        ],
       ),
     );
   }

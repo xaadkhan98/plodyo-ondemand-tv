@@ -1,92 +1,76 @@
-import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter/painting.dart';
+
 import 'tv_colors.dart';
+import 'tv_scale.dart';
 
-/// 10-foot UI typography optimized for TV screen reading distances.
-/// Uses GoogleFonts Baloo (bold) for header sections and Nunito for descriptions and text.
-class TvTypography {
-  TvTypography._();
+/// The reference's 10-foot type scale and faces, bundled under assets/fonts.
+/// Baloo 2 is for page titles only, Fredoka for headings, Nunito for everything else.
+abstract final class TvText {
+  static const String baloo = 'Baloo2';
+  static const String fredoka = 'Fredoka';
+  static const String nunito = 'Nunito';
 
-  /// Section & Screen Headers in GoogleFonts Baloo (bold)
-  static TextStyle header({
-    double fontSize = 34,
-    FontWeight fontWeight = FontWeight.w900,
-    Color color = TvColors.primary,
-    double? letterSpacing = -0.5,
-    double? height,
-  }) =>
-      GoogleFonts.baloo2(
-        fontSize: fontSize,
-        fontWeight: fontWeight,
-        color: color,
-        letterSpacing: letterSpacing,
-        height: height,
-      );
+  // Size and line height in rem, as `tv-sm` … `tv-3xl`. Nothing on screen goes below [sm].
+  static const TextStyle sm = TextStyle(
+    fontSize: 1.125 * rem,
+    height: 1.6 / 1.125,
+    fontFamily: nunito,
+    color: TvColors.foreground,
+    leadingDistribution: TextLeadingDistribution.even,
+  );
+  static const TextStyle base = TextStyle(
+    fontSize: 1.375 * rem,
+    height: 1.9 / 1.375,
+    fontFamily: nunito,
+    color: TvColors.foreground,
+    leadingDistribution: TextLeadingDistribution.even,
+  );
+  static const TextStyle lg = TextStyle(
+    fontSize: 1.75 * rem,
+    height: 2.25 / 1.75,
+    fontFamily: nunito,
+    color: TvColors.foreground,
+    leadingDistribution: TextLeadingDistribution.even,
+  );
+  static const TextStyle xl = TextStyle(
+    fontSize: 2.25 * rem,
+    height: 2.75 / 2.25,
+    fontFamily: nunito,
+    color: TvColors.foreground,
+    leadingDistribution: TextLeadingDistribution.even,
+  );
+  static const TextStyle x2l = TextStyle(
+    fontSize: 3 * rem,
+    height: 3.4 / 3,
+    fontFamily: nunito,
+    color: TvColors.foreground,
+    leadingDistribution: TextLeadingDistribution.even,
+  );
+  static const TextStyle x3l = TextStyle(
+    fontSize: 4 * rem,
+    height: 4.4 / 4,
+    fontFamily: nunito,
+    color: TvColors.foreground,
+    leadingDistribution: TextLeadingDistribution.even,
+  );
 
-  static TextStyle get heroTitle => GoogleFonts.baloo2(
-        fontSize: 44,
-        fontWeight: FontWeight.w900,
-        color: TvColors.textPrimary,
-        letterSpacing: -0.6,
-        height: 1.15,
-      );
+  // Tailwind's `leading-tight`, which headings and titles override the step's line height with.
+  static const double tight = 1.25;
+  // Tailwind's `tracking-tight`, in em: multiply by the font size.
+  static const double trackingTight = -0.025;
 
-  static TextStyle get sectionTitle => GoogleFonts.baloo2(
-        fontSize: 24,
-        fontWeight: FontWeight.w800,
-        color: TvColors.textPrimary,
-        letterSpacing: 0.1,
-      );
+  static final Map<TextStyle, double> _chCache = {};
 
-  /// Descriptions, subtitles, cards, and body text in GoogleFonts Nunito
-  static TextStyle description({
-    double fontSize = 15.5,
-    FontWeight fontWeight = FontWeight.w400,
-    Color color = const Color(0xFF4B5563),
-    double? height = 1.48,
-  }) =>
-      GoogleFonts.nunito(
-        fontSize: fontSize,
-        fontWeight: fontWeight,
-        color: color,
-        height: height,
-      );
+  /// CSS `ch` for [style]: the advance of "0". The reference caps text blocks in ch (`max-w-[60ch]`).
+  static double ch(TextStyle style) => _chCache[style] ??= _measureZero(style);
 
-  static TextStyle get cardTitle => GoogleFonts.nunito(
-        fontSize: 17.5,
-        fontWeight: FontWeight.w700,
-        color: TvColors.textPrimary,
-      );
-
-  static TextStyle get cardSubtitle => GoogleFonts.nunito(
-        fontSize: 14.5,
-        fontWeight: FontWeight.w500,
-        color: TvColors.textSecondary,
-      );
-
-  static TextStyle get body => GoogleFonts.nunito(
-        fontSize: 17,
-        fontWeight: FontWeight.w400,
-        color: TvColors.textSecondary,
-        height: 1.45,
-      );
-
-  static TextStyle get button => GoogleFonts.nunito(
-        fontSize: 16.5,
-        fontWeight: FontWeight.w700,
-        letterSpacing: 0.3,
-      );
-
-  static TextStyle get badge => GoogleFonts.nunito(
-        fontSize: 12.5,
-        fontWeight: FontWeight.w700,
-        color: Colors.white,
-        letterSpacing: 0.3,
-      );
-
-  static TextStyle get sidebarItem => GoogleFonts.nunito(
-        fontSize: 15.5,
-        fontWeight: FontWeight.w700,
-        color: TvColors.textSecondary,
-      );
+  static double _measureZero(TextStyle style) {
+    final painter = TextPainter(
+      text: TextSpan(text: '0', style: style),
+      textDirection: TextDirection.ltr,
+    )..layout();
+    final width = painter.width;
+    painter.dispose();
+    return width;
+  }
 }

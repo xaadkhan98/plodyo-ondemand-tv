@@ -22,16 +22,19 @@ class AuthResponse extends Equatable {
         ? json['data'] as Map<String, dynamic>
         : json;
 
-    final accessToken = data['access_token'] as String? ??
+    final accessToken =
+        data['access_token'] as String? ??
         data['accessToken'] as String? ??
         data['token'] as String? ??
         '';
 
-    final refreshToken = data['refresh_token'] as String? ??
+    final refreshToken =
+        data['refresh_token'] as String? ??
         data['refreshToken'] as String? ??
         '';
 
-    final tokenType = data['token_type'] as String? ??
+    final tokenType =
+        data['token_type'] as String? ??
         data['tokenType'] as String? ??
         'Bearer';
 
@@ -40,10 +43,10 @@ class AuthResponse extends Equatable {
     final actorMap = (data['actor'] is Map<String, dynamic>)
         ? data['actor'] as Map<String, dynamic>
         : (data['user'] is Map<String, dynamic>)
-            ? data['user'] as Map<String, dynamic>
-            : (data['profile'] is Map<String, dynamic>)
-                ? data['profile'] as Map<String, dynamic>
-                : <String, dynamic>{};
+        ? data['user'] as Map<String, dynamic>
+        : (data['profile'] is Map<String, dynamic>)
+        ? data['profile'] as Map<String, dynamic>
+        : <String, dynamic>{};
 
     return AuthResponse(
       accessToken: accessToken,
@@ -82,10 +85,10 @@ class AuthResponse extends Equatable {
 
   @override
   List<Object?> get props => [
-        accessToken,
-        refreshToken,
-        tokenType,
-        expiresIn,
-        actor,
-      ];
+    accessToken,
+    refreshToken,
+    tokenType,
+    expiresIn,
+    actor,
+  ];
 }

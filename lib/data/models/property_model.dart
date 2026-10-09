@@ -63,46 +63,18 @@ class PropertyModel extends Equatable {
     };
   }
 
-  PropertyModel copyWith({
-    String? id,
-    String? partnerId,
-    String? partnerName,
-    String? name,
-    String? status,
-    String? country,
-    String? city,
-    String? timezone,
-    String? defaultLanguage,
-    String? createdAt,
-    String? updatedAt,
-  }) {
-    return PropertyModel(
-      id: id ?? this.id,
-      partnerId: partnerId ?? this.partnerId,
-      partnerName: partnerName ?? this.partnerName,
-      name: name ?? this.name,
-      status: status ?? this.status,
-      country: country ?? this.country,
-      city: city ?? this.city,
-      timezone: timezone ?? this.timezone,
-      defaultLanguage: defaultLanguage ?? this.defaultLanguage,
-      createdAt: createdAt ?? this.createdAt,
-      updatedAt: updatedAt ?? this.updatedAt,
-    );
-  }
-
   @override
   List<Object?> get props => [
-        id,
-        partnerId,
-        partnerName,
-        name,
-        status,
-        country,
-        city,
-        timezone,
-        defaultLanguage,
-        createdAt,
-        updatedAt,
-      ];
+    id,
+    partnerId,
+    partnerName,
+    name,
+    status,
+    country,
+    city,
+    timezone,
+    defaultLanguage,
+    createdAt,
+    updatedAt,
+  ];
 }

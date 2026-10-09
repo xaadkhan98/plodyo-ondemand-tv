@@ -35,10 +35,7 @@ class SignInSuccess extends SignInState {
 
 /// State emitted when authentication fails (credentials, network, validation).
 class SignInFailure extends SignInState {
-  const SignInFailure({
-    required this.errorMessage,
-    this.statusCode,
-  });
+  const SignInFailure({required this.errorMessage, this.statusCode});
 
   final String errorMessage;
   final int? statusCode;

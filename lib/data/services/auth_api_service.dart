@@ -6,10 +6,7 @@ import '../models/membership.dart';
 import 'api_client.dart';
 
 class AuthMeResponse {
-  const AuthMeResponse({
-    required this.actor,
-    required this.memberships,
-  });
+  const AuthMeResponse({required this.actor, required this.memberships});
 
   final Actor actor;
   final List<Membership> memberships;
@@ -28,9 +25,7 @@ class AuthMeResponse {
 
 /// Service communicating with OnDemand Plodyo Authentication & Public Registration/Invite endpoints.
 class AuthApiService {
-  AuthApiService({
-    ApiClient? apiClient,
-  }) : _client = apiClient ?? ApiClient();
+  AuthApiService({ApiClient? apiClient}) : _client = apiClient ?? ApiClient();
 
   final ApiClient _client;
 
@@ -92,7 +87,8 @@ class AuthApiService {
       clientSecret: clientSecret,
     );
     final map = res as Map<String, dynamic>?;
-    return map?['message'] as String? ?? 'If that email is registered, a reset link has been sent.';
+    return map?['message'] as String? ??
+        'If that email is registered, a reset link has been sent.';
   }
 
   /// POST /ondemand/auth/reset-password
@@ -153,7 +149,8 @@ class AuthApiService {
       clientSecret: clientSecret,
     );
     final map = res as Map<String, dynamic>?;
-    return map?['message'] as String? ?? 'Invite accepted. You can now sign in.';
+    return map?['message'] as String? ??
+        'Invite accepted. You can now sign in.';
   }
 
   /// POST /ondemand/public/registrations
@@ -169,7 +166,8 @@ class AuthApiService {
       'name': name,
       'partner_type': partnerType,
       'contact_email': contactEmail,
-      if (contactName != null && contactName.isNotEmpty) 'contact_name': contactName,
+      if (contactName != null && contactName.isNotEmpty)
+        'contact_name': contactName,
       if (phone != null && phone.isNotEmpty) 'phone': phone,
     };
 

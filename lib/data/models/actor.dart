@@ -23,26 +23,39 @@ class Actor extends Equatable {
   bool get isPartnerAdmin => role == 'PARTNER_ADMIN';
   bool get isPropertyAdmin => role == 'PROPERTY_ADMIN';
 
+  /// Partners and invites are open to super and partner admins; every call behind them 403s for a property admin.
+  bool get canAdminister => isSuperAdmin || isPartnerAdmin;
+
+  /// Whether the scope fits the role. One that does not would 403 on every screen, so it is refused at sign-in.
+  bool get hasCoherentScope => switch (role) {
+    'SUPER_ADMIN' => partnerId == null && propertyId == null,
+    'PARTNER_ADMIN' => partnerId != null && propertyId == null,
+    'PROPERTY_ADMIN' => partnerId != null && propertyId != null,
+    _ => false,
+  };
+
   factory Actor.fromJson(Map<String, dynamic> json) {
     return Actor(
-      userId: json['user_id'] as String? ??
+      userId:
+          json['user_id'] as String? ??
           json['userId'] as String? ??
           json['id'] as String? ??
           json['_id'] as String? ??
           '',
       email: json['email'] as String? ?? '',
-      fullName: json['full_name'] as String? ??
+      fullName:
+          json['full_name'] as String? ??
           json['fullName'] as String? ??
           json['name'] as String? ??
           '',
-      role: json['role'] as String? ??
+      role:
+          json['role'] as String? ??
           json['role_name'] as String? ??
           json['roleName'] as String? ??
           '',
-      partnerId: json['partner_id'] as String? ??
-          json['partnerId'] as String?,
-      propertyId: json['property_id'] as String? ??
-          json['propertyId'] as String?,
+      partnerId: json['partner_id'] as String? ?? json['partnerId'] as String?,
+      propertyId:
+          json['property_id'] as String? ?? json['propertyId'] as String?,
     );
   }
 
@@ -59,11 +72,11 @@ class Actor extends Equatable {
 
   @override
   List<Object?> get props => [
-        userId,
-        email,
-        fullName,
-        role,
-        partnerId,
-        propertyId,
-      ];
+    userId,
+    email,
+    fullName,
+    role,
+    partnerId,
+    propertyId,
+  ];
 }
