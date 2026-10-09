@@ -57,13 +57,6 @@ class _SettingsViewState extends State<SettingsView> {
     widget.onSignOut != null ? widget.onSignOut!() : context.go('/sign-in');
   }
 
-  /// Ids in full: they are what support asks for when a scope looks wrong.
-  static String _scope(String? partnerId, String? propertyId) {
-    if (partnerId == null) return 'All partners and properties';
-    if (propertyId == null) return 'Partner $partnerId';
-    return 'Property $propertyId';
-  }
-
   @override
   Widget build(BuildContext context) {
     final actor = _actor;
@@ -118,7 +111,7 @@ class _SettingsViewState extends State<SettingsView> {
                 label: 'Scope',
                 value: actor == null
                     ? 'Not set'
-                    : _scope(actor.partnerId, actor.propertyId),
+                    : describeScope(actor.partnerId, actor.propertyId),
               ),
             ],
           ),
@@ -136,7 +129,7 @@ class _SettingsViewState extends State<SettingsView> {
                   DetailCard.text(
                     icon: LucideIcons.building2,
                     label: roleLabel(m.role),
-                    value: _scope(m.partnerId, m.propertyId),
+                    value: describeScope(m.partnerId, m.propertyId),
                   ),
               ],
             ),

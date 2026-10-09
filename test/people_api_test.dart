@@ -2,9 +2,14 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
+import 'package:go_router/go_router.dart';
 import 'package:http/testing.dart';
+import 'package:plodyo_ondemand_tv/data/models/actor.dart';
+import 'package:plodyo_ondemand_tv/data/models/auth_response.dart';
+import 'package:plodyo_ondemand_tv/data/models/membership.dart';
 import 'package:plodyo_ondemand_tv/data/models/paginated_response.dart';
 import 'package:plodyo_ondemand_tv/data/models/person_model.dart';
+import 'package:plodyo_ondemand_tv/data/repositories/auth_repository.dart';
 import 'package:plodyo_ondemand_tv/data/repositories/people_repository.dart';
 import 'package:plodyo_ondemand_tv/data/services/api_client.dart';
 import 'package:plodyo_ondemand_tv/data/services/people_api_service.dart';
@@ -84,21 +89,21 @@ class _MockTestPeopleRepo implements PeopleRepository {
     return _people.firstWhere((p) => p.id == personId);
   }
 
-  @override
-  Future<PersonModel> updateRole({
-    required String accessToken,
-    required String personId,
-    required String role,
-  }) async {
-    return _people.firstWhere((p) => p.id == personId);
-  }
+  final disabled = <String>[];
 
   @override
-  Future<String> deletePerson({
+  Future<PersonModel> disablePerson({
     required String accessToken,
     required String personId,
   }) async {
-    return 'Person deleted';
+    disabled.add(personId);
+    return PersonModel(
+      id: personId,
+      fullName: 'Jordan Lee',
+      email: 'jordan@grandhotel.com',
+      role: 'PARTNER_ADMIN',
+      status: 'DISABLED',
+    );
   }
 }
 
@@ -290,129 +295,147 @@ void main() {
   });
 
   group('PersonDetailsView Widget Tests', () {
-    testWidgets('renders 2x2 grid, Access section, and action buttons', (
-      tester,
-    ) async {
+    const person = PersonModel(
+      id: 'person-1',
+      fullName: 'Jordan Lee',
+      email: 'jordan@grandhotel.com',
+      role: 'PARTNER_ADMIN',
+      status: 'ACTIVE',
+      lastLoginAt: '2026-09-12T16:13:00',
+      createdAt: '2026-09-10T23:56:00',
+      memberships: [
+        Membership(
+          id: 'm1',
+          role: 'PARTNER_ADMIN',
+          partnerId: 'p-7f3a',
+          createdAt: '',
+        ),
+      ],
+    );
+
+    // A list screen at `/` that has pushed the person, so "All people" has somewhere to go back to.
+    Future<void> pumpDetails(
+      WidgetTester tester, {
+      PersonModel subject = person,
+      String actorId = 'u1',
+      PeopleRepository? repo,
+    }) async {
       tester.view.physicalSize = const Size(1920, 1080);
       tester.view.devicePixelRatio = 1.0;
-      addTearDown(() => tester.view.resetPhysicalSize());
-
-      const samplePerson = PersonModel(
-        id: 'person-1',
-        fullName: 'Super Admin',
-        email: 'superadmin@email.com',
-        role: 'SUPER_ADMIN',
-        status: 'ACTIVE',
-        lastLoginAt: '12 Sept 2026, 16:13',
-        createdAt: '10 Sept 2026, 23:56',
-        isCurrentUser: false,
-      );
-
-      bool backPressed = false;
-
-      await tester.pumpWidget(
-        MaterialApp(
-          home: PersonDetailsView(
-            person: samplePerson,
-            onBack: () => backPressed = true,
+      addTearDown(tester.view.resetPhysicalSize);
+      final router = GoRouter(
+        routes: [
+          GoRoute(path: '/', builder: (_, _) => const Text('people list')),
+          GoRoute(
+            path: '/details',
+            builder: (_, _) => PersonDetailsView(
+              person: subject,
+              peopleRepository: repo ?? _MockTestPeopleRepo(),
+              authRepository: _SignedIn(actorId),
+            ),
           ),
-        ),
+        ],
       );
-
+      await tester.pumpWidget(MaterialApp.router(routerConfig: router));
+      router.push('/details');
       await tester.pump(const Duration(milliseconds: 500));
+    }
 
-      // Verify Back Button
-      expect(find.text('All people'), findsOneWidget);
+    testWidgets('shows the record, its scopes and the actions, and goes back', (
+      tester,
+    ) async {
+      await pumpDetails(tester);
 
-      // Verify Header Title & Status Badge
-      expect(find.text('Super Admin'), findsWidgets);
+      expect(find.text('Jordan Lee'), findsNWidgets(2));
       expect(find.text('Active'), findsOneWidget);
-
-      // Verify 2x2 Cards Grid
-      expect(find.text('Email'), findsOneWidget);
-      expect(find.text('superadmin@email.com'), findsOneWidget);
-      expect(find.text('Name'), findsOneWidget);
-      expect(find.text('Last signed in'), findsOneWidget);
-      expect(find.text('12 Sept 2026, 16:13'), findsOneWidget);
-      expect(find.text('Created'), findsOneWidget);
-      expect(find.text('10 Sept 2026, 23:56'), findsOneWidget);
-
-      // Verify Access Section
-      expect(find.text('Access'), findsOneWidget);
-      expect(
-        find.text(
-          'Only the scopes inside your own are listed. This account may hold others elsewhere that you cannot see.',
-        ),
-        findsOneWidget,
-      );
-      expect(find.text('All partners and properties'), findsOneWidget);
-
-      // Verify Action Buttons
+      expect(find.text('You'), findsNothing);
+      expect(find.text('jordan@grandhotel.com'), findsOneWidget);
+      expect(find.text('Sep 12, 2026, 4:13 PM'), findsOneWidget);
+      expect(find.text('Sep 10, 2026, 11:56 PM'), findsOneWidget);
+      expect(find.text('Partner admin'), findsOneWidget);
+      expect(find.text('Partner p-7f3a'), findsOneWidget);
       expect(find.text('Change name'), findsOneWidget);
       expect(find.text('Disable account'), findsOneWidget);
 
-      // Test Back button
       await tester.tap(find.text('All people'));
       await tester.pump(const Duration(milliseconds: 300));
-      expect(backPressed, isTrue);
+      expect(find.text('people list'), findsOneWidget);
     });
 
-    testWidgets(
-      'clicking Change Name shows inline UI with TV keyboard and hides action buttons',
-      (tester) async {
-        tester.view.physicalSize = const Size(1920, 1080);
-        tester.view.devicePixelRatio = 1.0;
-        addTearDown(() => tester.view.resetPhysicalSize());
+    testWidgets('withholds Disable on the signed-in account', (tester) async {
+      await pumpDetails(tester, actorId: person.id);
 
-        const samplePerson = PersonModel(
-          id: 'person-1',
-          fullName: 'Super Admin',
-          email: 'superadmin@email.com',
-          role: 'SUPER_ADMIN',
-          status: 'ACTIVE',
-        );
+      expect(find.text('You'), findsOneWidget);
+      expect(find.text('Disable account'), findsNothing);
+      expect(
+        find.text(
+          'You cannot disable your own account. Ask another admin if you need this one closed.',
+        ),
+        findsOneWidget,
+      );
+    });
 
-        await tester.pumpWidget(
-          const MaterialApp(home: PersonDetailsView(person: samplePerson)),
-        );
+    testWidgets('disabling confirms inline, then offers Enable', (
+      tester,
+    ) async {
+      final repo = _MockTestPeopleRepo();
+      await pumpDetails(tester, repo: repo);
 
-        await tester.pump(const Duration(milliseconds: 300));
+      await tester.tap(find.text('Disable account'));
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(find.text('Disable this account?'), findsOneWidget);
+      expect(find.text('Change name'), findsNothing);
 
-        // Initially action buttons are visible
-        expect(find.text('Change name'), findsOneWidget);
-        expect(find.text('Disable account'), findsOneWidget);
+      await tester.tap(find.text('Disable account'));
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(repo.disabled, [person.id]);
+      expect(find.text('Disabled'), findsOneWidget);
+      expect(find.text('Enable account'), findsOneWidget);
+    });
 
-        // Click "Change name"
-        await tester.tap(find.text('Change name'));
-        await tester.pump(const Duration(milliseconds: 300));
+    testWidgets('Change name opens the keyboard draft and Cancel closes it', (
+      tester,
+    ) async {
+      await pumpDetails(tester);
 
-        // Now "Disable account" should be hidden
-        expect(find.text('Disable account'), findsNothing);
+      await tester.tap(find.text('Change name'));
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(find.text('Disable account'), findsNothing);
+      expect(find.text('Full name'), findsOneWidget);
+      expect(find.text('Save name'), findsOneWidget);
+      expect(find.text('Clear'), findsOneWidget);
 
-        // Inline Change Name header & description should be visible
-        expect(
-          find.text(
-            'This is the only route in the API that can set a display name — there is no self-service profile screen.',
-          ),
-          findsOneWidget,
-        );
-        expect(find.text('Full name'), findsOneWidget);
-        expect(find.text('Save name'), findsOneWidget);
-        expect(find.text('Cancel'), findsOneWidget);
-
-        // Dedicated TV keyboard should be visible
-        expect(find.text('Clear'), findsOneWidget);
-        expect(find.text('↑ abc'), findsOneWidget);
-        expect(find.text('!#?'), findsOneWidget);
-
-        // Test Cancel button restores the original action buttons
-        await tester.tap(find.text('Cancel'));
-        await tester.pump(const Duration(milliseconds: 300));
-
-        expect(find.text('Change name'), findsOneWidget);
-        expect(find.text('Disable account'), findsOneWidget);
-        expect(find.text('Full name'), findsNothing);
-      },
-    );
+      await tester.tap(find.text('Cancel'));
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(find.text('Full name'), findsNothing);
+      expect(find.text('Disable account'), findsOneWidget);
+    });
   });
+}
+
+/// Signed in as a super admin whose id is [userId].
+class _SignedIn implements AuthRepository {
+  _SignedIn(this.userId);
+
+  final String userId;
+
+  @override
+  AuthResponse get currentAuth => AuthResponse(
+    accessToken: 'token',
+    refreshToken: 'refresh',
+    tokenType: 'Bearer',
+    expiresIn: 900,
+    actor: currentUser,
+  );
+
+  @override
+  Actor get currentUser => Actor(
+    userId: userId,
+    email: 'xaadkhan98@gmail.com',
+    fullName: 'Saad Khan',
+    role: 'SUPER_ADMIN',
+  );
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }

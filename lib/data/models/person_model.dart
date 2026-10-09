@@ -1,4 +1,6 @@
 import 'package:equatable/equatable.dart';
+
+import 'membership.dart';
 import 'roles.dart';
 
 /// Represents a user / person in the Plodyo TV console.
@@ -16,6 +18,7 @@ class PersonModel extends Equatable {
     this.propertyId,
     this.propertyName,
     this.createdAt,
+    this.memberships = const [],
   });
 
   final String id;
@@ -30,6 +33,9 @@ class PersonModel extends Equatable {
   final String? propertyId;
   final String? propertyName;
   final String? createdAt;
+
+  /// Every scope this account holds within the caller's own; the API leaves out the rest.
+  final List<Membership> memberships;
 
   bool get isActive => status.toUpperCase() == 'ACTIVE';
   bool get isInvited => status.toUpperCase() == 'INVITED';
@@ -46,36 +52,6 @@ class PersonModel extends Equatable {
       role.toUpperCase() == 'PROPERTY ADMIN';
 
   String get roleDisplayName => roleLabel(role);
-
-  PersonModel copyWith({
-    String? id,
-    String? fullName,
-    String? email,
-    String? role,
-    String? status,
-    String? lastLoginAt,
-    bool? isCurrentUser,
-    String? partnerId,
-    String? partnerName,
-    String? propertyId,
-    String? propertyName,
-    String? createdAt,
-  }) {
-    return PersonModel(
-      id: id ?? this.id,
-      fullName: fullName ?? this.fullName,
-      email: email ?? this.email,
-      role: role ?? this.role,
-      status: status ?? this.status,
-      lastLoginAt: lastLoginAt ?? this.lastLoginAt,
-      isCurrentUser: isCurrentUser ?? this.isCurrentUser,
-      partnerId: partnerId ?? this.partnerId,
-      partnerName: partnerName ?? this.partnerName,
-      propertyId: propertyId ?? this.propertyId,
-      propertyName: propertyName ?? this.propertyName,
-      createdAt: createdAt ?? this.createdAt,
-    );
-  }
 
   factory PersonModel.fromJson(Map<String, dynamic> json) {
     final memberships = (json['memberships'] as List<dynamic>?) ?? [];
@@ -125,6 +101,10 @@ class PersonModel extends Equatable {
       propertyName:
           json['property_name'] as String? ?? json['propertyName'] as String?,
       createdAt: json['created_at'] as String? ?? json['createdAt'] as String?,
+      memberships: [
+        for (final m in memberships.whereType<Map<String, dynamic>>())
+          Membership.fromJson(m),
+      ],
     );
   }
 
@@ -159,5 +139,6 @@ class PersonModel extends Equatable {
     propertyId,
     propertyName,
     createdAt,
+    memberships,
   ];
 }

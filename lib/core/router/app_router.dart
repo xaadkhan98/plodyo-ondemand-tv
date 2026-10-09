@@ -251,11 +251,7 @@ final GoRouter appRouter = GoRouter(
         GoRoute(
           path: '/people',
           name: 'people',
-          builder: (context, state) => PeopleView(
-            onPersonSelected: (person) {
-              context.push('/people/details', extra: person);
-            },
-          ),
+          builder: (context, state) => const PeopleView(),
           routes: [
             GoRoute(
               path: 'details',
