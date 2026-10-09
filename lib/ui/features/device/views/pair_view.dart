@@ -1,7 +1,6 @@
 import 'dart:ui' show PathMetric;
 
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../core/input/text_entry.dart';
@@ -16,23 +15,23 @@ import '../../../../core/widgets/status_message.dart';
 import '../../../../core/widgets/tv_button.dart';
 import '../../../../data/models/auth_exception.dart';
 import '../../../../data/models/device_models.dart';
-import '../../../../data/repositories/device_repository.dart';
 
 enum _Field { code }
 
 /// Claims this set for a room with the code the console just issued. The dash is added on read-back
 /// rather than being one more key to travel to.
-class TvPairingView extends StatefulWidget {
-  const TvPairingView({super.key, this.onPaired, this.onBack});
+class PairView extends StatefulWidget {
+  const PairView({super.key, required this.pair, required this.onCancel});
 
-  final VoidCallback? onPaired;
-  final VoidCallback? onBack;
+  /// Trades the code for this TV's token; on success the device gate moves on, so nothing is called back.
+  final Future<void> Function(String code) pair;
+  final VoidCallback onCancel;
 
   @override
-  State<TvPairingView> createState() => _TvPairingViewState();
+  State<PairView> createState() => _PairViewState();
 }
 
-class _TvPairingViewState extends State<TvPairingView> {
+class _PairViewState extends State<PairView> {
   // Room for the dash a person may type themselves.
   late final _entry = TextEntryController<_Field>(
     _Field.values,
@@ -48,16 +47,10 @@ class _TvPairingViewState extends State<TvPairingView> {
     super.dispose();
   }
 
-  void _back() => widget.onBack != null
-      ? widget.onBack!()
-      : (context.canPop() ? context.pop() : context.go('/splash'));
-
   Future<void> _pair() async {
     setState(() => _pairing = true);
     try {
-      await sharedDeviceRepository.pair(_entry[_Field.code]);
-      if (!mounted) return;
-      widget.onPaired != null ? widget.onPaired!() : context.go('/home');
+      await widget.pair(_entry[_Field.code]);
     } catch (e) {
       // The API does not say whether a code was wrong or expired; staff go back to the console either way.
       if (!mounted) return;
@@ -74,7 +67,7 @@ class _TvPairingViewState extends State<TvPairingView> {
     return Scaffold(
       body: TextEntryScope(
         controller: _entry,
-        onExit: _back,
+        onExit: widget.onCancel,
         child: Stack(
           children: [
             const Positioned.fill(child: NightBackdrop()),
@@ -168,7 +161,7 @@ class _TvPairingViewState extends State<TvPairingView> {
                                 icon: LucideIcons.arrowLeft,
                                 variant: TvButtonVariant.outline,
                                 disabled: _pairing,
-                                onSelect: _back,
+                                onSelect: widget.onCancel,
                               ),
                             ],
                           ),

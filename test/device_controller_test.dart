@@ -146,6 +146,24 @@ void main() {
   });
 
   testWidgets(
+    'records a guest language pick but not clearing one, and unpairing forgets it',
+    (tester) async {
+      final controller = await start(tester);
+
+      controller.chooseLanguage('SPA');
+      controller.chooseLanguage(null);
+
+      final batch = usage.takeBatch();
+      expect(batch.single['type'], 'LANGUAGE_SELECT');
+      expect(batch.single['language'], 'SPA');
+      controller.chooseLanguage('SPA');
+      await controller.unpair();
+      expect(controller.language, isNull);
+      await usage.persistNow();
+    },
+  );
+
+  testWidgets(
     'beats once a minute, active only after a remote press, even one a screen consumed',
     (tester) async {
       await start(tester);

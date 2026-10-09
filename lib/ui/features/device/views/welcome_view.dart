@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../core/theme/tv_colors.dart';
@@ -14,11 +13,11 @@ import '../../../../core/widgets/tv_button.dart';
 
 /// What a set out of its box shows until someone pairs it: the guest surface's front door,
 /// and the only screen an installer sees before the catalogue.
-class UnpairedSplashView extends StatelessWidget {
-  const UnpairedSplashView({super.key, this.onSetupTv, this.onSignInConsole});
+class WelcomeView extends StatelessWidget {
+  const WelcomeView({super.key, required this.onSetUp, required this.onSignIn});
 
-  final VoidCallback? onSetupTv;
-  final VoidCallback? onSignInConsole;
+  final VoidCallback onSetUp;
+  final VoidCallback onSignIn;
 
   static const _cardRadius = BorderRadius.all(Radius.circular(2.5 * rem));
   static final _arrival = SpringCurve(
@@ -91,16 +90,13 @@ class UnpairedSplashView extends StatelessWidget {
                             label: 'Set up this TV',
                             icon: LucideIcons.tv,
                             autofocus: true,
-                            onSelect:
-                                onSetupTv ?? () => context.push('/pair-tv'),
+                            onSelect: onSetUp,
                           ),
                           TvButton(
                             label: 'Sign in to the console',
                             icon: LucideIcons.logIn,
                             variant: TvButtonVariant.outline,
-                            onSelect:
-                                onSignInConsole ??
-                                () => context.push('/sign-in'),
+                            onSelect: onSignIn,
                           ),
                         ],
                       ),

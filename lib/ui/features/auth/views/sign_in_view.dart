@@ -59,7 +59,7 @@ class _SignInViewState extends State<SignInView> {
 
   void _back() => widget.onBack != null
       ? widget.onBack!()
-      : (context.canPop() ? context.pop() : context.go('/splash'));
+      : (context.canPop() ? context.pop() : context.go('/'));
 
   void _submit() => _cubit.signIn(
     email: _entry[_Field.email],
@@ -74,7 +74,7 @@ class _SignInViewState extends State<SignInView> {
         if (state is SignInSuccess) {
           widget.onSignedIn != null
               ? widget.onSignedIn!()
-              : context.go('/home');
+              : context.go('/overview');
         }
       },
       builder: (context, state) {

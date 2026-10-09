@@ -151,6 +151,17 @@ class Series {
 
   /// Episodes planned, which can exceed the episodes actually servable.
   final int episodeCount;
+
+  /// Series ride in the story card, with the episode count in its duration slot.
+  Story get asCard => Story(
+    id: id,
+    title: title,
+    description: description,
+    artworkUrl: artworkUrl,
+    duration: '$episodeCount ${episodeCount == 1 ? 'episode' : 'episodes'}',
+    language: language,
+    ageGroup: ageGroup,
+  );
 }
 
 /// An episode is a story keyed by its story id, since playback is per story.

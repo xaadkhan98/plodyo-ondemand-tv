@@ -24,7 +24,12 @@ abstract final class TvColors {
   static const Color sunInk = Color(0xFF884C07);
   static const Color sky = Color(0xFF1485F5);
   static const Color skyInk = Color(0xFF093F86);
-  static const Color wordmark = Color(0xFFAD46FF);
+
+  /// Raw brand purple: the wordmark and the stickers on story cards.
+  static const Color purple = Color(0xFFAD46FF);
+
+  /// Text-safe pink: the raw #EC4899 is 3.4:1 on white, short of what a semibold title needs.
+  static const Color pinkInk = Color(0xFFBE185D);
 
   /// The wash behind every screen.
   static const LinearGradient canvas = LinearGradient(

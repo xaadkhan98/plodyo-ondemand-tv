@@ -34,7 +34,7 @@ class TopBar extends StatelessWidget {
               fontFamily: TvText.fredoka,
               fontWeight: FontWeight.w600,
               letterSpacing: TvText.trackingTight * TvText.xl.fontSize!,
-              color: TvColors.wordmark,
+              color: TvColors.purple,
             ),
           ),
           if (actions != null) ...[const Spacer(), actions!],

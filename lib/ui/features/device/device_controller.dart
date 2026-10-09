@@ -4,10 +4,15 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
+import '../../../core/utils/retry.dart';
 import '../../../data/models/auth_exception.dart';
 import '../../../data/models/device_models.dart';
 import '../../../data/repositories/device_repository.dart';
 import '../../../data/repositories/usage_queue.dart';
+
+/// A catalogue read, retried like any flaky TV network, except a refused credential, which no retry fixes.
+Future<T> catalogueRead<T>(Future<T> Function() read) =>
+    retry(read, retryIf: (e) => !(e is AuthException && e.statusCode == 401));
 
 /// What this TV may show, resolved on every boot.
 sealed class DevicePhase {
@@ -43,6 +48,8 @@ class DeviceReady extends DevicePhase {
 }
 
 /// Resolves what this TV may show and, once it is ready, keeps its room online with a heartbeat.
+/// The guest's choices live here rather than in storage: a hotel TV is reset between guests by being
+/// switched off, and reviving the last guest's language for the next one is worse than starting over.
 class DeviceController extends ChangeNotifier {
   DeviceController({DeviceRepository? device, UsageQueue? usage})
     : _device = device ?? sharedDeviceRepository,
@@ -72,6 +79,17 @@ class DeviceController extends ChangeNotifier {
   int _generation = 0;
 
   DevicePhase get phase => _phase;
+
+  /// The language the catalogue is read in. Null means whatever the room resolves to, not a code.
+  String? get language => _language;
+  String? _language;
+
+  void chooseLanguage(String? code) {
+    _language = code;
+    // A guest's pick is usage the venue sees; clearing a filter is not a pick.
+    if (code != null) _usage.record(UsageType.languageSelect, language: code);
+    notifyListeners();
+  }
 
   void _settle(DevicePhase next) {
     _phase = next;
@@ -123,6 +141,7 @@ class DeviceController extends ChangeNotifier {
   }
 
   Future<void> unpair() async {
+    _language = null;
     await _device.unpair();
     await resolve();
   }
@@ -193,4 +212,16 @@ class DeviceController extends ChangeNotifier {
     _lifecycle.dispose();
     super.dispose();
   }
+}
+
+/// Hands the gate's [DeviceController] to the guest screens, rebuilding them when it changes.
+class DeviceScope extends InheritedNotifier<DeviceController> {
+  const DeviceScope({
+    super.key,
+    required DeviceController controller,
+    required super.child,
+  }) : super(notifier: controller);
+
+  static DeviceController of(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<DeviceScope>()!.notifier!;
 }

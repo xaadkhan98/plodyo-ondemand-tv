@@ -1,3 +1,5 @@
+import '../../core/constants/languages.dart';
+
 /// A pairing code is printed as two groups of four, e.g. 4F7K-92QT.
 const pairingCodeLength = 8;
 
@@ -49,18 +51,6 @@ class DeviceSession {
   final String startedAt;
 }
 
-class LanguageOption {
-  const LanguageOption({required this.code, required this.name});
-
-  factory LanguageOption.fromJson(Map<String, dynamic> json) => LanguageOption(
-    code: json['code'] as String,
-    name: json['name'] as String,
-  );
-
-  final String code;
-  final String name;
-}
-
 /// What this room's pickers are built from.
 class DeviceConfig {
   const DeviceConfig({
@@ -74,7 +64,7 @@ class DeviceConfig {
       for (final language
           in (json['languages'] as List<dynamic>? ?? const [])
               .cast<Map<String, dynamic>>())
-        LanguageOption.fromJson(language),
+        Language(language['code'] as String, language['name'] as String),
     ],
     // Filtered, not cast: an unknown bucket would render a chip that /content answers 400 for.
     ageGroups: [
@@ -84,7 +74,7 @@ class DeviceConfig {
     defaultLanguage: json['default_language'] as String?,
   );
 
-  final List<LanguageOption> languages;
+  final List<Language> languages;
   final List<AgeGroup> ageGroups;
 
   /// The room's setting, falling back to its property's; null when neither has one.

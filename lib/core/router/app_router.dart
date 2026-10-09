@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import '../../ui/features/splash/views/unpaired_splash_view.dart';
-import '../../ui/features/splash/views/tv_pairing_view.dart';
+import '../../ui/features/device/device_gate.dart';
+import '../../ui/features/device/views/home_view.dart';
 import '../../ui/features/auth/views/sign_in_view.dart';
 import '../../ui/features/auth/views/forgot_password_view.dart';
 import '../../ui/features/auth/views/register_venue_view.dart';
@@ -25,6 +25,7 @@ import '../../ui/features/settings/views/settings_view.dart';
 import '../../ui/features/people/views/people_view.dart';
 import '../../ui/features/people/views/person_details_view.dart';
 import '../../data/repositories/auth_repository.dart';
+import '../../data/repositories/device_repository.dart';
 import '../../data/models/partner_model.dart';
 import '../../data/models/person_model.dart';
 
@@ -32,101 +33,44 @@ final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>();
 final GlobalKey<NavigatorState> _shellNavigatorKey =
     GlobalKey<NavigatorState>();
 
-/// Reachable without a session: the TV's own setup screens and the ways into the console.
-const _publicPaths = {
-  '/splash',
-  '/pair-tv',
-  '/sign-in',
-  '/forgot-password',
-  '/register-venue',
-};
+/// The room TV's screens: the device gate decides what they show, so they need no session.
+const _guestPaths = {'/'};
 
-/// Declarative GoRouter configuration for the TV app
+/// Reachable without a session: the ways into the console.
+const _publicPaths = {'/sign-in', '/forgot-password', '/register-venue'};
+
+/// A paired set is a TV, whoever signed in on it; an unpaired one with a session is the console, which
+/// lands on its overview until it can browse the catalogue. Console screens need a session, or every call
+/// behind them would 401.
+String? _redirect(BuildContext context, GoRouterState state) {
+  final path = state.matchedLocation;
+  final signedIn = sharedAuthRepository.isAuthenticated;
+  if (_guestPaths.contains(path)) {
+    return !sharedDeviceRepository.isPaired && signedIn ? '/overview' : null;
+  }
+  return _publicPaths.contains(path) || signedIn ? null : '/sign-in';
+}
+
 final GoRouter appRouter = GoRouter(
   navigatorKey: _rootNavigatorKey,
-  initialLocation: '/splash',
-  // The console needs a signed-in account; without one every call behind it would 401.
-  redirect: (context, state) =>
-      _publicPaths.contains(state.matchedLocation) ||
-          sharedAuthRepository.isAuthenticated
-      ? null
-      : '/sign-in',
+  initialLocation: '/',
+  redirect: _redirect,
   routes: [
-    // Unpaired TV Splash Screen (Initial startup screen)
-    GoRoute(
-      path: '/splash',
-      name: 'splash',
-      builder: (context, state) => UnpairedSplashView(
-        onSignInConsole: () {
-          context.push('/sign-in');
-        },
-      ),
+    ShellRoute(
+      builder: (context, state, child) =>
+          DeviceGate(currentPath: state.uri.path, child: child),
+      routes: [
+        GoRoute(path: '/', builder: (context, state) => const HomeView()),
+      ],
     ),
-
-    // Pair TV Screen (Enter Pairing Code)
-    GoRoute(
-      path: '/pair-tv',
-      name: 'pairTv',
-      builder: (context, state) => TvPairingView(
-        onPaired: () {
-          context.go('/home');
-        },
-        onBack: () {
-          if (context.canPop()) {
-            context.pop();
-          } else {
-            context.go('/splash');
-          }
-        },
-      ),
-    ),
-
-    // Standalone Sign In Route
-    GoRoute(
-      path: '/sign-in',
-      name: 'signIn',
-      builder: (context, state) => SignInView(
-        onSignedIn: () {
-          context.go('/home');
-        },
-        onBack: () {
-          if (context.canPop()) {
-            context.pop();
-          } else {
-            context.go('/splash');
-          }
-        },
-      ),
-    ),
-
-    // Forgot Password Route
+    GoRoute(path: '/sign-in', builder: (context, state) => const SignInView()),
     GoRoute(
       path: '/forgot-password',
-      name: 'forgotPassword',
-      builder: (context, state) => ForgotPasswordView(
-        onBack: () {
-          if (context.canPop()) {
-            context.pop();
-          } else {
-            context.go('/sign-in');
-          }
-        },
-      ),
+      builder: (context, state) => const ForgotPasswordView(),
     ),
-
-    // Register Venue Route
     GoRoute(
       path: '/register-venue',
-      name: 'registerVenue',
-      builder: (context, state) => RegisterVenueView(
-        onBack: () {
-          if (context.canPop()) {
-            context.pop();
-          } else {
-            context.go('/sign-in');
-          }
-        },
-      ),
+      builder: (context, state) => const RegisterVenueView(),
     ),
 
     // Shell Route containing Persistent Sidebar Navigation Rail
@@ -136,8 +80,6 @@ final GoRouter appRouter = GoRouter(
         return MainTvLayout(currentPath: state.uri.path, child: child);
       },
       routes: [
-        GoRoute(path: '/', redirect: (context, state) => '/overview'),
-        GoRoute(path: '/home', redirect: (context, state) => '/overview'),
         GoRoute(
           path: '/overview',
           name: 'overview',
