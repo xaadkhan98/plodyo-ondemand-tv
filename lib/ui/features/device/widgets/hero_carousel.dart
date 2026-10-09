@@ -10,7 +10,7 @@ import '../../../../core/theme/tv_motion.dart';
 import '../../../../core/theme/tv_scale.dart';
 import '../../../../core/theme/tv_shadows.dart';
 import '../../../../core/theme/tv_typography.dart';
-import '../../../../core/widgets/play_icon.dart';
+import '../../../../core/widgets/filled_icon.dart';
 import '../../../../core/widgets/skeleton.dart';
 import '../../../../core/widgets/tv_focusable.dart';
 import '../../../../data/models/device_models.dart';
@@ -306,7 +306,7 @@ class _Caption extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final age = AgeGroup.parse(story.ageGroup ?? '');
+    final age = AgeGroup.parse(story.ageGroup);
     final meta = TvText.sm.copyWith(color: TvColors.mutedForeground);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -425,7 +425,11 @@ class _ReadNow extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             spacing: 0.75 * rem,
             children: [
-              const PlayIcon(size: 1.5 * rem, color: Colors.white),
+              const FilledIcon(
+                FilledGlyph.play,
+                size: 1.5 * rem,
+                color: Colors.white,
+              ),
               Text(
                 'Read now',
                 style: TvText.base.copyWith(

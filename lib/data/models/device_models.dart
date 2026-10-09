@@ -24,7 +24,7 @@ enum AgeGroup {
   final String code;
   final String label;
 
-  static AgeGroup? parse(String code) {
+  static AgeGroup? parse(String? code) {
     for (final group in values) {
       if (group.code == code) return group;
     }
