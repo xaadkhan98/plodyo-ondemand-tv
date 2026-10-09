@@ -5,6 +5,7 @@ import '../../ui/features/device/views/home_view.dart';
 import '../../ui/features/device/views/player_view.dart';
 import '../../ui/features/device/views/series_detail_view.dart';
 import '../../ui/features/device/views/series_list_view.dart';
+import '../../ui/features/device/views/room_view.dart';
 import '../../ui/features/device/views/search_view.dart';
 import '../../ui/features/device/views/stories_view.dart';
 import '../../data/models/story_models.dart';
@@ -47,6 +48,7 @@ const _guestPaths = {
   '/learning',
   '/search',
   '/story',
+  '/room',
 };
 
 /// Reachable without a session: the ways into the console.
@@ -96,6 +98,7 @@ final GoRouter appRouter = GoRouter(
           path: '/search',
           builder: (context, state) => const SearchView(),
         ),
+        GoRoute(path: '/room', builder: (context, state) => const RoomView()),
         // A query rather than a path segment, as the reference: a story is only ever opened by its id.
         GoRoute(
           path: '/story',

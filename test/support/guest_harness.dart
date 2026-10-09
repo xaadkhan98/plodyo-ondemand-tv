@@ -13,6 +13,7 @@ import 'package:plodyo_ondemand_tv/data/repositories/usage_queue.dart';
 import 'package:plodyo_ondemand_tv/ui/features/device/device_gate.dart';
 import 'package:plodyo_ondemand_tv/ui/features/device/views/home_view.dart';
 import 'package:plodyo_ondemand_tv/ui/features/device/views/player_view.dart';
+import 'package:plodyo_ondemand_tv/ui/features/device/views/room_view.dart';
 import 'package:plodyo_ondemand_tv/ui/features/device/views/search_view.dart';
 import 'package:plodyo_ondemand_tv/ui/features/device/views/series_detail_view.dart';
 import 'package:plodyo_ondemand_tv/ui/features/device/views/series_list_view.dart';
@@ -265,6 +266,7 @@ Future<void> pumpGuestApp(
               ),
             },
           ),
+          GoRoute(path: '/room', builder: (_, _) => const RoomView()),
           GoRoute(
             path: '/search',
             builder: (_, _) => SearchView(deviceRepository: device),

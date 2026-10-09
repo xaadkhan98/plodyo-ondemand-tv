@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
@@ -108,15 +109,23 @@ class _DeviceGateState extends State<DeviceGate> {
           ],
         ),
       ),
+      // The blue button is support's way to This TV: a remote has one, and a child does not go hunting for it.
       // Material gives the rail's labels their text theme; each screen brings its own Scaffold.
-      DeviceReady() => DeviceScope(
-        controller: _device,
-        child: Material(
-          type: MaterialType.transparency,
-          child: SideNav(
-            items: _items,
-            currentPath: widget.currentPath,
-            child: widget.child,
+      DeviceReady() => CallbackShortcuts(
+        bindings: {
+          const SingleActivator(LogicalKeyboardKey.colorF3Blue): () {
+            if (widget.currentPath != '/room') context.push('/room');
+          },
+        },
+        child: DeviceScope(
+          controller: _device,
+          child: Material(
+            type: MaterialType.transparency,
+            child: SideNav(
+              items: _items,
+              currentPath: widget.currentPath,
+              child: widget.child,
+            ),
           ),
         ),
       ),
