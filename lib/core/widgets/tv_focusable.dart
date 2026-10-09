@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 
+import '../audio/chime.dart';
 import '../theme/tv_colors.dart';
 import '../theme/tv_scale.dart';
 
@@ -97,6 +98,7 @@ class _TvFocusableState extends State<TvFocusable> {
 
   void _select() {
     if (widget.disabled) return;
+    Chime.play();
     _node.requestFocus();
     widget.onSelect?.call();
   }
@@ -123,7 +125,11 @@ class _TvFocusableState extends State<TvFocusable> {
         },
         actions: {
           ActivateIntent: CallbackAction<ActivateIntent>(
-            onInvoke: (_) => widget.onSelect?.call(),
+            onInvoke: (_) {
+              Chime.play();
+              widget.onSelect?.call();
+              return null;
+            },
           ),
         },
         child: GestureDetector(

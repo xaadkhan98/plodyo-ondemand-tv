@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
+import '../../../core/audio/chime.dart';
 import '../../../core/theme/tv_colors.dart';
 import '../../../core/theme/tv_scale.dart';
 import '../../../core/widgets/loading.dart';
@@ -51,10 +52,15 @@ class _DeviceGateState extends State<DeviceGate> {
   )..addListener(_onChange);
   bool _pairing = false;
 
-  void _onChange() => setState(() {});
+  void _onChange() {
+    // Selection sounds are for guests, so only a paired TV chimes; the console's staff screens stay silent.
+    Chime.enabled = _device.phase is DeviceReady;
+    setState(() {});
+  }
 
   @override
   void dispose() {
+    Chime.enabled = false;
     _device.dispose();
     super.dispose();
   }

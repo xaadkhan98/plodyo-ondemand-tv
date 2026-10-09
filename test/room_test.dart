@@ -43,8 +43,11 @@ void main() {
       // A pump to start the fill's ticker, then the time held.
       await tester.sendKeyDownEvent(LogicalKeyboardKey.select);
       await tester.pump();
+      await tester.sendKeyRepeatEvent(LogicalKeyboardKey.select);
       await tester.pump(const Duration(seconds: 1));
       expect(find.text('Keep holding…'), findsOneWidget);
+      // One chime for Unpair, one as the hold starts, none for the remote's key repeats.
+      expect(chimes, 2);
       await tester.sendKeyUpEvent(LogicalKeyboardKey.select);
       await tester.pump(const Duration(seconds: 3));
       expect(device.isPaired, isTrue);

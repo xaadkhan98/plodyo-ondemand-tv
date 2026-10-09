@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
+import '../../../../core/audio/chime.dart';
 import '../../../../core/theme/tv_colors.dart';
 import '../../../../core/theme/tv_scale.dart';
 import '../../../../core/theme/tv_shadows.dart';
@@ -330,7 +331,11 @@ class _HoldToUnpairState extends State<_HoldToUnpair>
   // OK is held, not pressed: its key down starts the fill and its key up stops it.
   KeyEventResult _onKey(FocusNode node, KeyEvent event) {
     if (!_okKeys.contains(event.logicalKey)) return KeyEventResult.ignored;
-    if (event is KeyDownEvent) _press(true);
+    // Chimes as the hold starts, once: the reference's repeats with every repeated key down.
+    if (event is KeyDownEvent) {
+      Chime.play();
+      _press(true);
+    }
     if (event is KeyUpEvent) _press(false);
     return KeyEventResult.handled;
   }

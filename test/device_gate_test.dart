@@ -29,6 +29,21 @@ void main() {
     },
   );
 
+  testWidgets('a selection chimes on a paired TV, never before pairing', (
+    tester,
+  ) async {
+    device.isPaired = false;
+    await pumpGuestApp(tester, device);
+    await tester.tap(find.text('Set up this TV'));
+    await tester.pump();
+    expect(chimes, 0);
+
+    await pumpGuestApp(tester, FakeDevice());
+    await tester.sendKeyEvent(LogicalKeyboardKey.select);
+    await tester.pump();
+    expect(chimes, 1);
+  });
+
   testWidgets(
     'a paired TV lands on Home: hero first, then the rails, and an empty category hides',
     (tester) async {

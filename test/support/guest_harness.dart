@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:plodyo_ondemand_tv/core/audio/chime.dart';
 import 'package:plodyo_ondemand_tv/core/constants/languages.dart';
 import 'package:plodyo_ondemand_tv/core/theme/tv_scale.dart';
 import 'package:plodyo_ondemand_tv/data/models/auth_exception.dart';
@@ -221,6 +222,9 @@ const tvScreens = [
   ('21:9 set', Size(2560, 1080), 1.0),
 ];
 
+/// Chimes since the last [pumpGuestApp], which keeps the tone off the platform.
+int chimes = 0;
+
 /// The guest lane as the app routes it, starting at [at], with every media player recorded in [media].
 Future<void> pumpGuestApp(
   WidgetTester tester,
@@ -235,6 +239,8 @@ Future<void> pumpGuestApp(
   tester.view.physicalSize = size;
   tester.view.devicePixelRatio = dpr;
   addTearDown(tester.view.reset);
+  chimes = 0;
+  Chime.sound = () => chimes++;
   final router = GoRouter(
     initialLocation: at,
     routes: [
