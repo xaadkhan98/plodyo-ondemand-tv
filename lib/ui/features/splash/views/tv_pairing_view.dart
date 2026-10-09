@@ -15,6 +15,7 @@ import '../../../../core/widgets/setup_scene.dart';
 import '../../../../core/widgets/status_message.dart';
 import '../../../../core/widgets/tv_button.dart';
 import '../../../../data/models/auth_exception.dart';
+import '../../../../data/models/device_models.dart';
 import '../../../../data/repositories/device_repository.dart';
 
 enum _Field { code }
@@ -32,12 +33,10 @@ class TvPairingView extends StatefulWidget {
 }
 
 class _TvPairingViewState extends State<TvPairingView> {
-  static const _codeLength = 8;
-
   // Room for the dash a person may type themselves.
   late final _entry = TextEntryController<_Field>(
     _Field.values,
-    maxLength: _codeLength + 1,
+    maxLength: pairingCodeLength + 1,
     onEdit: () => setState(() => _error = null),
   );
   bool _pairing = false;
@@ -52,13 +51,6 @@ class _TvPairingViewState extends State<TvPairingView> {
   void _back() => widget.onBack != null
       ? widget.onBack!()
       : (context.canPop() ? context.pop() : context.go('/splash'));
-
-  /// The code as typed, normalised for display: capitals and digits, with the dash as presentation only.
-  static String _normalise(String raw) {
-    final cleaned = raw.toUpperCase().replaceAll(RegExp('[^A-Z0-9]'), '');
-    if (cleaned.length <= 4) return cleaned;
-    return '${cleaned.substring(0, 4)}-${cleaned.substring(4, cleaned.length.clamp(4, _codeLength))}';
-  }
 
   Future<void> _pair() async {
     setState(() => _pairing = true);
@@ -143,7 +135,7 @@ class _TvPairingViewState extends State<TvPairingView> {
                           ListenableBuilder(
                             listenable: _entry,
                             builder: (context, _) => _CodeSlots(
-                              code: _normalise(_entry[_Field.code]),
+                              code: normalisePairingCode(_entry[_Field.code]),
                             ),
                           ),
                           if (_error != null) ...[

@@ -59,6 +59,8 @@ class ApiConstants {
   static const String deviceSessionEndpoint = '/ondemand/device/session';
   static const String deviceConfigEndpoint = '/ondemand/device/config';
   static const String deviceContentEndpoint = '/ondemand/device/content';
+  static const String deviceHeartbeatEndpoint = '/ondemand/device/heartbeat';
+  static const String deviceSeriesEndpoint = '/ondemand/device/series';
 
   // Request Timeouts
   static const Duration connectTimeout = Duration(seconds: 15);

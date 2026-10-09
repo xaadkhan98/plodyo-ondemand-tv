@@ -1,122 +1,171 @@
+import 'package:shared_preferences/shared_preferences.dart';
+
+import '../models/auth_exception.dart';
 import '../models/device_models.dart';
 import '../models/paginated_response.dart';
+import '../models/story_models.dart';
 import '../services/device_api_service.dart';
 
-/// Global shared instance of [DeviceRepository] for TV device state and catalog.
 final DeviceRepository sharedDeviceRepository = DeviceRepositoryImpl();
 
-/// Repository for Room TV device operations (pairing, session, config, and live catalogue).
+/// This TV's credential and everything read with it. The token never expires or rotates: it is valid until
+/// the room is revoked or re-provisioned, so there is no refresh step.
 abstract class DeviceRepository {
-  /// Pairs this TV using the 8-character pairing code from the console.
-  Future<DevicePairResponse> pair(String pairingCode);
+  /// Reads the token a previous run stored. Called once, before the first frame.
+  Future<void> restore();
 
-  /// Opens or retrieves the room session.
-  Future<DeviceSession> getSession();
+  bool get isPaired;
 
-  /// Retrieves language and age group options for this TV.
+  /// Trades a pairing code for this TV's token and keeps it, so the TV survives a power cut.
+  Future<void> pair(String pairingCode);
+
+  /// Forgets the token, sending the TV back to pairing.
+  Future<void> unpair();
+
+  Future<DeviceSession> openSession();
+
+  Future<DeviceSession> heartbeat({
+    required String sessionId,
+    required bool active,
+    required List<Map<String, Object?>> events,
+  });
+
   Future<DeviceConfig> getConfig();
 
-  /// Retrieves the stories catalog with optional language and age group filtering.
-  Future<PaginatedResponse<DeviceStoryItem>> getCatalogue({
+  Future<PaginatedResponse<Story>> getStories({
     String? language,
-    String? ageGroup,
+    AgeGroup? ageGroup,
+    StoryType? storyType,
     int? page,
     int? pageSize,
   });
 
-  /// Fetches full story detail with the playback `media_url`.
-  Future<DeviceStoryItem> getStoryDetail(String storyId);
+  Future<StoryDetail> getStory(String storyId);
 
-  /// Clears the paired device token.
-  void unpair();
-
-  /// Current device token if paired.
-  String? get deviceToken;
-
-  /// Whether this TV has a stored device token.
-  bool get isPaired;
-
-  /// Cached device config (languages, age-groups).
-  DeviceConfig? get currentConfig;
-
-  /// Cached device session.
-  DeviceSession? get currentSession;
-}
-
-/// Concrete implementation of [DeviceRepository] talking directly to [DeviceApiService].
-class DeviceRepositoryImpl implements DeviceRepository {
-  DeviceRepositoryImpl({DeviceApiService? apiService})
-    : _apiService = apiService ?? DeviceApiService();
-
-  final DeviceApiService _apiService;
-
-  String? _deviceToken;
-  DeviceConfig? _currentConfig;
-  DeviceSession? _currentSession;
-
-  @override
-  String? get deviceToken => _deviceToken;
-
-  @override
-  bool get isPaired => _deviceToken != null && _deviceToken!.isNotEmpty;
-
-  @override
-  DeviceConfig? get currentConfig => _currentConfig;
-
-  @override
-  DeviceSession? get currentSession => _currentSession;
-
-  @override
-  Future<DevicePairResponse> pair(String pairingCode) async {
-    final response = await _apiService.pair(pairingCode: pairingCode);
-    _deviceToken = response.deviceToken;
-    return response;
-  }
-
-  @override
-  Future<DeviceSession> getSession() async {
-    final token = _deviceToken ?? '';
-    final session = await _apiService.getSession(deviceToken: token);
-    _currentSession = session;
-    return session;
-  }
-
-  @override
-  Future<DeviceConfig> getConfig() async {
-    final token = _deviceToken ?? '';
-    final config = await _apiService.getConfig(deviceToken: token);
-    _currentConfig = config;
-    return config;
-  }
-
-  @override
-  Future<PaginatedResponse<DeviceStoryItem>> getCatalogue({
+  Future<PaginatedResponse<Series>> getSeries({
+    SeriesType? seriesType,
+    String? category,
+    AgeGroup? ageGroup,
     String? language,
-    String? ageGroup,
     int? page,
     int? pageSize,
-  }) async {
-    final token = _deviceToken ?? '';
-    final response = await _apiService.getContent(
-      deviceToken: token,
-      language: language,
-      ageGroup: ageGroup,
-      page: page,
-      pageSize: pageSize,
-    );
-    return response;
+  });
+
+  Future<SeriesDetail> getSeriesDetail(String seriesId);
+}
+
+class DeviceRepositoryImpl implements DeviceRepository {
+  DeviceRepositoryImpl({DeviceApiService? apiService})
+    : _api = apiService ?? DeviceApiService();
+
+  static const _tokenKey = 'plodyo.ondemand.device-token';
+
+  final DeviceApiService _api;
+  String? _token;
+
+  String get _deviceToken =>
+      _token ?? (throw StateError('This TV is not paired.'));
+
+  @override
+  bool get isPaired => _token != null;
+
+  @override
+  Future<void> restore() async {
+    try {
+      _token = (await SharedPreferences.getInstance()).getString(_tokenKey);
+    } on Exception {
+      // Unreadable storage reads as unpaired; pairing again is the remedy either way.
+      _token = null;
+    }
+  }
+
+  Future<void> _persist(String? token) async {
+    _token = token;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      if (token == null) {
+        await prefs.remove(_tokenKey);
+      } else {
+        await prefs.setString(_tokenKey, token);
+      }
+    } on Exception {
+      // The session continues in memory; it just will not survive a restart.
+    }
   }
 
   @override
-  Future<DeviceStoryItem> getStoryDetail(String storyId) {
-    final token = _deviceToken ?? '';
-    return _apiService.getStoryDetail(deviceToken: token, storyId: storyId);
+  Future<void> pair(String pairingCode) async {
+    final code = normalisePairingCode(pairingCode);
+    // Checked here so a half-typed code costs no round trip: /pair is rate limited per property.
+    if (code.replaceAll('-', '').length < pairingCodeLength) {
+      throw const AuthException(
+        message: 'Enter the full 8-character pairing code.',
+        statusCode: 400,
+      );
+    }
+    await _persist(await _api.pair(code));
   }
 
   @override
-  void unpair() {
-    _deviceToken = null;
-    _currentConfig = null;
-    _currentSession = null;
-  }
+  Future<void> unpair() => _persist(null);
+
+  @override
+  Future<DeviceSession> openSession() => _api.openSession(_deviceToken);
+
+  @override
+  Future<DeviceSession> heartbeat({
+    required String sessionId,
+    required bool active,
+    required List<Map<String, Object?>> events,
+  }) => _api.heartbeat(
+    _deviceToken,
+    sessionId: sessionId,
+    active: active,
+    events: events,
+  );
+
+  @override
+  Future<DeviceConfig> getConfig() => _api.getConfig(_deviceToken);
+
+  @override
+  Future<PaginatedResponse<Story>> getStories({
+    String? language,
+    AgeGroup? ageGroup,
+    StoryType? storyType,
+    int? page,
+    int? pageSize,
+  }) => _api.getStories(
+    _deviceToken,
+    language: language,
+    ageGroup: ageGroup,
+    storyType: storyType,
+    page: page,
+    pageSize: pageSize,
+  );
+
+  @override
+  Future<StoryDetail> getStory(String storyId) =>
+      _api.getStory(_deviceToken, storyId);
+
+  @override
+  Future<PaginatedResponse<Series>> getSeries({
+    SeriesType? seriesType,
+    String? category,
+    AgeGroup? ageGroup,
+    String? language,
+    int? page,
+    int? pageSize,
+  }) => _api.getSeries(
+    _deviceToken,
+    seriesType: seriesType,
+    category: category,
+    ageGroup: ageGroup,
+    language: language,
+    page: page,
+    pageSize: pageSize,
+  );
+
+  @override
+  Future<SeriesDetail> getSeriesDetail(String seriesId) =>
+      _api.getSeriesDetail(_deviceToken, seriesId);
 }

@@ -4,8 +4,10 @@ import 'package:flutter/services.dart';
 import 'core/router/app_router.dart';
 import 'core/theme/tv_scale.dart';
 import 'core/theme/tv_theme.dart';
+import 'data/repositories/device_repository.dart';
+import 'data/repositories/usage_queue.dart';
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   // Full screen, landscape only: a TV has no system bars worth showing.
   SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
@@ -13,6 +15,8 @@ void main() {
     DeviceOrientation.landscapeLeft,
     DeviceOrientation.landscapeRight,
   ]);
+  // A paired TV must know it is paired on its first frame, or it would flash the setup screen.
+  await (sharedDeviceRepository.restore(), sharedUsageQueue.restore()).wait;
   runApp(const PlodyoTvApp());
 }
 
