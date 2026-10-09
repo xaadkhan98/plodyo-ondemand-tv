@@ -5,9 +5,14 @@ import 'sign_in_state.dart';
 
 /// Cubit managing the authentication state machine for the Sign In view.
 class SignInCubit extends Cubit<SignInState> {
-  SignInCubit({AuthRepository? authRepository})
+  /// [notice] opens the form on why the last session ended.
+  SignInCubit({AuthRepository? authRepository, String? notice})
     : _authRepository = authRepository ?? AuthRepositoryImpl(),
-      super(const SignInInitial());
+      super(
+        notice == null
+            ? const SignInInitial()
+            : SignInFailure(errorMessage: notice),
+      );
 
   final AuthRepository _authRepository;
 

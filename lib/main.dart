@@ -4,8 +4,10 @@ import 'package:flutter/services.dart';
 import 'core/router/app_router.dart';
 import 'core/theme/tv_scale.dart';
 import 'core/theme/tv_theme.dart';
+import 'data/repositories/auth_repository.dart';
 import 'data/repositories/device_repository.dart';
 import 'data/repositories/usage_queue.dart';
+import 'data/services/api_client.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -15,8 +17,14 @@ Future<void> main() async {
     DeviceOrientation.landscapeLeft,
     DeviceOrientation.landscapeRight,
   ]);
-  // A paired TV must know it is paired on its first frame, or it would flash the setup screen.
-  await (sharedDeviceRepository.restore(), sharedUsageQueue.restore()).wait;
+  // A paired TV must know it is paired on its first frame, or it would flash the setup screen; a console,
+  // that it is signed in.
+  await (
+    sharedDeviceRepository.restore(),
+    sharedUsageQueue.restore(),
+    sharedAuthRepository.restore(),
+  ).wait;
+  ApiClient.renewBearer = sharedAuthRepository.renew;
   runApp(const PlodyoTvApp());
 }
 

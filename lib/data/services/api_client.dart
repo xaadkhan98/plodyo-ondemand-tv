@@ -43,32 +43,27 @@ class ApiClient {
     return headers;
   }
 
+  /// Renews the console's access token after a 401, or throws once the session is over. Wired by main to the
+  /// auth repository, and shared by every client: a refresh token is single use.
+  static Future<String> Function()? renewBearer;
+
   Future<dynamic> get(
     String endpoint, {
     Map<String, String>? queryParameters,
     String? accessToken,
     String? deviceToken,
     String? clientSecret,
-  }) async {
-    var uri = Uri.parse('${ApiConstants.effectiveBaseUrl}$endpoint');
+  }) {
+    var uri = _uri(endpoint);
     if (queryParameters != null && queryParameters.isNotEmpty) {
       uri = uri.replace(queryParameters: queryParameters);
     }
-
-    final headers = buildHeaders(
+    return _send(
+      (headers) => _httpClient.get(uri, headers: headers),
       accessToken: accessToken,
       deviceToken: deviceToken,
       clientSecret: clientSecret,
     );
-
-    try {
-      final response = await _httpClient
-          .get(uri, headers: headers)
-          .timeout(ApiConstants.connectTimeout);
-      return _handleResponse(response);
-    } catch (e) {
-      _handleError(e);
-    }
   }
 
   Future<dynamic> post(
@@ -77,24 +72,13 @@ class ApiClient {
     String? accessToken,
     String? deviceToken,
     String? clientSecret,
-  }) async {
-    final uri = Uri.parse('${ApiConstants.effectiveBaseUrl}$endpoint');
-    final headers = buildHeaders(
-      accessToken: accessToken,
-      deviceToken: deviceToken,
-      clientSecret: clientSecret,
-    );
-    final encodedBody = body != null ? jsonEncode(body) : null;
-
-    try {
-      final response = await _httpClient
-          .post(uri, headers: headers, body: encodedBody)
-          .timeout(ApiConstants.connectTimeout);
-      return _handleResponse(response);
-    } catch (e) {
-      _handleError(e);
-    }
-  }
+  }) => _send(
+    (headers) =>
+        _httpClient.post(_uri(endpoint), headers: headers, body: _encode(body)),
+    accessToken: accessToken,
+    deviceToken: deviceToken,
+    clientSecret: clientSecret,
+  );
 
   Future<dynamic> patch(
     String endpoint, {
@@ -102,24 +86,16 @@ class ApiClient {
     String? accessToken,
     String? deviceToken,
     String? clientSecret,
-  }) async {
-    final uri = Uri.parse('${ApiConstants.effectiveBaseUrl}$endpoint');
-    final headers = buildHeaders(
-      accessToken: accessToken,
-      deviceToken: deviceToken,
-      clientSecret: clientSecret,
-    );
-    final encodedBody = body != null ? jsonEncode(body) : null;
-
-    try {
-      final response = await _httpClient
-          .patch(uri, headers: headers, body: encodedBody)
-          .timeout(ApiConstants.connectTimeout);
-      return _handleResponse(response);
-    } catch (e) {
-      _handleError(e);
-    }
-  }
+  }) => _send(
+    (headers) => _httpClient.patch(
+      _uri(endpoint),
+      headers: headers,
+      body: _encode(body),
+    ),
+    accessToken: accessToken,
+    deviceToken: deviceToken,
+    clientSecret: clientSecret,
+  );
 
   Future<dynamic> delete(
     String endpoint, {
@@ -127,19 +103,45 @@ class ApiClient {
     String? accessToken,
     String? deviceToken,
     String? clientSecret,
+  }) => _send(
+    (headers) => _httpClient.delete(
+      _uri(endpoint),
+      headers: headers,
+      body: _encode(body),
+    ),
+    accessToken: accessToken,
+    deviceToken: deviceToken,
+    clientSecret: clientSecret,
+  );
+
+  Uri _uri(String endpoint) =>
+      Uri.parse('${ApiConstants.effectiveBaseUrl}$endpoint');
+
+  String? _encode(dynamic body) => body != null ? jsonEncode(body) : null;
+
+  Future<dynamic> _send(
+    Future<http.Response> Function(Map<String, String> headers) request, {
+    String? accessToken,
+    String? deviceToken,
+    String? clientSecret,
   }) async {
-    final uri = Uri.parse('${ApiConstants.effectiveBaseUrl}$endpoint');
-    final headers = buildHeaders(
-      accessToken: accessToken,
-      deviceToken: deviceToken,
-      clientSecret: clientSecret,
-    );
-    final encodedBody = body != null ? jsonEncode(body) : null;
+    Future<http.Response> attempt(String? bearer) => request(
+      buildHeaders(
+        accessToken: bearer,
+        deviceToken: deviceToken,
+        clientSecret: clientSecret,
+      ),
+    ).timeout(ApiConstants.connectTimeout);
 
     try {
-      final response = await _httpClient
-          .delete(uri, headers: headers, body: encodedBody)
-          .timeout(ApiConstants.connectTimeout);
+      var response = await attempt(accessToken);
+      // Once, and only for a bearer: a 403 is a role refusal, and a device token neither expires nor renews.
+      final renew = renewBearer;
+      if (response.statusCode == 401 &&
+          renew != null &&
+          (accessToken?.isNotEmpty ?? false)) {
+        response = await attempt(await renew());
+      }
       return _handleResponse(response);
     } catch (e) {
       _handleError(e);

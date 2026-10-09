@@ -42,7 +42,11 @@ class SignInView extends StatefulWidget {
 
 class _SignInViewState extends State<SignInView> {
   late final SignInCubit _cubit =
-      widget.cubit ?? SignInCubit(authRepository: sharedAuthRepository);
+      widget.cubit ??
+      SignInCubit(
+        authRepository: sharedAuthRepository,
+        notice: sharedAuthRepository.takeNotice(),
+      );
   late final _entry = TextEntryController<_Field>(
     _Field.values,
     onEdit: _cubit.clearError,

@@ -26,6 +26,14 @@ class Actor extends Equatable {
   /// Partners and invites are open to super and partner admins; every call behind them 403s for a property admin.
   bool get canAdminister => isSuperAdmin || isPartnerAdmin;
 
+  /// Whether the scope fits the role. One that does not would 403 on every screen, so it is refused at sign-in.
+  bool get hasCoherentScope => switch (role) {
+    'SUPER_ADMIN' => partnerId == null && propertyId == null,
+    'PARTNER_ADMIN' => partnerId != null && propertyId == null,
+    'PROPERTY_ADMIN' => partnerId != null && propertyId != null,
+    _ => false,
+  };
+
   factory Actor.fromJson(Map<String, dynamic> json) {
     return Actor(
       userId:

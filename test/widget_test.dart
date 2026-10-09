@@ -79,9 +79,7 @@ class MockAuthRepository implements AuthRepository {
   }
 
   @override
-  Future<AuthResponse> refreshToken() async {
-    return _auth!;
-  }
+  Future<void> resume() async {}
 
   @override
   Future<String> forgotPassword({required String email}) async {

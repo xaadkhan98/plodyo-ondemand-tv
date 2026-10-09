@@ -66,9 +66,7 @@ class FakeAuthRepository implements AuthRepository {
   }
 
   @override
-  Future<AuthResponse> refreshToken() async {
-    return _currentAuth!;
-  }
+  Future<void> resume() async {}
 
   @override
   Future<String> forgotPassword({required String email}) async {

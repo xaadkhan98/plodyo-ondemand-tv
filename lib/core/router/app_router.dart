@@ -70,6 +70,8 @@ final GoRouter appRouter = GoRouter(
   navigatorKey: _rootNavigatorKey,
   initialLocation: '/',
   redirect: _redirect,
+  // A session that starts or ends re-routes at once: an expired one lands on sign-in.
+  refreshListenable: sharedAuthRepository,
   routes: [
     GoRoute(path: '/sign-in', builder: (context, state) => const SignInView()),
     GoRoute(
