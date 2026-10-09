@@ -33,3 +33,19 @@ String formatDateTime(String? iso) {
   final minute = date.minute.toString().padLeft(2, '0');
   return '${formatDate(iso)}, $hour:$minute ${date.hour < 12 ? 'AM' : 'PM'}';
 }
+
+/// "12 minutes ago", "yesterday", "now". Truncated, so it never claims something is fresher than it is.
+String timeAgo(String iso, DateTime now) {
+  final then = DateTime.tryParse(iso);
+  if (then == null) return iso;
+  final elapsed = now.difference(then);
+  final (count, unit) = switch (elapsed) {
+    final e when e.inDays >= 1 => (e.inDays, 'day'),
+    final e when e.inHours >= 1 => (e.inHours, 'hour'),
+    final e when e.inMinutes >= 1 => (e.inMinutes, 'minute'),
+    final e => (e.inSeconds < 0 ? 0 : e.inSeconds, 'second'),
+  };
+  if (count == 0) return 'now';
+  if (count == 1 && unit == 'day') return 'yesterday';
+  return '$count $unit${count == 1 ? '' : 's'} ago';
+}

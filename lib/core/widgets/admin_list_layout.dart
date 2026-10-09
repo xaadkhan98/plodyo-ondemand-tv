@@ -34,11 +34,14 @@ class PagedList<T, F> extends ChangeNotifier {
 
   F get filter => _filter;
 
-  Future<void> load() async {
+  /// Fetches the current page. [quiet] keeps the rows on screen while it does, for a background refresh.
+  Future<void> load({bool quiet = false}) async {
     final request = ++_request;
-    loading = true;
-    error = null;
-    notifyListeners();
+    if (!quiet) {
+      loading = true;
+      error = null;
+      notifyListeners();
+    }
     try {
       final result = await fetch(_filter, _page);
       if (request != _request) return;

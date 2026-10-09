@@ -85,10 +85,10 @@ class RoomsApiService {
     String? defaultLanguage,
     String? clientSecret,
   }) async {
+    // Null means unchanged; an empty language drops an override already set.
     final body = <String, dynamic>{
-      if (roomLabel != null && roomLabel.isNotEmpty) 'room_label': roomLabel,
-      if (defaultLanguage != null && defaultLanguage.isNotEmpty)
-        'default_language': defaultLanguage,
+      'room_label': ?roomLabel,
+      'default_language': ?defaultLanguage,
     };
 
     final res = await _client.patch(

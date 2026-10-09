@@ -30,6 +30,12 @@ class RoomModel extends Equatable {
   bool get isActive => status == 'ACTIVE';
   bool get isRevoked => status == 'REVOKED';
 
+  /// Refused once provisioned: the session history cascades with the row. Revoke instead.
+  bool get canDelete => isUnprovisioned;
+
+  /// Needs a live credential; a room never set up, or already revoked, has none.
+  bool get canRevoke => isActive;
+
   factory RoomModel.fromJson(Map<String, dynamic> json) {
     return RoomModel(
       id: json['id'] as String? ?? '',

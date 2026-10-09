@@ -17,7 +17,9 @@ import '../../ui/features/properties/views/property_details_view.dart';
 import '../../ui/features/properties/views/property_form_view.dart';
 import '../../data/models/property_model.dart';
 import '../../ui/features/rooms/views/rooms_view.dart';
-import '../../ui/features/rooms/views/add_room_view.dart';
+import '../../ui/features/rooms/views/room_details_view.dart';
+import '../../ui/features/rooms/views/room_form_view.dart';
+import '../../data/models/room_model.dart';
 import '../../ui/features/rooms/views/add_many_rooms_view.dart';
 import '../../ui/features/settings/views/settings_view.dart';
 import '../../ui/features/people/views/people_view.dart';
@@ -216,14 +218,33 @@ final GoRouter appRouter = GoRouter(
           builder: (context, state) => const RoomsView(),
           routes: [
             GoRoute(
+              path: 'details',
+              name: 'roomDetails',
+              redirect: (context, state) =>
+                  state.extra is RoomModel ? null : '/rooms',
+              builder: (context, state) =>
+                  RoomDetailsView(room: state.extra! as RoomModel),
+            ),
+            // `extra` on add and add-many is the property the list was filtered to, if any.
+            GoRoute(
               path: 'add',
               name: 'addRoom',
-              builder: (context, state) => const AddRoomView(),
+              builder: (context, state) =>
+                  RoomFormView(propertyId: state.extra as String?),
+            ),
+            GoRoute(
+              path: 'edit',
+              name: 'editRoom',
+              redirect: (context, state) =>
+                  state.extra is RoomModel ? null : '/rooms',
+              builder: (context, state) =>
+                  RoomFormView(room: state.extra! as RoomModel),
             ),
             GoRoute(
               path: 'add-many',
               name: 'addManyRooms',
-              builder: (context, state) => const AddManyRoomsView(),
+              builder: (context, state) =>
+                  AddManyRoomsView(propertyId: state.extra as String?),
             ),
           ],
         ),
