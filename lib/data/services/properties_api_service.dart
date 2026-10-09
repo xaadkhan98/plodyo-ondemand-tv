@@ -83,7 +83,7 @@ class PropertiesApiService {
     return PropertyModel.fromJson(res as Map<String, dynamic>);
   }
 
-  /// PATCH /ondemand/admin/properties/:id
+  /// PATCH /ondemand/admin/properties/:id — null means unchanged; an empty string clears the field.
   Future<PropertyModel> updateProperty({
     required String accessToken,
     required String propertyId,
@@ -95,12 +95,11 @@ class PropertiesApiService {
     String? clientSecret,
   }) async {
     final body = <String, dynamic>{
-      if (name != null && name.isNotEmpty) 'name': name,
-      if (country != null && country.isNotEmpty) 'country': country,
-      if (city != null && city.isNotEmpty) 'city': city,
-      if (timezone != null && timezone.isNotEmpty) 'timezone': timezone,
-      if (defaultLanguage != null && defaultLanguage.isNotEmpty)
-        'default_language': defaultLanguage,
+      'name': ?name,
+      'country': ?country,
+      'city': ?city,
+      'timezone': ?timezone,
+      'default_language': ?defaultLanguage,
     };
 
     final res = await _client.patch(

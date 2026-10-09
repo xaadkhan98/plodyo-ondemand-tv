@@ -727,11 +727,16 @@ void main() {
     tester.view.devicePixelRatio = 1.0;
     addTearDown(() => tester.view.resetPhysicalSize());
 
+    // A partner admin may add properties; the button is hidden from a property admin.
+    final auth = MockAuthRepository();
+    await auth.signIn(email: 'ops@grandhotel.com', password: 'secret');
+
     await tester.pumpWidget(
       MaterialApp(
         home: PropertiesView(
           propertiesRepository: _MockPropertiesRepo(),
           partnersRepository: _MockPartnersRepo(),
+          authRepository: auth,
         ),
       ),
     );

@@ -13,7 +13,9 @@ import '../../ui/features/partners/views/partner_form_view.dart';
 import '../../ui/features/invites/views/invites_view.dart';
 import '../../ui/features/invites/views/invite_someone_view.dart';
 import '../../ui/features/properties/views/properties_view.dart';
-import '../../ui/features/properties/views/add_property_view.dart';
+import '../../ui/features/properties/views/property_details_view.dart';
+import '../../ui/features/properties/views/property_form_view.dart';
+import '../../data/models/property_model.dart';
 import '../../ui/features/rooms/views/rooms_view.dart';
 import '../../ui/features/rooms/views/add_room_view.dart';
 import '../../ui/features/rooms/views/add_many_rooms_view.dart';
@@ -186,9 +188,25 @@ final GoRouter appRouter = GoRouter(
           builder: (context, state) => const PropertiesView(),
           routes: [
             GoRoute(
+              path: 'details',
+              name: 'propertyDetails',
+              redirect: (context, state) =>
+                  state.extra is PropertyModel ? null : '/properties',
+              builder: (context, state) =>
+                  PropertyDetailsView(property: state.extra! as PropertyModel),
+            ),
+            GoRoute(
               path: 'add',
               name: 'addProperty',
-              builder: (context, state) => const AddPropertyView(),
+              builder: (context, state) => const PropertyFormView(),
+            ),
+            GoRoute(
+              path: 'edit',
+              name: 'editProperty',
+              redirect: (context, state) =>
+                  state.extra is PropertyModel ? null : '/properties',
+              builder: (context, state) =>
+                  PropertyFormView(property: state.extra! as PropertyModel),
             ),
           ],
         ),
