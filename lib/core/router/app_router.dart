@@ -28,10 +28,25 @@ final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>();
 final GlobalKey<NavigatorState> _shellNavigatorKey =
     GlobalKey<NavigatorState>();
 
+/// Reachable without a session: the TV's own setup screens and the ways into the console.
+const _publicPaths = {
+  '/splash',
+  '/pair-tv',
+  '/sign-in',
+  '/forgot-password',
+  '/register-venue',
+};
+
 /// Declarative GoRouter configuration for the TV app
 final GoRouter appRouter = GoRouter(
   navigatorKey: _rootNavigatorKey,
   initialLocation: '/splash',
+  // The console needs a signed-in account; without one every call behind it would 401.
+  redirect: (context, state) =>
+      _publicPaths.contains(state.matchedLocation) ||
+          sharedAuthRepository.isAuthenticated
+      ? null
+      : '/sign-in',
   routes: [
     // Unpaired TV Splash Screen (Initial startup screen)
     GoRoute(
