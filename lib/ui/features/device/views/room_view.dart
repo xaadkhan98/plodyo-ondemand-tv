@@ -45,8 +45,8 @@ class _RoomViewState extends State<RoomView> {
 
   @override
   Widget build(BuildContext context) {
-    final device = DeviceScope.of(context);
-    // Reached only through the gate, which routes nothing here before the TV is ready.
+    // Reached only through the device gate, which routes nothing here before the TV is ready.
+    final device = DeviceScope.of(context) as DeviceController;
     final DeviceReady(:config, :session) = device.phase as DeviceReady;
     String? nameOf(String? code) =>
         config.languages.where((l) => l.code == code).firstOrNull?.name;

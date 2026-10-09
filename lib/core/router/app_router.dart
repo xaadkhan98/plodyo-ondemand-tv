@@ -40,30 +40,30 @@ final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>();
 final GlobalKey<NavigatorState> _shellNavigatorKey =
     GlobalKey<NavigatorState>();
 
-/// The room TV's screens: the device gate decides what they show, so they need no session.
-const _guestPaths = {
-  '/',
-  '/stories',
-  '/series',
-  '/learning',
-  '/search',
-  '/story',
-  '/room',
-};
+/// The catalogue screens, which both lanes render: a TV with its device token, the console with its bearer.
+const _libraryPaths = {'/', '/stories', '/series', '/learning', '/story'};
+
+/// The room TV's own screens: the console has no room for them to show.
+const _devicePaths = {'/search', '/room'};
 
 /// Reachable without a session: the ways into the console.
 const _publicPaths = {'/sign-in', '/forgot-password', '/register-venue'};
 
-/// A paired set is a TV, whoever signed in on it; an unpaired one with a session is the console, which
-/// lands on its overview until it can browse the catalogue. Console screens need a session, or every call
-/// behind them would 401.
+/// A device token wins: a paired set is a TV, whoever else signed in on it. With neither credential the
+/// device gate is still right, since its welcome is where both pairing and signing in start.
+bool get _consoleLane =>
+    !sharedDeviceRepository.isPaired && sharedAuthRepository.isAuthenticated;
+
+/// The device gate decides what the catalogue and TV screens show, so they need no session; the console
+/// is sent from the TV's own screens to its overview. Console screens need a session, or every call behind
+/// them would 401.
 String? _redirect(BuildContext context, GoRouterState state) {
   final path = state.matchedLocation;
-  final signedIn = sharedAuthRepository.isAuthenticated;
-  if (_guestPaths.contains(path)) {
-    return !sharedDeviceRepository.isPaired && signedIn ? '/overview' : null;
-  }
-  return _publicPaths.contains(path) || signedIn ? null : '/sign-in';
+  if (_libraryPaths.contains(path)) return null;
+  if (_devicePaths.contains(path)) return _consoleLane ? '/overview' : null;
+  return _publicPaths.contains(path) || sharedAuthRepository.isAuthenticated
+      ? null
+      : '/sign-in';
 }
 
 final GoRouter appRouter = GoRouter(
@@ -71,9 +71,28 @@ final GoRouter appRouter = GoRouter(
   initialLocation: '/',
   redirect: _redirect,
   routes: [
+    GoRoute(path: '/sign-in', builder: (context, state) => const SignInView()),
+    GoRoute(
+      path: '/forgot-password',
+      builder: (context, state) => const ForgotPasswordView(),
+    ),
+    GoRoute(
+      path: '/register-venue',
+      builder: (context, state) => const RegisterVenueView(),
+    ),
+    // One shell for both lanes, as the reference's AppGate: the console keeps its rail and its library picks
+    // between its own screens and the catalogue, and a TV gets the device gate.
     ShellRoute(
-      builder: (context, state, child) =>
-          DeviceGate(currentPath: state.uri.path, child: child),
+      navigatorKey: _shellNavigatorKey,
+      builder: (context, state, child) {
+        final path = state.uri.path;
+        final guest =
+            !_consoleLane &&
+            (_libraryPaths.contains(path) || _devicePaths.contains(path));
+        return guest
+            ? DeviceGate(currentPath: path, child: child)
+            : MainTvLayout(currentPath: path, child: child);
+      },
       routes: [
         GoRoute(path: '/', builder: (context, state) => const HomeView()),
         GoRoute(
@@ -107,25 +126,6 @@ final GoRouter appRouter = GoRouter(
           builder: (context, state) =>
               PlayerView(storyId: state.uri.queryParameters['id']!),
         ),
-      ],
-    ),
-    GoRoute(path: '/sign-in', builder: (context, state) => const SignInView()),
-    GoRoute(
-      path: '/forgot-password',
-      builder: (context, state) => const ForgotPasswordView(),
-    ),
-    GoRoute(
-      path: '/register-venue',
-      builder: (context, state) => const RegisterVenueView(),
-    ),
-
-    // Shell Route containing Persistent Sidebar Navigation Rail
-    ShellRoute(
-      navigatorKey: _shellNavigatorKey,
-      builder: (context, state, child) {
-        return MainTvLayout(currentPath: state.uri.path, child: child);
-      },
-      routes: [
         GoRoute(
           path: '/overview',
           name: 'overview',

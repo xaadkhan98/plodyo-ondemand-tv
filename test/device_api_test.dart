@@ -22,8 +22,9 @@ const _session = {
 
 /// A repository over a fake API that answers by path and records every request.
 (DeviceRepositoryImpl, List<http.Request>) _api(
-  Map<String, (int, Object)> routes,
-) {
+  Map<String, (int, Object)> routes, {
+  String consoleBearer = '',
+}) {
   final sent = <http.Request>[];
   final client = MockClient((request) async {
     sent.add(request);
@@ -32,7 +33,13 @@ const _session = {
     return http.Response(jsonEncode(body), status);
   });
   final service = DeviceApiService(apiClient: ApiClient(httpClient: client));
-  return (DeviceRepositoryImpl(apiService: service), sent);
+  return (
+    DeviceRepositoryImpl(
+      apiService: service,
+      consoleBearer: () => consoleBearer,
+    ),
+    sent,
+  );
 }
 
 /// The same, restored from storage holding [token].
@@ -261,6 +268,29 @@ void main() {
         expect(detail.story.title, 'Moon Picnic');
         expect(detail.mediaUrl, isNull);
         expect(detail.pages.single.audioUrl, 'https://cdn/1.mp3');
+      },
+    );
+
+    test(
+      'unpaired, the console reads the same rows under /admin with its bearer',
+      () async {
+        final (repo, sent) = _api({
+          '/ondemand/admin/content': (200, page),
+          '/ondemand/admin/series': (200, page),
+        }, consoleBearer: 'console');
+
+        await repo.getStories(ageGroup: AgeGroup.toddler);
+        await repo.getSeries(seriesType: SeriesType.learning);
+
+        expect(sent.map((r) => r.url.path), [
+          '/ondemand/admin/content',
+          '/ondemand/admin/series',
+        ]);
+        expect(sent.first.url.queryParameters, {'age_group': '0-2'});
+        for (final request in sent) {
+          expect(request.headers['Authorization'], 'Bearer console');
+          expect(request.headers['X-Device-Token'], isNull);
+        }
       },
     );
 

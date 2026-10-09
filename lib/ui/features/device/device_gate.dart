@@ -124,7 +124,7 @@ class _DeviceGateState extends State<DeviceGate> {
           },
         },
         child: DeviceScope(
-          controller: _device,
+          session: _device,
           child: Material(
             type: MaterialType.transparency,
             child: SideNav(

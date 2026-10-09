@@ -4,6 +4,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
+import '../../../core/constants/languages.dart';
 import '../../../core/utils/retry.dart';
 import '../../../data/models/auth_exception.dart';
 import '../../../data/models/device_models.dart';
@@ -51,10 +52,45 @@ class DeviceReady extends DevicePhase {
   final DeviceSession session;
 }
 
+/// What the catalogue screens read: the languages and ages on offer, and the viewer's picks. The picks live
+/// here rather than in storage: a hotel TV is reset between guests by being switched off, and reviving the
+/// last guest's language for the next one is worse than starting over.
+abstract class LibrarySession extends ChangeNotifier {
+  /// What the pickers offer; null while a TV's room is unresolved.
+  DeviceConfig? get config;
+
+  /// The language the catalogue is read in. Null means whatever the reader's default resolves to, not a code.
+  String? get language => _language;
+  String? _language;
+
+  void chooseLanguage(String? code) {
+    _language = code;
+    notifyListeners();
+  }
+
+  /// Who's watching, kept across the stories, series and learning screens. Null is every age.
+  AgeGroup? get ageGroup => _ageGroup;
+  AgeGroup? _ageGroup;
+
+  void chooseAgeGroup(AgeGroup? group) {
+    _ageGroup = group;
+    notifyListeners();
+  }
+}
+
+/// The console's library: every language and age the API serves, with no room behind it, so nothing is
+/// recorded. English is what /admin/content reads when no language is asked for.
+class ConsoleLibrary extends LibrarySession {
+  @override
+  final DeviceConfig config = const DeviceConfig(
+    languages: languages,
+    ageGroups: AgeGroup.values,
+    defaultLanguage: 'ENG',
+  );
+}
+
 /// Resolves what this TV may show and, once it is ready, keeps its room online with a heartbeat.
-/// The guest's choices live here rather than in storage: a hotel TV is reset between guests by being
-/// switched off, and reviving the last guest's language for the next one is worse than starting over.
-class DeviceController extends ChangeNotifier {
+class DeviceController extends LibrarySession {
   DeviceController({DeviceRepository? device, UsageQueue? usage})
     : _device = device ?? sharedDeviceRepository,
       _usage = usage ?? sharedUsageQueue {
@@ -84,25 +120,23 @@ class DeviceController extends ChangeNotifier {
 
   DevicePhase get phase => _phase;
 
-  /// The language the catalogue is read in. Null means whatever the room resolves to, not a code.
-  String? get language => _language;
-  String? _language;
+  @override
+  DeviceConfig? get config => switch (_phase) {
+    DeviceReady(:final config) => config,
+    _ => null,
+  };
 
+  // A guest's pick is usage the venue sees; clearing a filter is not a pick.
+  @override
   void chooseLanguage(String? code) {
-    _language = code;
-    // A guest's pick is usage the venue sees; clearing a filter is not a pick.
     if (code != null) _usage.record(UsageType.languageSelect, language: code);
-    notifyListeners();
+    super.chooseLanguage(code);
   }
 
-  /// Who's watching, kept across the stories, series and learning screens. Null is every age.
-  AgeGroup? get ageGroup => _ageGroup;
-  AgeGroup? _ageGroup;
-
+  @override
   void chooseAgeGroup(AgeGroup? group) {
-    _ageGroup = group;
     if (group != null) _usage.record(UsageType.ageSelect, ageGroup: group.code);
-    notifyListeners();
+    super.chooseAgeGroup(group);
   }
 
   void _settle(DevicePhase next) {
@@ -229,14 +263,15 @@ class DeviceController extends ChangeNotifier {
   }
 }
 
-/// Hands the gate's [DeviceController] to the guest screens, rebuilding them when it changes.
-class DeviceScope extends InheritedNotifier<DeviceController> {
+/// Hands the catalogue screens their [LibrarySession], rebuilding them when it changes: a paired TV's
+/// [DeviceController], or the console's [ConsoleLibrary].
+class DeviceScope extends InheritedNotifier<LibrarySession> {
   const DeviceScope({
     super.key,
-    required DeviceController controller,
+    required LibrarySession session,
     required super.child,
-  }) : super(notifier: controller);
+  }) : super(notifier: session);
 
-  static DeviceController of(BuildContext context) =>
+  static LibrarySession of(BuildContext context) =>
       context.dependOnInheritedWidgetOfExactType<DeviceScope>()!.notifier!;
 }

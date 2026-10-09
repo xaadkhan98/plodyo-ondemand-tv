@@ -36,13 +36,10 @@ class FilterGroup {
   final ValueChanged<String?> onChange;
 }
 
-/// "Who's watching": the room's age buckets, held by the device so the pick survives moving between
+/// "Who's watching": the room's age buckets, held by the session so the pick survives moving between
 /// screens. Null when the room offers none.
-FilterGroup? ageFilter(DeviceController device) {
-  final groups = switch (device.phase) {
-    DeviceReady(:final config) => config.ageGroups,
-    _ => const <AgeGroup>[],
-  };
+FilterGroup? ageFilter(LibrarySession device) {
+  final groups = device.config?.ageGroups ?? const [];
   if (groups.isEmpty) return null;
   return FilterGroup(
     label: "Who's watching",

@@ -4,7 +4,31 @@ import '../models/paginated_response.dart';
 import '../models/story_models.dart';
 import 'api_client.dart';
 
-/// The room TV's endpoints: X-Device-Token, never a bearer, and no refresh step.
+/// Who reads the catalogue, which decides the routes: a paired TV with its token under /device, or the
+/// console with its bearer under /admin. The rows are the same, capped by the API to the reader's tier.
+class CatalogueReader {
+  const CatalogueReader.device(String token)
+    : deviceToken = token,
+      accessToken = null;
+
+  const CatalogueReader.console(String token)
+    : deviceToken = null,
+      accessToken = token;
+
+  final String? deviceToken;
+  final String? accessToken;
+
+  String get _content => deviceToken != null
+      ? ApiConstants.deviceContentEndpoint
+      : ApiConstants.adminContentEndpoint;
+
+  String get _series => deviceToken != null
+      ? ApiConstants.deviceSeriesEndpoint
+      : ApiConstants.adminSeriesEndpoint;
+}
+
+/// The room TV's endpoints: X-Device-Token, never a bearer, and no refresh step. The catalogue reads also
+/// serve the console, through a [CatalogueReader].
 class DeviceApiService {
   DeviceApiService({ApiClient? apiClient}) : _client = apiClient ?? ApiClient();
 
@@ -59,9 +83,9 @@ class DeviceApiService {
     return DeviceConfig.fromJson(res as Map<String, dynamic>);
   }
 
-  /// GET /ondemand/device/content. An unset language is omitted, not sent empty: absent means the room's default, "" is a 400.
+  /// GET /content. An unset language is omitted, not sent empty: absent means the room's default, "" is a 400.
   Future<PaginatedResponse<Story>> getStories(
-    String deviceToken, {
+    CatalogueReader reader, {
     String? language,
     AgeGroup? ageGroup,
     StoryType? storyType,
@@ -69,8 +93,9 @@ class DeviceApiService {
     int? pageSize,
   }) async {
     final res = await _client.get(
-      ApiConstants.deviceContentEndpoint,
-      deviceToken: deviceToken,
+      reader._content,
+      deviceToken: reader.deviceToken,
+      accessToken: reader.accessToken,
       queryParameters: {
         'language': ?language,
         'age_group': ?ageGroup?.code,
@@ -85,18 +110,19 @@ class DeviceApiService {
     );
   }
 
-  /// GET /ondemand/device/content/:id: the one call that carries the media URL and the pages.
-  Future<StoryDetail> getStory(String deviceToken, String storyId) async {
+  /// GET /content/:id: the one call that carries the media URL and the pages.
+  Future<StoryDetail> getStory(CatalogueReader reader, String storyId) async {
     final res = await _client.get(
-      '${ApiConstants.deviceContentEndpoint}/${Uri.encodeComponent(storyId)}',
-      deviceToken: deviceToken,
+      '${reader._content}/${Uri.encodeComponent(storyId)}',
+      deviceToken: reader.deviceToken,
+      accessToken: reader.accessToken,
     );
     return StoryDetail.fromJson(res as Map<String, dynamic>);
   }
 
-  /// GET /ondemand/device/series. Same language rule as the catalogue.
+  /// GET /series. Same language rule as the catalogue.
   Future<PaginatedResponse<Series>> getSeries(
-    String deviceToken, {
+    CatalogueReader reader, {
     SeriesType? seriesType,
     String? category,
     AgeGroup? ageGroup,
@@ -105,8 +131,9 @@ class DeviceApiService {
     int? pageSize,
   }) async {
     final res = await _client.get(
-      ApiConstants.deviceSeriesEndpoint,
-      deviceToken: deviceToken,
+      reader._series,
+      deviceToken: reader.deviceToken,
+      accessToken: reader.accessToken,
       queryParameters: {
         'series_type': ?seriesType?.code,
         'category': ?category,
@@ -122,14 +149,15 @@ class DeviceApiService {
     );
   }
 
-  /// GET /ondemand/device/series/:id. A 404 covers unknown, unpublished and unservable alike.
+  /// GET /series/:id. A 404 covers unknown, unpublished and unservable alike.
   Future<SeriesDetail> getSeriesDetail(
-    String deviceToken,
+    CatalogueReader reader,
     String seriesId,
   ) async {
     final res = await _client.get(
-      '${ApiConstants.deviceSeriesEndpoint}/${Uri.encodeComponent(seriesId)}',
-      deviceToken: deviceToken,
+      '${reader._series}/${Uri.encodeComponent(seriesId)}',
+      deviceToken: reader.deviceToken,
+      accessToken: reader.accessToken,
     );
     return SeriesDetail.fromJson(res as Map<String, dynamic>);
   }

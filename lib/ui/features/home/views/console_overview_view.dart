@@ -36,6 +36,13 @@ class ConsoleOverviewView extends StatelessWidget {
       adminOnly: true,
     ),
     _Section(
+      path: '/',
+      label: 'Library',
+      body:
+          'The stories and series your rooms can play, on the tier this partner is on.',
+      icon: LucideIcons.library,
+    ),
+    _Section(
       path: '/properties',
       label: 'Properties',
       body:
@@ -90,7 +97,9 @@ class ConsoleOverviewView extends StatelessWidget {
             badge: actor == null
                 ? null
                 : StatusBadge(roleLabel(actor.role), tone: BadgeTone.positive),
-            subtitle: _reach(actor),
+            subtitle:
+                '${_reach(actor)} Library shows what your rooms can play; the TVs themselves sign in '
+                'with their own room credential.',
           ),
           const SizedBox(height: 2.25 * rem),
           TwoColumnGrid(

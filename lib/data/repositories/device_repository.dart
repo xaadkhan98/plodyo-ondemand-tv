@@ -5,11 +5,13 @@ import '../models/device_models.dart';
 import '../models/paginated_response.dart';
 import '../models/story_models.dart';
 import '../services/device_api_service.dart';
+import 'auth_repository.dart';
 
 final DeviceRepository sharedDeviceRepository = DeviceRepositoryImpl();
 
 /// This TV's credential and everything read with it. The token never expires or rotates: it is valid until
-/// the room is revoked or re-provisioned, so there is no refresh step.
+/// the room is revoked or re-provisioned, so there is no refresh step. Unpaired, the catalogue reads go out
+/// with the console's bearer instead, so a signed-in console browses the same library on the same screens.
 abstract class DeviceRepository {
   /// Reads the token a previous run stored. Called once, before the first frame.
   Future<void> restore();
@@ -55,16 +57,27 @@ abstract class DeviceRepository {
 }
 
 class DeviceRepositoryImpl implements DeviceRepository {
-  DeviceRepositoryImpl({DeviceApiService? apiService})
-    : _api = apiService ?? DeviceApiService();
+  DeviceRepositoryImpl({
+    DeviceApiService? apiService,
+    String Function()? consoleBearer,
+  }) : _api = apiService ?? DeviceApiService(),
+       _consoleBearer =
+           consoleBearer ?? (() => sharedAuthRepository.accessToken);
 
   static const _tokenKey = 'plodyo.ondemand.device-token';
 
   final DeviceApiService _api;
+  final String Function() _consoleBearer;
   String? _token;
 
   String get _deviceToken =>
       _token ?? (throw StateError('This TV is not paired.'));
+
+  // A device token wins: a paired set is a TV, whoever else signed in on it.
+  CatalogueReader get _reader => switch (_token) {
+    final token? => CatalogueReader.device(token),
+    null => CatalogueReader.console(_consoleBearer()),
+  };
 
   @override
   bool get isPaired => _token != null;
@@ -135,7 +148,7 @@ class DeviceRepositoryImpl implements DeviceRepository {
     int? page,
     int? pageSize,
   }) => _api.getStories(
-    _deviceToken,
+    _reader,
     language: language,
     ageGroup: ageGroup,
     storyType: storyType,
@@ -145,7 +158,7 @@ class DeviceRepositoryImpl implements DeviceRepository {
 
   @override
   Future<StoryDetail> getStory(String storyId) =>
-      _api.getStory(_deviceToken, storyId);
+      _api.getStory(_reader, storyId);
 
   @override
   Future<PaginatedResponse<Series>> getSeries({
@@ -156,7 +169,7 @@ class DeviceRepositoryImpl implements DeviceRepository {
     int? page,
     int? pageSize,
   }) => _api.getSeries(
-    _deviceToken,
+    _reader,
     seriesType: seriesType,
     category: category,
     ageGroup: ageGroup,
@@ -167,5 +180,5 @@ class DeviceRepositoryImpl implements DeviceRepository {
 
   @override
   Future<SeriesDetail> getSeriesDetail(String seriesId) =>
-      _api.getSeriesDetail(_deviceToken, seriesId);
+      _api.getSeriesDetail(_reader, seriesId);
 }

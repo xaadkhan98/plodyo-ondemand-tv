@@ -21,10 +21,7 @@ class LanguageMenu extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final device = DeviceScope.of(context);
-    final config = switch (device.phase) {
-      DeviceReady(:final config) => config,
-      _ => null,
-    };
+    final config = device.config;
     if (config == null || config.languages.isEmpty) {
       return const SizedBox.shrink();
     }
@@ -106,11 +103,7 @@ class LanguageMenu extends StatelessWidget {
 
   // On the root navigator, so the dialog covers the side rail too; Back pops it, and focus returns to the pill.
   // No backdrop blur: the hero animates underneath, which would re-blur the whole screen every frame.
-  void _open(
-    BuildContext context,
-    DeviceController device,
-    String? roomDefault,
-  ) {
+  void _open(BuildContext context, LibrarySession device, String? roomDefault) {
     showGeneralDialog<void>(
       context: context,
       barrierDismissible: true,
@@ -136,14 +129,15 @@ class LanguageMenu extends StatelessWidget {
 class _LanguageDialog extends StatelessWidget {
   const _LanguageDialog({required this.device, required this.roomDefault});
 
-  final DeviceController device;
+  final LibrarySession device;
   final String? roomDefault;
 
   static const _radius = BorderRadius.all(Radius.circular(2 * rem));
 
   @override
   Widget build(BuildContext context) {
-    final config = (device.phase as DeviceReady).config;
+    // Opened from the pill, which only shows once there is a config.
+    final config = device.config!;
     final note = TvText.sm.copyWith(color: TvColors.mutedForeground);
     return Center(
       child: Padding(

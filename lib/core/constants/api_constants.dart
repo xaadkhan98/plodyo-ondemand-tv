@@ -54,6 +54,10 @@ class ApiConstants {
   static const String adminPeopleEndpoint = '/ondemand/admin/users';
   static const String adminUsersEndpoint = '/ondemand/admin/users';
 
+  // Admin Library Routes: the room TV's catalogue, read with a bearer
+  static const String adminContentEndpoint = '/ondemand/admin/content';
+  static const String adminSeriesEndpoint = '/ondemand/admin/series';
+
   // Device TV Routes (Room TV Flow)
   static const String devicePairEndpoint = '/ondemand/device/pair';
   static const String deviceSessionEndpoint = '/ondemand/device/session';
