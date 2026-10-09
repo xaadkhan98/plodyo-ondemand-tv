@@ -10,9 +10,13 @@ import '../../../data/models/device_models.dart';
 import '../../../data/repositories/device_repository.dart';
 import '../../../data/repositories/usage_queue.dart';
 
-/// A catalogue read, retried like any flaky TV network, except a refused credential, which no retry fixes.
-Future<T> catalogueRead<T>(Future<T> Function() read) =>
-    retry(read, retryIf: (e) => !(e is AuthException && e.statusCode == 401));
+/// A catalogue read, retried like any flaky TV network, except a refusal no retry fixes: a refused
+/// credential, a bad request, or a story or series that is gone.
+Future<T> catalogueRead<T>(Future<T> Function() read) => retry(
+  read,
+  retryIf: (e) =>
+      !(e is AuthException && const {400, 401, 404}.contains(e.statusCode)),
+);
 
 /// What this TV may show, resolved on every boot.
 sealed class DevicePhase {

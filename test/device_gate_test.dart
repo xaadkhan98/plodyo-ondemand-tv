@@ -11,6 +11,7 @@ import 'package:plodyo_ondemand_tv/data/models/story_models.dart';
 import 'package:plodyo_ondemand_tv/data/repositories/device_repository.dart';
 import 'package:plodyo_ondemand_tv/ui/features/device/device_gate.dart';
 import 'package:plodyo_ondemand_tv/ui/features/device/views/home_view.dart';
+import 'package:plodyo_ondemand_tv/ui/features/device/views/series_detail_view.dart';
 
 /// A room with a catalogue, whose answers each test can change.
 class _Device implements DeviceRepository {
@@ -18,7 +19,9 @@ class _Device implements DeviceRepository {
   bool isPaired = true;
 
   Object? refusal;
+  Object? seriesRefusal;
   final storyQueries = <String?>[];
+  final seriesAsked = <String>[];
 
   @override
   Future<void> unpair() async => isPaired = false;
@@ -91,19 +94,57 @@ class _Device implements DeviceRepository {
   );
 
   @override
+  Future<SeriesDetail> getSeriesDetail(String seriesId) async {
+    seriesAsked.add(seriesId);
+    if (seriesRefusal case final error?) throw error;
+    return const SeriesDetail(
+      series: Series(
+        id: 'sr1',
+        title: 'Counting Club',
+        category: 'Fun',
+        ageGroup: '5-7',
+        language: 'ENG',
+        episodeCount: 3,
+        learningObjective: 'Counting to ten.',
+      ),
+      episodes: [
+        SeriesEpisode(
+          episodeNumber: 1,
+          story: Story(id: 'story-a', title: 'One Little Duck'),
+        ),
+      ],
+    );
+  }
+
+  @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
+
+/// Real TV configurations: 16:9 panels all draw the same canvas, so the aspect ratios are what vary.
+const _screens = [
+  ('720p MiTV', Size(1280, 720), 1.33125),
+  ('1080p Google TV', Size(1920, 1080), 2.0),
+  ('4K panel', Size(3840, 2160), 3.0),
+  ('4:3 set', Size(1024, 768), 1.0),
+  ('21:9 set', Size(2560, 1080), 1.0),
+];
 
 void main() {
   late _Device device;
 
   setUp(() => device = _Device());
 
-  Future<void> pumpApp(WidgetTester tester) async {
-    tester.view.physicalSize = const Size(1920, 1080);
-    tester.view.devicePixelRatio = 1;
+  Future<void> pumpApp(
+    WidgetTester tester, {
+    String at = '/',
+    Size size = const Size(1920, 1080),
+    double dpr = 1,
+  }) async {
+    tester.view.physicalSize = size;
+    tester.view.devicePixelRatio = dpr;
     addTearDown(tester.view.reset);
     final router = GoRouter(
+      initialLocation: at,
       routes: [
         ShellRoute(
           builder: (context, state, child) => DeviceGate(
@@ -115,6 +156,18 @@ void main() {
             GoRoute(
               path: '/',
               builder: (_, _) => HomeView(deviceRepository: device),
+            ),
+            GoRoute(
+              path: '/series',
+              builder: (_, state) => SeriesDetailView(
+                seriesId: state.uri.queryParameters['id']!,
+                deviceRepository: device,
+              ),
+            ),
+            GoRoute(
+              path: '/story',
+              builder: (_, state) =>
+                  Text('story ${state.uri.queryParameters['id']}'),
             ),
           ],
         ),
@@ -222,4 +275,58 @@ void main() {
     }
     expect(find.text('Read now'), findsOneWidget);
   });
+
+  testWidgets(
+    'a series card opens its picture book, and an episode opens its story',
+    (tester) async {
+      await pumpApp(tester);
+
+      await tester.ensureVisible(find.text('Counting Club'));
+      await tester.tap(find.text('Counting Club'));
+      for (var i = 0; i < 4; i++) {
+        await tester.pump(const Duration(milliseconds: 300));
+      }
+      expect(device.seriesAsked, ['sr1']);
+      expect(find.text('Episodes'), findsOneWidget);
+      expect(find.text('Early school'), findsOneWidget);
+      // Counts the episodes servable now, not the three planned.
+      expect(find.text('1 episode'), findsOneWidget);
+      expect(find.text('Counting to ten.'), findsOneWidget);
+      expect(Focus.of(tester.element(find.text('Back'))).hasFocus, isTrue);
+
+      await tester.ensureVisible(find.text('One Little Duck'));
+      await tester.tap(find.text('One Little Duck'));
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(find.text('story story-a'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'a missing series says so once, without retrying, and leads home',
+    (tester) async {
+      device.seriesRefusal = const AuthException(
+        message: 'Not found',
+        statusCode: 404,
+      );
+      await pumpApp(tester, at: '/series?id=gone');
+
+      expect(find.text('Series not found'), findsOneWidget);
+      expect(device.seriesAsked, ['gone']);
+
+      await tester.tap(find.text('Back to the catalogue'));
+      for (var i = 0; i < 4; i++) {
+        await tester.pump(const Duration(milliseconds: 300));
+      }
+      expect(find.text('Read now'), findsOneWidget);
+    },
+  );
+
+  // flutter_test fails a test on any overflow the framework reports, so laying a screen out is the check.
+  for (final (name, size, dpr) in _screens) {
+    testWidgets('the guest screens lay out cleanly on a $name', (tester) async {
+      for (final at in ['/', '/series?id=sr1']) {
+        await pumpApp(tester, at: at, size: size, dpr: dpr);
+      }
+    });
+  }
 }

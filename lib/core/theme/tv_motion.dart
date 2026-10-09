@@ -9,6 +9,13 @@ abstract final class TvMotion {
 
   /// A screen's one entrance: fade and rise.
   static const Duration entrance = Duration(milliseconds: 400);
+
+  /// A catalogue card lifting under focus: a quick spring with a hint of overshoot.
+  static final SpringCurve cardLift = SpringCurve(
+    stiffness: 320,
+    damping: 26,
+    duration: const Duration(milliseconds: 400),
+  );
 }
 
 /// framer-motion's `type: "spring"` as a [Curve]; [duration] must be long enough for the spring to settle.

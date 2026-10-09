@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../ui/features/device/device_gate.dart';
 import '../../ui/features/device/views/home_view.dart';
+import '../../ui/features/device/views/series_detail_view.dart';
 import '../../ui/features/auth/views/sign_in_view.dart';
 import '../../ui/features/auth/views/forgot_password_view.dart';
 import '../../ui/features/auth/views/register_venue_view.dart';
@@ -34,7 +35,7 @@ final GlobalKey<NavigatorState> _shellNavigatorKey =
     GlobalKey<NavigatorState>();
 
 /// The room TV's screens: the device gate decides what they show, so they need no session.
-const _guestPaths = {'/'};
+const _guestPaths = {'/', '/series'};
 
 /// Reachable without a session: the ways into the console.
 const _publicPaths = {'/sign-in', '/forgot-password', '/register-venue'};
@@ -61,6 +62,14 @@ final GoRouter appRouter = GoRouter(
           DeviceGate(currentPath: state.uri.path, child: child),
       routes: [
         GoRoute(path: '/', builder: (context, state) => const HomeView()),
+        // `?id=` is one series; the bare path becomes the series list with G6.
+        GoRoute(
+          path: '/series',
+          redirect: (context, state) =>
+              state.uri.queryParameters['id'] == null ? '/' : null,
+          builder: (context, state) =>
+              SeriesDetailView(seriesId: state.uri.queryParameters['id']!),
+        ),
       ],
     ),
     GoRoute(path: '/sign-in', builder: (context, state) => const SignInView()),

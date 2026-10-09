@@ -30,11 +30,6 @@ class StoryCard extends StatelessWidget {
   static const double width = 20 * rem;
   static const _frameRadius = BorderRadius.all(Radius.circular(1.9 * rem));
   static const _artRadius = BorderRadius.all(Radius.circular(1.4 * rem));
-  static final _lift = SpringCurve(
-    stiffness: 320,
-    damping: 26,
-    duration: const Duration(milliseconds: 400),
-  );
 
   // Kept tight to the card: a wide coloured glow smeared onto the wash and read as a print error.
   static final _focusedShadow = [
@@ -70,8 +65,8 @@ class StoryCard extends StatelessWidget {
       // Scale only: a tilt would skew the D-pad's sense of where neighbouring cards are.
       builder: (context, focused) => AnimatedScale(
         scale: focused ? 1.05 : 1,
-        duration: _lift.duration,
-        curve: _lift,
+        duration: TvMotion.cardLift.duration,
+        curve: TvMotion.cardLift,
         child: AnimatedContainer(
           duration: TvMotion.focusDuration,
           width: fullWidth ? null : width,
