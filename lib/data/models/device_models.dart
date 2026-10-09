@@ -144,28 +144,6 @@ class DeviceStoryItem extends Equatable {
     if (mediaUrl != null) 'media_url': mediaUrl,
   };
 
-  DeviceStoryItem copyWith({
-    String? id,
-    String? title,
-    String? description,
-    String? artworkUrl,
-    String? duration,
-    String? language,
-    String? ageGroup,
-    String? mediaUrl,
-  }) {
-    return DeviceStoryItem(
-      id: id ?? this.id,
-      title: title ?? this.title,
-      description: description ?? this.description,
-      artworkUrl: artworkUrl ?? this.artworkUrl,
-      duration: duration ?? this.duration,
-      language: language ?? this.language,
-      ageGroup: ageGroup ?? this.ageGroup,
-      mediaUrl: mediaUrl ?? this.mediaUrl,
-    );
-  }
-
   @override
   List<Object?> get props => [
     id,

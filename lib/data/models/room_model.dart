@@ -66,32 +66,6 @@ class RoomModel extends Equatable {
     };
   }
 
-  RoomModel copyWith({
-    String? id,
-    String? propertyId,
-    String? propertyName,
-    String? roomLabel,
-    String? status,
-    String? defaultLanguage,
-    String? provisionedAt,
-    String? lastSeenAt,
-    String? createdAt,
-    String? updatedAt,
-  }) {
-    return RoomModel(
-      id: id ?? this.id,
-      propertyId: propertyId ?? this.propertyId,
-      propertyName: propertyName ?? this.propertyName,
-      roomLabel: roomLabel ?? this.roomLabel,
-      status: status ?? this.status,
-      defaultLanguage: defaultLanguage ?? this.defaultLanguage,
-      provisionedAt: provisionedAt ?? this.provisionedAt,
-      lastSeenAt: lastSeenAt ?? this.lastSeenAt,
-      createdAt: createdAt ?? this.createdAt,
-      updatedAt: updatedAt ?? this.updatedAt,
-    );
-  }
-
   @override
   List<Object?> get props => [
     id,
