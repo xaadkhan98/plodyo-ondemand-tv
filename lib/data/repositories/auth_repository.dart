@@ -7,6 +7,11 @@ import '../services/auth_api_service.dart';
 /// Global shared instance of [AuthRepository] for the TV application session.
 final AuthRepository sharedAuthRepository = AuthRepositoryImpl();
 
+/// The bearer for admin calls, or empty when signed out (the API then answers 401).
+extension AccessToken on AuthRepository {
+  String get accessToken => currentAuth?.accessToken ?? '';
+}
+
 /// Abstract repository defining authentication and user identity operations.
 abstract class AuthRepository {
   /// Sign in with user email and password.

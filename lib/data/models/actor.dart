@@ -23,6 +23,9 @@ class Actor extends Equatable {
   bool get isPartnerAdmin => role == 'PARTNER_ADMIN';
   bool get isPropertyAdmin => role == 'PROPERTY_ADMIN';
 
+  /// Partners and invites are open to super and partner admins; every call behind them 403s for a property admin.
+  bool get canAdminister => isSuperAdmin || isPartnerAdmin;
+
   factory Actor.fromJson(Map<String, dynamic> json) {
     return Actor(
       userId:

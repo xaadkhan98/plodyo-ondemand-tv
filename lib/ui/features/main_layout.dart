@@ -1,34 +1,65 @@
 import 'package:flutter/material.dart';
-import '../../core/widgets/tv_sidebar.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
-/// Main TV Application Shell coordinating dynamic Sidebar and Screen Navigation.
+import '../../core/widgets/side_nav.dart';
+import '../../data/repositories/auth_repository.dart';
+
+/// The console shell: the routed screen under the side rail, with the rail's entries filtered by role.
 class MainTvLayout extends StatelessWidget {
   const MainTvLayout({
     super.key,
     required this.currentPath,
     required this.child,
+    this.authRepository,
   });
 
   final String currentPath;
   final Widget child;
+  final AuthRepository? authRepository;
+
+  // Admin entries are hidden rather than disabled: a visible dead end reads as the app being broken.
+  static List<NavItem> _itemsFor({required bool canAdminister}) => [
+    const NavItem(
+      path: '/overview',
+      label: 'Overview',
+      icon: LucideIcons.layoutDashboard,
+      exact: true,
+    ),
+    if (canAdminister) ...const [
+      NavItem(
+        path: '/partners',
+        label: 'Partners',
+        icon: LucideIcons.building2,
+      ),
+      NavItem(path: '/invites', label: 'Invites', icon: LucideIcons.mail),
+    ],
+    const NavItem(
+      path: '/properties',
+      label: 'Properties',
+      icon: LucideIcons.landmark,
+    ),
+    const NavItem(path: '/rooms', label: 'Rooms', icon: LucideIcons.doorOpen),
+    const NavItem(path: '/people', label: 'People', icon: LucideIcons.users),
+    const NavItem(
+      path: '/settings',
+      label: 'Account',
+      icon: LucideIcons.settings,
+    ),
+  ];
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFFAF7FC),
-      body: Stack(
-        children: [
-          // Main View Content Canvas (padded by 74px to leave room for the collapsed rail)
-          Positioned.fill(left: 74, child: child),
-
-          // Floating TV Sidebar Rail on Top with Dynamic Expansion
-          Positioned(
-            left: 0,
-            top: 0,
-            bottom: 0,
-            child: TvSidebar(currentPath: currentPath),
-          ),
-        ],
+    final canAdminister =
+        (authRepository ?? sharedAuthRepository).currentUser?.canAdminister ??
+        false;
+    // Material gives the rail's labels their text theme; the screen brings its own Scaffold.
+    return Material(
+      type: MaterialType.transparency,
+      // The screen takes first focus, never the rail, so a booting console lands on content.
+      child: SideNav(
+        items: _itemsFor(canAdminister: canAdminister),
+        currentPath: currentPath,
+        child: child,
       ),
     );
   }

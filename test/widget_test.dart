@@ -761,58 +761,56 @@ void main() {
     expect(find.text('Room 101'), findsOneWidget);
   });
 
-  testWidgets('SettingsView renders account info cards and sign out flow', (
+  testWidgets('SettingsView shows the signed-in account and signs out', (
     WidgetTester tester,
   ) async {
     tester.view.physicalSize = const Size(1920, 1080);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(() => tester.view.resetPhysicalSize());
 
-    bool signedOut = false;
+    final auth = MockAuthRepository(
+      authResponse: const AuthResponse(
+        accessToken: 'token',
+        refreshToken: 'refresh',
+        tokenType: 'Bearer',
+        expiresIn: 900,
+        actor: Actor(
+          userId: 'u1',
+          email: 'xaadkhan98@gmail.com',
+          fullName: 'Saad Khan',
+          role: 'SUPER_ADMIN',
+        ),
+      ),
+    );
+    await auth.signIn(email: 'xaadkhan98@gmail.com', password: 'secret');
+    var signedOut = false;
 
     await tester.pumpWidget(
       MaterialApp(
         home: SettingsView(
-          name: 'Saad Khan',
-          email: 'xaadkhan98@gmail.com',
-          role: 'Super admin',
-          scope: 'All partners and properties',
-          onSignOut: () {
-            signedOut = true;
-          },
+          authRepository: auth,
+          onSignOut: () => signedOut = true,
         ),
       ),
     );
-    await tester.pumpAndSettle();
+    // The page title's sticker floats forever, so pump a fixed time rather than settling.
+    await tester.pump(const Duration(seconds: 1));
 
     expect(find.text('Settings'), findsOneWidget);
     expect(
       find.text('The account this console session is signed in with.'),
       findsOneWidget,
     );
-
-    expect(find.text('Account'), findsOneWidget);
-    expect(find.text('Name'), findsOneWidget);
     expect(find.text('Saad Khan'), findsOneWidget);
-    expect(find.text('Email'), findsOneWidget);
     expect(find.text('xaadkhan98@gmail.com'), findsOneWidget);
-    expect(find.text('Role'), findsOneWidget);
     expect(find.text('Super admin'), findsOneWidget);
-    expect(find.text('Scope'), findsOneWidget);
     expect(find.text('All partners and properties'), findsOneWidget);
-
-    expect(find.text('Sign out'), findsWidgets);
     expect(find.textContaining('Ends every session started'), findsOneWidget);
 
+    // Signs out at once, as in the reference: no confirmation dialog.
     await tester.tap(find.text('Sign out').last);
-    await tester.pumpAndSettle();
-
-    expect(find.text('Sign out this TV?'), findsOneWidget);
-    expect(find.text('Cancel'), findsOneWidget);
-
-    await tester.tap(find.widgetWithText(ElevatedButton, 'Sign out'));
-    await tester.pumpAndSettle();
-
+    await tester.pump(const Duration(milliseconds: 300));
     expect(signedOut, isTrue);
+    expect(auth.currentUser, isNull);
   });
 }

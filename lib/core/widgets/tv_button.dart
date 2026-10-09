@@ -22,6 +22,7 @@ class TvButton extends StatelessWidget {
     this.variant = TvButtonVariant.primary,
     this.size = TvButtonSize.lg,
     this.icon,
+    this.trailingIcon,
     this.disabled = false,
     this.busy = false,
     this.busyLabel,
@@ -35,6 +36,9 @@ class TvButton extends StatelessWidget {
   final TvButtonVariant variant;
   final TvButtonSize size;
   final IconData? icon;
+
+  /// After the label, e.g. the chevron on "Next".
+  final IconData? trailingIcon;
   final bool disabled;
 
   /// Shows the loading dots and [busyLabel], and swallows selection without giving up focus.
@@ -134,6 +138,7 @@ class TvButton extends StatelessWidget {
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
+                      if (trailingIcon != null && !busy) Icon(trailingIcon),
                     ],
                   ),
                 ),
