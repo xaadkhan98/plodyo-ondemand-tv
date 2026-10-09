@@ -156,10 +156,11 @@ class MetaItem extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         spacing: 0.375 * rem,
         children: [
-          leading ??
+          // No placeholder when there is no icon: the row spacing would indent the text.
+          ?(leading ??
               (icon == null
-                  ? const SizedBox.shrink()
-                  : Icon(icon, size: rem, color: TvColors.mutedForeground)),
+                  ? null
+                  : Icon(icon, size: rem, color: TvColors.mutedForeground))),
           Flexible(
             child: Text(text, maxLines: 1, overflow: TextOverflow.ellipsis),
           ),

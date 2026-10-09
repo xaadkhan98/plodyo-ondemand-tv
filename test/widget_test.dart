@@ -268,6 +268,9 @@ class _MockPartnersRepo implements PartnersRepository {
 }
 
 class _MockInvitesRepo implements InvitesRepository {
+  /// Row actions in the order the screen made them.
+  final calls = <String>[];
+
   final List<InviteModel> _invites = [
     const InviteModel(
       id: 'inv-1',
@@ -318,6 +321,7 @@ class _MockInvitesRepo implements InvitesRepository {
     required String accessToken,
     required String inviteId,
   }) async {
+    calls.add('resend:$inviteId');
     return _invites.firstWhere((i) => i.id == inviteId);
   }
 
@@ -326,6 +330,7 @@ class _MockInvitesRepo implements InvitesRepository {
     required String accessToken,
     required String inviteId,
   }) async {
+    calls.add('revoke:$inviteId');
     return 'Invite revoked.';
   }
 }
@@ -680,17 +685,10 @@ void main() {
       tester.view.devicePixelRatio = 1.0;
       addTearDown(() => tester.view.resetPhysicalSize());
 
-      String? lastAction;
+      final invites = _MockInvitesRepo();
 
       await tester.pumpWidget(
-        MaterialApp(
-          home: InvitesView(
-            invitesRepository: _MockInvitesRepo(),
-            onInviteAction: (action) {
-              lastAction = action;
-            },
-          ),
-        ),
+        MaterialApp(home: InvitesView(invitesRepository: invites)),
       );
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 500));
@@ -714,11 +712,11 @@ void main() {
 
       await tester.tap(find.text('Resend').first);
       await tester.pump(const Duration(milliseconds: 300));
-      expect(lastAction, 'resend_inv-1');
+      expect(invites.calls.last, 'resend:inv-1');
 
       await tester.tap(find.text('Revoke').first);
       await tester.pump(const Duration(milliseconds: 300));
-      expect(lastAction, 'revoke_inv-1');
+      expect(invites.calls.last, 'revoke:inv-1');
     },
   );
 

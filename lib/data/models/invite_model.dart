@@ -39,6 +39,12 @@ class InviteModel extends Equatable {
   bool get isExpired => status == 'EXPIRED';
   bool get isRevoked => status == 'REVOKED';
 
+  /// Refused for an accepted or revoked invite.
+  bool get canResend => isPending || isExpired;
+
+  /// Refused once accepted, and a no-op once revoked.
+  bool get canRevoke => !isAccepted && !isRevoked;
+
   factory InviteModel.fromJson(Map<String, dynamic> json) {
     return InviteModel(
       id: json['id'] as String? ?? '',
