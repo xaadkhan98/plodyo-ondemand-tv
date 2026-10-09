@@ -53,7 +53,15 @@ class TvCanvas extends StatelessWidget {
               // Matches the reference's `text-size-adjust: 100%`: a TV font setting must not reflow a fixed canvas.
               textScaler: TextScaler.noScaling,
             ),
-            child: child,
+            // A D-pad move only focuses; the target's own reveal glides it into view, where Flutter's would jump.
+            child: FocusTraversalGroup(
+              policy: ReadingOrderTraversalPolicy(
+                requestFocusCallback:
+                    (node, {alignment, alignmentPolicy, curve, duration}) =>
+                        node.requestFocus(),
+              ),
+              child: child,
+            ),
           ),
         ),
       ),

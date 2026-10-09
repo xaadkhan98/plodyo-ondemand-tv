@@ -1,4 +1,6 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 
 import '../theme/tv_colors.dart';
 import '../theme/tv_scale.dart';
@@ -38,6 +40,9 @@ class TvFocusable extends StatefulWidget {
 class _TvFocusableState extends State<TvFocusable> {
   static const _revealDuration = Duration(milliseconds: 250);
 
+  // Room for the ring and a card's lift, which the reference's box-only reveal leaves clipped at the edge.
+  static const _revealMargin = rem;
+
   FocusNode? _ownNode;
   bool _focused = false;
 
@@ -52,23 +57,41 @@ class _TvFocusableState extends State<TvFocusable> {
   void _onFocusChange(bool focused) {
     setState(() => _focused = focused);
     // However focus arrived — D-pad, autofocus, code — bring the target into view, as the reference's
-    // scrollIntoView({block: "nearest"}) does. Flutter only does this for D-pad moves.
+    // smooth scrollIntoView({block: "nearest"}) does. TvCanvas stops D-pad moves jumping there first.
     if (focused) WidgetsBinding.instance.addPostFrameCallback((_) => _reveal());
   }
 
-  /// Scrolls the least distance that shows the whole target: the nearest edge, or not at all.
+  /// Scrolls each enclosing list the least distance that shows the target and its margin: the nearest edge, or not at all.
   void _reveal() {
     if (!mounted || !_node.hasFocus) return;
-    for (final policy in [
-      ScrollPositionAlignmentPolicy.keepVisibleAtEnd,
-      ScrollPositionAlignmentPolicy.keepVisibleAtStart,
-    ]) {
-      Scrollable.ensureVisible(
-        context,
-        alignmentPolicy: policy,
-        duration: _revealDuration,
-        curve: Curves.easeOut,
+    final target = context.findRenderObject()!;
+    final rect = target.paintBounds.inflate(_revealMargin);
+    var inner = context;
+    for (
+      var scrollable = Scrollable.maybeOf(inner);
+      scrollable != null;
+      scrollable = Scrollable.maybeOf(inner)
+    ) {
+      final position = scrollable.position;
+      final viewport = RenderAbstractViewport.of(inner.findRenderObject());
+      double align(double edge) => viewport
+          .getOffsetToReveal(target, edge, rect: rect, axis: position.axis)
+          .offset;
+      final (start, end) = (align(0), align(1));
+      // Between the two offsets it is already in view; one larger than the viewport shows its start.
+      final to = clampDouble(
+        end <= start ? clampDouble(position.pixels, end, start) : start,
+        position.minScrollExtent,
+        position.maxScrollExtent,
       );
+      if (to != position.pixels) {
+        position.animateTo(
+          to,
+          duration: _revealDuration,
+          curve: Curves.easeOut,
+        );
+      }
+      inner = scrollable.context;
     }
   }
 
