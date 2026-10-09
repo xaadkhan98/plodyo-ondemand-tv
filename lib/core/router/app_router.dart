@@ -5,6 +5,7 @@ import '../../ui/features/device/views/home_view.dart';
 import '../../ui/features/device/views/player_view.dart';
 import '../../ui/features/device/views/series_detail_view.dart';
 import '../../ui/features/device/views/series_list_view.dart';
+import '../../ui/features/device/views/search_view.dart';
 import '../../ui/features/device/views/stories_view.dart';
 import '../../data/models/story_models.dart';
 import '../../ui/features/auth/views/sign_in_view.dart';
@@ -39,7 +40,14 @@ final GlobalKey<NavigatorState> _shellNavigatorKey =
     GlobalKey<NavigatorState>();
 
 /// The room TV's screens: the device gate decides what they show, so they need no session.
-const _guestPaths = {'/', '/stories', '/series', '/learning', '/story'};
+const _guestPaths = {
+  '/',
+  '/stories',
+  '/series',
+  '/learning',
+  '/search',
+  '/story',
+};
 
 /// Reachable without a session: the ways into the console.
 const _publicPaths = {'/sign-in', '/forgot-password', '/register-venue'};
@@ -83,6 +91,10 @@ final GoRouter appRouter = GoRouter(
           path: '/learning',
           builder: (context, state) =>
               const SeriesListView(type: SeriesType.learning),
+        ),
+        GoRoute(
+          path: '/search',
+          builder: (context, state) => const SearchView(),
         ),
         // A query rather than a path segment, as the reference: a story is only ever opened by its id.
         GoRoute(

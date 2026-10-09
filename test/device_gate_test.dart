@@ -37,7 +37,10 @@ void main() {
       expect(find.text('Picked for this room'), findsOneWidget);
       expect(find.text('Read now'), findsOneWidget);
       // By their subtitles: the rail's labels carry the same names.
-      expect(find.text('One story at a time, start to finish.'), findsOneWidget);
+      expect(
+        find.text('One story at a time, start to finish.'),
+        findsOneWidget,
+      );
       expect(
         find.text('Follow the same friends through every episode.'),
         findsOneWidget,

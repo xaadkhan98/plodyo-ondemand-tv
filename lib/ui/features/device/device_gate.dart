@@ -13,7 +13,7 @@ import 'device_controller.dart';
 import 'views/pair_view.dart';
 import 'views/welcome_view.dart';
 
-/// The room TV's screens under the guest rail. Search joins when it lands.
+/// The room TV's screens under the guest rail. This TV is left off: support reaches it by the blue button.
 const _items = [
   NavItem(path: '/', label: 'Home', icon: LucideIcons.house, exact: true),
   NavItem(path: '/stories', label: 'Stories', icon: LucideIcons.library),
@@ -23,6 +23,7 @@ const _items = [
     label: 'Learning',
     icon: LucideIcons.graduationCap,
   ),
+  NavItem(path: '/search', label: 'Search', icon: LucideIcons.search),
 ];
 
 /// Renders the guest screens only for a TV paired to a live room. Short of that it shows the way forward:

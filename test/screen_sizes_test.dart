@@ -30,6 +30,7 @@ void main() {
     '/stories',
     '/series',
     '/learning',
+    '/search',
     '/series?id=sr1',
     '/story?id=gone',
     '/story?id=film',

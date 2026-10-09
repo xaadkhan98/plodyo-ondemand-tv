@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
@@ -11,6 +9,7 @@ import '../../../../core/theme/tv_typography.dart';
 import '../../../../core/widgets/dashed_border.dart';
 import '../../../../core/widgets/loading.dart';
 import '../../../../core/widgets/page_title.dart';
+import '../../../../core/widgets/rocking.dart';
 import '../../../../core/widgets/tv_focusable.dart';
 import '../../../../data/models/auth_exception.dart';
 import '../../../../data/models/paginated_response.dart';
@@ -290,30 +289,10 @@ class _GridError extends StatelessWidget {
 }
 
 /// Nothing under these filters: a rocking pile of books and the two things worth changing.
-class _Empty extends StatefulWidget {
+class _Empty extends StatelessWidget {
   const _Empty();
 
-  @override
-  State<_Empty> createState() => _EmptyState();
-}
-
-class _EmptyState extends State<_Empty> with SingleTickerProviderStateMixin {
   static const _radius = BorderRadius.all(Radius.circular(1.5 * rem));
-
-  late final AnimationController _rock = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 1300),
-  )..repeat(reverse: true);
-  late final Animation<double> _swing = CurvedAnimation(
-    parent: _rock,
-    curve: Curves.easeInOut,
-  );
-
-  @override
-  void dispose() {
-    _rock.dispose();
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -327,20 +306,10 @@ class _EmptyState extends State<_Empty> with SingleTickerProviderStateMixin {
         ),
         child: Column(
           children: [
-            // Rocks from -7° to 7° rising 8px, and back, as one 2.6s loop.
-            AnimatedBuilder(
-              animation: _swing,
-              builder: (context, child) {
-                final t = _swing.value;
-                return Transform.translate(
-                  offset: Offset(0, -8 * px * t),
-                  child: Transform.rotate(
-                    angle: (-7 + 14 * t) * math.pi / 180,
-                    child: child,
-                  ),
-                );
-              },
-              child: const ExcludeSemantics(
+            const Rocking(
+              tilt: 7,
+              rise: 8 * px,
+              child: ExcludeSemantics(
                 child: Text(
                   '📚',
                   style: TextStyle(fontSize: 3.75 * rem, height: 1),

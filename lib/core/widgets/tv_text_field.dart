@@ -4,6 +4,7 @@ import '../theme/tv_colors.dart';
 import '../theme/tv_scale.dart';
 import '../theme/tv_shadows.dart';
 import '../theme/tv_typography.dart';
+import 'blinking_caret.dart';
 import 'tv_focusable.dart';
 
 /// One line of remote-entered text. Never a native field: that summons the TV's IME, which covers half
@@ -113,57 +114,19 @@ class TvTextField extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                    if (active) _Caret(height: valueStyle.fontSize! * 1.1),
+                    if (active)
+                      Padding(
+                        padding: const EdgeInsets.only(left: 0.25 * rem),
+                        child: BlinkingCaret(
+                          height: valueStyle.fontSize! * 1.1,
+                        ),
+                      ),
                   ],
                 ),
               ],
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-/// The blinking caret; the one thing on a form allowed to loop, because it is the cursor.
-class _Caret extends StatefulWidget {
-  const _Caret({required this.height});
-
-  final double height;
-
-  @override
-  State<_Caret> createState() => _CaretState();
-}
-
-class _CaretState extends State<_Caret> with SingleTickerProviderStateMixin {
-  late final AnimationController _blink = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 1100),
-  )..repeat();
-
-  @override
-  void dispose() {
-    _blink.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(left: 0.25 * rem),
-      child: FadeTransition(
-        // opacity [1, 0, 1] over 1.1s, as in the reference.
-        opacity: _blink.drive(
-          TweenSequence([
-            TweenSequenceItem(tween: Tween(begin: 1.0, end: 0.0), weight: 1),
-            TweenSequenceItem(tween: Tween(begin: 0.0, end: 1.0), weight: 1),
-          ]),
-        ),
-        child: SizedBox(
-          width: 0.125 * rem,
-          height: widget.height,
-          child: const ColoredBox(color: TvColors.primary),
-        ),
       ),
     );
   }

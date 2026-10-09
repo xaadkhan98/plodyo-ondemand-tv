@@ -6,6 +6,7 @@ import '../../../../core/theme/tv_colors.dart';
 import '../../../../core/theme/tv_scale.dart';
 import '../../../../core/theme/tv_shadows.dart';
 import '../../../../core/theme/tv_typography.dart';
+import '../../../../core/widgets/blinking_caret.dart';
 import '../../../../core/widgets/dashed_border.dart';
 import '../../../../core/widgets/on_screen_keyboard.dart';
 import '../../../../core/widgets/page_layout.dart';
@@ -299,7 +300,11 @@ class _Slot extends StatelessWidget {
             color: TvColors.primaryInk,
           ),
         ),
-        (false, true) => const _BlinkingBar(),
+        (false, true) => const BlinkingCaret(
+          width: 0.25 * rem,
+          height: 1.6 * rem,
+          rounded: true,
+        ),
         _ => null,
       },
     );
@@ -310,47 +315,5 @@ class _Slot extends StatelessWidget {
             foregroundPainter: const DashedBorder(radius: _radius),
             child: box,
           );
-  }
-}
-
-/// The caret in the next empty tile; the one thing on the screen allowed to loop, because it is the cursor.
-class _BlinkingBar extends StatefulWidget {
-  const _BlinkingBar();
-
-  @override
-  State<_BlinkingBar> createState() => _BlinkingBarState();
-}
-
-class _BlinkingBarState extends State<_BlinkingBar>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _blink = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 1100),
-  )..repeat();
-
-  @override
-  void dispose() {
-    _blink.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return FadeTransition(
-      opacity: _blink.drive(
-        TweenSequence([
-          TweenSequenceItem(tween: Tween(begin: 1.0, end: 0.0), weight: 1),
-          TweenSequenceItem(tween: Tween(begin: 0.0, end: 1.0), weight: 1),
-        ]),
-      ),
-      child: Container(
-        width: 0.25 * rem,
-        height: 1.6 * rem,
-        decoration: BoxDecoration(
-          color: TvColors.primary,
-          borderRadius: BorderRadius.circular(999),
-        ),
-      ),
-    );
   }
 }
