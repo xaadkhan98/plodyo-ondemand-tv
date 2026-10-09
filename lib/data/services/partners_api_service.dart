@@ -106,7 +106,7 @@ class PartnersApiService {
     return PartnerModel.fromJson(res as Map<String, dynamic>);
   }
 
-  /// POST /ondemand/admin/partners
+  /// POST /ondemand/admin/partners — manual onboarding (super admin). Optional fields are omitted, not sent empty.
   Future<PartnerModel> createPartner({
     required String accessToken,
     required String name,
@@ -116,6 +116,7 @@ class PartnersApiService {
     String? phone,
     String? contractReference,
     required int roomLimit,
+    String? contentTier,
     String? clientSecret,
   }) async {
     final body = <String, dynamic>{
@@ -128,6 +129,7 @@ class PartnersApiService {
       if (contractReference != null && contractReference.isNotEmpty)
         'contract_reference': contractReference,
       'room_limit': roomLimit,
+      'content_tier': ?contentTier,
     };
 
     final res = await _client.post(
@@ -139,6 +141,8 @@ class PartnersApiService {
     return PartnerModel.fromJson(res as Map<String, dynamic>);
   }
 
+  /// PATCH /ondemand/admin/partners/:id — edits contact details. Null means unchanged; an empty string clears.
+  /// [contractReference] and [contentTier] must stay null for a partner admin: their presence alone is a 403.
   Future<PartnerModel> updatePartner({
     required String accessToken,
     required String partnerId,
@@ -147,17 +151,16 @@ class PartnersApiService {
     String? contactEmail,
     String? phone,
     String? contractReference,
+    String? contentTier,
     String? clientSecret,
   }) async {
     final body = <String, dynamic>{
-      if (name != null && name.isNotEmpty) 'name': name,
-      if (contactName != null && contactName.isNotEmpty)
-        'contact_name': contactName,
-      if (contactEmail != null && contactEmail.isNotEmpty)
-        'contact_email': contactEmail,
-      if (phone != null && phone.isNotEmpty) 'phone': phone,
-      if (contractReference != null && contractReference.isNotEmpty)
-        'contract_reference': contractReference,
+      'name': ?name,
+      'contact_name': ?contactName,
+      'contact_email': ?contactEmail,
+      'phone': ?phone,
+      'contract_reference': ?contractReference,
+      'content_tier': ?contentTier,
     };
 
     final res = await _client.patch(

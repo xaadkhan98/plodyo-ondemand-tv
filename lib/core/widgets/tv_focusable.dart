@@ -36,6 +36,8 @@ class TvFocusable extends StatefulWidget {
 }
 
 class _TvFocusableState extends State<TvFocusable> {
+  static const _revealDuration = Duration(milliseconds: 250);
+
   FocusNode? _ownNode;
   bool _focused = false;
 
@@ -45,6 +47,29 @@ class _TvFocusableState extends State<TvFocusable> {
   void dispose() {
     _ownNode?.dispose();
     super.dispose();
+  }
+
+  void _onFocusChange(bool focused) {
+    setState(() => _focused = focused);
+    // However focus arrived — D-pad, autofocus, code — bring the target into view, as the reference's
+    // scrollIntoView({block: "nearest"}) does. Flutter only does this for D-pad moves.
+    if (focused) WidgetsBinding.instance.addPostFrameCallback((_) => _reveal());
+  }
+
+  /// Scrolls the least distance that shows the whole target: the nearest edge, or not at all.
+  void _reveal() {
+    if (!mounted || !_node.hasFocus) return;
+    for (final policy in [
+      ScrollPositionAlignmentPolicy.keepVisibleAtEnd,
+      ScrollPositionAlignmentPolicy.keepVisibleAtStart,
+    ]) {
+      Scrollable.ensureVisible(
+        context,
+        alignmentPolicy: policy,
+        duration: _revealDuration,
+        curve: Curves.easeOut,
+      );
+    }
   }
 
   void _select() {
@@ -68,7 +93,7 @@ class _TvFocusableState extends State<TvFocusable> {
         mouseCursor: widget.disabled
             ? MouseCursor.defer
             : SystemMouseCursors.click,
-        onFocusChange: (value) => setState(() => _focused = value),
+        onFocusChange: _onFocusChange,
         // The D-pad resumes from wherever the pointer left off.
         onShowHoverHighlight: (hovered) {
           if (hovered && !widget.disabled) _node.requestFocus();

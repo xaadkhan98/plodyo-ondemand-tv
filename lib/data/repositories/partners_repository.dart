@@ -51,6 +51,25 @@ abstract class PartnersRepository {
     String? phone,
     String? contractReference,
     required int roomLimit,
+    String? contentTier,
+  });
+
+  /// Null means unchanged; an empty string clears. Contract reference and tier are super admin only.
+  Future<PartnerModel> updatePartner({
+    required String accessToken,
+    required String partnerId,
+    String? name,
+    String? contactName,
+    String? contactEmail,
+    String? phone,
+    String? contractReference,
+    String? contentTier,
+  });
+
+  /// Lifts a suspension; the only state the API accepts it in.
+  Future<PartnerModel> activatePartner({
+    required String accessToken,
+    required String partnerId,
   });
 }
 
@@ -147,6 +166,7 @@ class PartnersRepositoryImpl implements PartnersRepository {
     String? phone,
     String? contractReference,
     required int roomLimit,
+    String? contentTier,
   }) {
     return _apiService.createPartner(
       accessToken: accessToken,
@@ -157,6 +177,41 @@ class PartnersRepositoryImpl implements PartnersRepository {
       phone: phone,
       contractReference: contractReference,
       roomLimit: roomLimit,
+      contentTier: contentTier,
+    );
+  }
+
+  @override
+  Future<PartnerModel> updatePartner({
+    required String accessToken,
+    required String partnerId,
+    String? name,
+    String? contactName,
+    String? contactEmail,
+    String? phone,
+    String? contractReference,
+    String? contentTier,
+  }) {
+    return _apiService.updatePartner(
+      accessToken: accessToken,
+      partnerId: partnerId,
+      name: name,
+      contactName: contactName,
+      contactEmail: contactEmail,
+      phone: phone,
+      contractReference: contractReference,
+      contentTier: contentTier,
+    );
+  }
+
+  @override
+  Future<PartnerModel> activatePartner({
+    required String accessToken,
+    required String partnerId,
+  }) {
+    return _apiService.activatePartner(
+      accessToken: accessToken,
+      partnerId: partnerId,
     );
   }
 }

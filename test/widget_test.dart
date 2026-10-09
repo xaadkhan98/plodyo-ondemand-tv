@@ -231,8 +231,31 @@ class _MockPartnersRepo implements PartnersRepository {
     String? phone,
     String? contractReference,
     required int roomLimit,
+    String? contentTier,
   }) async {
     return _partners.first;
+  }
+
+  @override
+  Future<PartnerModel> updatePartner({
+    required String accessToken,
+    required String partnerId,
+    String? name,
+    String? contactName,
+    String? contactEmail,
+    String? phone,
+    String? contractReference,
+    String? contentTier,
+  }) async {
+    return _partners.firstWhere((p) => p.id == partnerId);
+  }
+
+  @override
+  Future<PartnerModel> activatePartner({
+    required String accessToken,
+    required String partnerId,
+  }) async {
+    return _partners.firstWhere((p) => p.id == partnerId);
   }
 
   @override

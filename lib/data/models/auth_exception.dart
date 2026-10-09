@@ -80,3 +80,7 @@ class AuthException implements Exception {
   @override
   String toString() => message;
 }
+
+/// The API's own message for [error], or [fallback] for anything that is not an API error.
+String messageOf(Object error, String fallback) =>
+    error is AuthException ? error.message : fallback;

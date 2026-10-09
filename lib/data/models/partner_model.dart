@@ -12,6 +12,7 @@ class PartnerModel extends Equatable {
     this.phone,
     this.contractReference,
     required this.roomLimit,
+    this.contentTier = 'TIER_1',
     this.reviewedAt,
     this.reviewedBy,
     this.rejectionReason,
@@ -21,7 +22,7 @@ class PartnerModel extends Equatable {
 
   final String id;
   final String name;
-  final String partnerType; // "INDEPENDENT" | "HOST"
+  final String partnerType; // "CHAIN" | "INDEPENDENT" | "HOST"
   final String
   status; // "PENDING_APPROVAL" | "ACTIVE" | "SUSPENDED" | "REJECTED"
   final String contactEmail;
@@ -29,6 +30,9 @@ class PartnerModel extends Equatable {
   final String? phone;
   final String? contractReference;
   final int roomLimit;
+
+  /// How much of the library its rooms may browse: TIER_1 (all) to TIER_3.
+  final String contentTier;
   final String? reviewedAt;
   final String? reviewedBy;
   final String? rejectionReason;
@@ -39,6 +43,11 @@ class PartnerModel extends Equatable {
   bool get isActive => status == 'ACTIVE';
   bool get isSuspended => status == 'SUSPENDED';
   bool get isRejected => status == 'REJECTED';
+
+  // Offered only in the state the API accepts each in; anything else is a 400.
+  bool get canReview => isPendingApproval;
+  bool get canSuspend => isActive;
+  bool get canActivate => isSuspended;
 
   factory PartnerModel.fromJson(Map<String, dynamic> json) {
     return PartnerModel(
@@ -51,6 +60,7 @@ class PartnerModel extends Equatable {
       phone: json['phone'] as String?,
       contractReference: json['contract_reference'] as String?,
       roomLimit: (json['room_limit'] as num?)?.toInt() ?? 0,
+      contentTier: json['content_tier'] as String? ?? 'TIER_1',
       reviewedAt: json['reviewed_at'] as String?,
       reviewedBy: json['reviewed_by'] as String?,
       rejectionReason: json['rejection_reason'] as String?,
@@ -70,46 +80,13 @@ class PartnerModel extends Equatable {
       'phone': phone,
       'contract_reference': contractReference,
       'room_limit': roomLimit,
+      'content_tier': contentTier,
       'reviewed_at': reviewedAt,
       'reviewed_by': reviewedBy,
       'rejection_reason': rejectionReason,
       'created_at': createdAt,
       'updated_at': updatedAt,
     };
-  }
-
-  PartnerModel copyWith({
-    String? id,
-    String? name,
-    String? partnerType,
-    String? status,
-    String? contactEmail,
-    String? contactName,
-    String? phone,
-    String? contractReference,
-    int? roomLimit,
-    String? reviewedAt,
-    String? reviewedBy,
-    String? rejectionReason,
-    String? createdAt,
-    String? updatedAt,
-  }) {
-    return PartnerModel(
-      id: id ?? this.id,
-      name: name ?? this.name,
-      partnerType: partnerType ?? this.partnerType,
-      status: status ?? this.status,
-      contactEmail: contactEmail ?? this.contactEmail,
-      contactName: contactName ?? this.contactName,
-      phone: phone ?? this.phone,
-      contractReference: contractReference ?? this.contractReference,
-      roomLimit: roomLimit ?? this.roomLimit,
-      reviewedAt: reviewedAt ?? this.reviewedAt,
-      reviewedBy: reviewedBy ?? this.reviewedBy,
-      rejectionReason: rejectionReason ?? this.rejectionReason,
-      createdAt: createdAt ?? this.createdAt,
-      updatedAt: updatedAt ?? this.updatedAt,
-    );
   }
 
   @override
@@ -123,6 +100,7 @@ class PartnerModel extends Equatable {
     phone,
     contractReference,
     roomLimit,
+    contentTier,
     reviewedAt,
     reviewedBy,
     rejectionReason,

@@ -68,13 +68,8 @@ class _TvPairingViewState extends State<TvPairingView> {
       widget.onPaired != null ? widget.onPaired!() : context.go('/home');
     } catch (e) {
       // The API does not say whether a code was wrong or expired; staff go back to the console either way.
-      if (mounted) {
-        setState(
-          () => _error = e is AuthException
-              ? e.message
-              : 'Could not pair this TV.',
-        );
-      }
+      if (!mounted) return;
+      setState(() => _error = messageOf(e, 'Could not pair this TV.'));
     } finally {
       if (mounted) setState(() => _pairing = false);
     }

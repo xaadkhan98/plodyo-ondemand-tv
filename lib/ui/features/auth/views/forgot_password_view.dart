@@ -14,7 +14,7 @@ import '../../../../core/widgets/tv_button.dart';
 import '../../../../core/widgets/tv_text_field.dart';
 import '../../../../data/models/auth_exception.dart';
 import '../../../../data/repositories/auth_repository.dart';
-import '../widgets/auth_form_layout.dart';
+import '../../../../core/widgets/keyboard_form_layout.dart';
 
 enum _Field { email }
 
@@ -63,13 +63,8 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> {
           .forgotPassword(email: email.trim());
       if (mounted) setState(() => _acknowledgement = message);
     } catch (e) {
-      if (mounted) {
-        setState(
-          () => _error = e is AuthException
-              ? e.message
-              : 'Could not send a reset link.',
-        );
-      }
+      if (!mounted) return;
+      setState(() => _error = messageOf(e, 'Could not send a reset link.'));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -102,7 +97,7 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> {
           child: Entrance(
             rise: 20,
             duration: const Duration(milliseconds: 450),
-            child: AuthFormLayout(
+            child: KeyboardFormLayout(
               keyboardLabel: 'Entering email address',
               keyboard: OnScreenKeyboard(
                 controller: _entry,
@@ -111,9 +106,9 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> {
               form: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const AuthTitle('Reset your password'),
+                  const ScreenHeading('Reset your password', tight: true),
                   const SizedBox(height: 0.5 * rem),
-                  const AuthSubtitle(
+                  const ScreenSubtitle(
                     'Enter the account email and we will send a link to choose a new password.',
                     maxCh: 46,
                   ),

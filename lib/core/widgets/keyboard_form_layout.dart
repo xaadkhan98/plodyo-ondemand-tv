@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/theme/tv_colors.dart';
-import '../../../../core/theme/tv_scale.dart';
-import '../../../../core/theme/tv_typography.dart';
+import '../theme/tv_colors.dart';
+import '../theme/tv_scale.dart';
+import '../theme/tv_typography.dart';
 
-/// The auth screens' two columns: the form, then the keyboard that feeds it.
-class AuthFormLayout extends StatelessWidget {
-  const AuthFormLayout({
+/// A text-entry screen's two columns: the form, then the keyboard that feeds it.
+class KeyboardFormLayout extends StatelessWidget {
+  const KeyboardFormLayout({
     super.key,
     required this.form,
     required this.keyboard,
@@ -14,6 +14,7 @@ class AuthFormLayout extends StatelessWidget {
     this.keyboardOffset = 0,
     this.maxWidth = 87.5 * rem,
     this.alignTop = false,
+    this.gap = 4 * rem,
   });
 
   final Widget form;
@@ -29,6 +30,9 @@ class AuthFormLayout extends StatelessWidget {
   /// Top-align a form too tall to centre against the keyboard.
   final bool alignTop;
 
+  /// Between the form and the keyboard.
+  final double gap;
+
   @override
   Widget build(BuildContext context) {
     return ConstrainedBox(
@@ -37,7 +41,7 @@ class AuthFormLayout extends StatelessWidget {
         crossAxisAlignment: alignTop
             ? CrossAxisAlignment.start
             : CrossAxisAlignment.center,
-        spacing: 4 * rem,
+        spacing: gap,
         children: [
           Expanded(child: form),
           Transform.translate(
@@ -66,11 +70,14 @@ class AuthFormLayout extends StatelessWidget {
   }
 }
 
-/// An auth screen's heading: Fredoka at the largest step.
-class AuthTitle extends StatelessWidget {
-  const AuthTitle(this.text, {super.key});
+/// A form or detail screen's `h1`: Fredoka at the largest step.
+class ScreenHeading extends StatelessWidget {
+  const ScreenHeading(this.text, {super.key, this.tight = false});
 
   final String text;
+
+  /// Tailwind's `leading-tight`, which the auth screens set.
+  final bool tight;
 
   @override
   Widget build(BuildContext context) {
@@ -79,15 +86,15 @@ class AuthTitle extends StatelessWidget {
       style: TvText.x3l.copyWith(
         fontFamily: TvText.fredoka,
         fontWeight: FontWeight.w600,
-        height: TvText.tight,
+        height: tight ? TvText.tight : null,
       ),
     );
   }
 }
 
-/// The line of context under an [AuthTitle], capped at [maxCh] characters like the reference.
-class AuthSubtitle extends StatelessWidget {
-  const AuthSubtitle(this.text, {super.key, required this.maxCh});
+/// The line of context under a [ScreenHeading], capped at [maxCh] characters like the reference.
+class ScreenSubtitle extends StatelessWidget {
+  const ScreenSubtitle(this.text, {super.key, required this.maxCh});
 
   final String text;
   final int maxCh;

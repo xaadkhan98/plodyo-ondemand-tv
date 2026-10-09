@@ -35,6 +35,7 @@ class ChoiceGroup<T> extends StatelessWidget {
     this.label,
     this.layout = ChoiceLayout.cards,
     this.disabled = false,
+    this.autofocus = false,
   });
 
   final T value;
@@ -43,6 +44,9 @@ class ChoiceGroup<T> extends StatelessWidget {
   final String? label;
   final ChoiceLayout layout;
   final bool disabled;
+
+  /// Lands first focus on the selected option.
+  final bool autofocus;
 
   @override
   Widget build(BuildContext context) {
@@ -80,6 +84,7 @@ class ChoiceGroup<T> extends StatelessWidget {
     final radius = BorderRadius.circular(cards ? rem : 999);
 
     return TvFocusable(
+      autofocus: autofocus && selected,
       onSelect: () => onChanged(option.value),
       disabled: disabled,
       borderRadius: radius,

@@ -15,7 +15,7 @@ import '../../../../core/widgets/tv_button.dart';
 import '../../../../core/widgets/tv_text_field.dart';
 import '../../../../data/models/auth_exception.dart';
 import '../../../../data/repositories/auth_repository.dart';
-import '../widgets/auth_form_layout.dart';
+import '../../../../core/widgets/keyboard_form_layout.dart';
 
 enum _Field {
   name('Business name', 'Grand Plaza Hotel', LucideIcons.building2, [
@@ -141,13 +141,8 @@ class _RegisterVenueViewState extends State<RegisterVenueView> {
         ),
       );
     } catch (e) {
-      if (mounted) {
-        setState(
-          () => _error = e is AuthException
-              ? e.message
-              : 'Could not send the registration.',
-        );
-      }
+      if (!mounted) return;
+      setState(() => _error = messageOf(e, 'Could not send the registration.'));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -185,7 +180,7 @@ class _RegisterVenueViewState extends State<RegisterVenueView> {
             duration: const Duration(milliseconds: 450),
             child: ListenableBuilder(
               listenable: _entry,
-              builder: (context, _) => AuthFormLayout(
+              builder: (context, _) => KeyboardFormLayout(
                 maxWidth: 93.75 * rem,
                 alignTop: true,
                 keyboardLabel:
@@ -198,9 +193,9 @@ class _RegisterVenueViewState extends State<RegisterVenueView> {
                 form: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    const AuthTitle('Register your venue'),
+                    const ScreenHeading('Register your venue', tight: true),
                     const SizedBox(height: 0.5 * rem),
-                    const AuthSubtitle(
+                    const ScreenSubtitle(
                       'Tell us who you are and we will set up a Plodyo account for your rooms.',
                       maxCh: 52,
                     ),

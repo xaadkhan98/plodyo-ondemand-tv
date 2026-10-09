@@ -15,7 +15,7 @@ import '../../../../core/widgets/tv_text_field.dart';
 import '../../../../data/repositories/auth_repository.dart';
 import '../cubit/sign_in_cubit.dart';
 import '../cubit/sign_in_state.dart';
-import '../widgets/auth_form_layout.dart';
+import '../../../../core/widgets/keyboard_form_layout.dart';
 
 enum _Field { email, password }
 
@@ -87,7 +87,7 @@ class _SignInViewState extends State<SignInView> {
               child: Entrance(
                 rise: 20,
                 duration: const Duration(milliseconds: 450),
-                child: AuthFormLayout(
+                child: KeyboardFormLayout(
                   keyboardOffset: 2 * rem,
                   keyboard: OnScreenKeyboard(
                     controller: _entry,
@@ -104,10 +104,10 @@ class _SignInViewState extends State<SignInView> {
                           child: _BrandPill(),
                         ),
                         const SizedBox(height: 0.75 * rem),
-                        const AuthTitle('Sign in to the TV'),
+                        const ScreenHeading('Sign in to the TV', tight: true),
                         const SizedBox(height: 0.5 * rem),
                         // Not "start reading": an account manages venues; the TVs show the library themselves.
-                        const AuthSubtitle(
+                        const ScreenSubtitle(
                           'Manage venues, properties, rooms and the people who run them.',
                           maxCh: 46,
                         ),

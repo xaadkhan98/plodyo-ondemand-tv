@@ -9,7 +9,7 @@ import '../../ui/features/main_layout.dart';
 import '../../ui/features/home/views/console_overview_view.dart';
 import '../../ui/features/partners/views/partners_view.dart';
 import '../../ui/features/partners/views/partner_details_view.dart';
-import '../../ui/features/partners/views/add_partner_view.dart';
+import '../../ui/features/partners/views/partner_form_view.dart';
 import '../../ui/features/invites/views/invites_view.dart';
 import '../../ui/features/invites/views/invite_someone_view.dart';
 import '../../ui/features/properties/views/properties_view.dart';
@@ -142,11 +142,7 @@ final GoRouter appRouter = GoRouter(
         GoRoute(
           path: '/partners',
           name: 'partners',
-          builder: (context, state) => PartnersView(
-            onPartnerSelected: (partner) {
-              context.push('/partners/details', extra: partner);
-            },
-          ),
+          builder: (context, state) => const PartnersView(),
           routes: [
             GoRoute(
               path: 'details',
@@ -154,15 +150,21 @@ final GoRouter appRouter = GoRouter(
               // The record travels as `extra`; without one (a restart, a deep link) go back to the list.
               redirect: (context, state) =>
                   state.extra is PartnerModel ? null : '/partners',
-              builder: (context, state) {
-                final partner = state.extra as PartnerModel;
-                return PartnerDetailsView(partner: partner);
-              },
+              builder: (context, state) =>
+                  PartnerDetailsView(partner: state.extra! as PartnerModel),
             ),
             GoRoute(
               path: 'add',
               name: 'addPartner',
-              builder: (context, state) => const AddPartnerView(),
+              builder: (context, state) => const PartnerFormView(),
+            ),
+            GoRoute(
+              path: 'edit',
+              name: 'editPartner',
+              redirect: (context, state) =>
+                  state.extra is PartnerModel ? null : '/partners',
+              builder: (context, state) =>
+                  PartnerFormView(partner: state.extra! as PartnerModel),
             ),
           ],
         ),

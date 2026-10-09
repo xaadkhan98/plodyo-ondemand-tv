@@ -52,7 +52,7 @@ class PagedList<T, F> extends ChangeNotifier {
       }
     } catch (e) {
       if (request != _request) return;
-      error = e is AuthException ? e.message : 'Could not load this list.';
+      error = messageOf(e, 'Could not load this list.');
     }
     loading = false;
     notifyListeners();
@@ -123,6 +123,8 @@ class AdminListLayout<T, F> extends StatelessWidget {
           options: filters,
           onChanged: list.setFilter,
           layout: ChoiceLayout.chips,
+          // With no primary action to land on, first focus goes to the filter.
+          autofocus: action == null,
         ),
         if (secondaryFilter != null) ...[
           const SizedBox(height: 1.25 * rem),
