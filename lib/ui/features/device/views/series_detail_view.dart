@@ -1,7 +1,6 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../core/theme/tv_colors.dart';
@@ -62,9 +61,6 @@ class _SeriesDetailViewState extends State<SeriesDetailView> {
     ),
   );
 
-  void _play(Story story) =>
-      context.push('/story?id=${Uri.encodeQueryComponent(story.id)}');
-
   @override
   Widget build(BuildContext context) {
     return FutureBuilder(
@@ -74,7 +70,7 @@ class _SeriesDetailViewState extends State<SeriesDetailView> {
           return const GuestPage.fill(child: Spinner());
         }
         if (snapshot.data case final detail?) {
-          return _SeriesPage(detail: detail, onPlay: _play);
+          return _SeriesPage(detail: detail);
         }
         // A 404 covers a removed series and one with no episodes ready; the API never says which.
         final error = snapshot.error!;
@@ -92,10 +88,9 @@ class _SeriesDetailViewState extends State<SeriesDetailView> {
 }
 
 class _SeriesPage extends StatelessWidget {
-  const _SeriesPage({required this.detail, required this.onPlay});
+  const _SeriesPage({required this.detail});
 
   final SeriesDetail detail;
-  final ValueChanged<Story> onPlay;
 
   @override
   Widget build(BuildContext context) {
@@ -135,7 +130,7 @@ class _SeriesPage extends StatelessWidget {
                   _EpisodeCard(
                     episode: episode,
                     paper: paper,
-                    onSelect: () => onPlay(episode.story),
+                    onSelect: () => openStory(context, episode.story),
                   ),
               ],
             ),

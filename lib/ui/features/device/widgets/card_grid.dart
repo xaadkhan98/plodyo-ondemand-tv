@@ -10,17 +10,21 @@ class CardGrid extends StatelessWidget {
     required this.children,
     this.columns = 4,
     this.gap = 2 * rem,
+    this.rowGap,
   });
 
   final List<Widget> children;
   final int columns;
   final double gap;
 
+  /// Between rows, where it differs from [gap] between columns.
+  final double? rowGap;
+
   @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
-      spacing: gap,
+      spacing: rowGap ?? gap,
       children: [
         for (var start = 0; start < children.length; start += columns)
           Row(

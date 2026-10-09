@@ -14,9 +14,18 @@ import 'package:plodyo_ondemand_tv/ui/features/device/device_gate.dart';
 import 'package:plodyo_ondemand_tv/ui/features/device/views/home_view.dart';
 import 'package:plodyo_ondemand_tv/ui/features/device/views/player_view.dart';
 import 'package:plodyo_ondemand_tv/ui/features/device/views/series_detail_view.dart';
+import 'package:plodyo_ondemand_tv/ui/features/device/views/series_list_view.dart';
+import 'package:plodyo_ondemand_tv/ui/features/device/views/stories_view.dart';
 import 'package:video_player/video_player.dart';
 
 const notFound = AuthException(message: 'Not found', statusCode: 404);
+
+typedef ShelfQuery = ({AgeGroup? ageGroup, int? page, int? pageSize});
+typedef SeriesQuery = ({
+  SeriesType? seriesType,
+  String? category,
+  int? pageSize,
+});
 
 /// A room with a small catalogue, whose answers each test can change.
 class FakeDevice implements DeviceRepository {
@@ -27,6 +36,14 @@ class FakeDevice implements DeviceRepository {
   Object? seriesRefusal;
   final storyQueries = <String?>[];
   final seriesAsked = <String>[];
+
+  /// The stories grid's catalogue, where a test sets one; Home's two stories otherwise.
+  PaginatedResponse<Story> Function(ShelfQuery query)? shelf;
+  final shelfQueries = <ShelfQuery>[];
+
+  /// One series per category, where a test sets them; Home's one show otherwise.
+  List<String> categories = const [];
+  final seriesQueries = <SeriesQuery>[];
 
   /// Story details by id; any other id is a 404.
   final stories = <String, StoryDetail>{};
@@ -60,6 +77,9 @@ class FakeDevice implements DeviceRepository {
     int? pageSize,
   }) async {
     storyQueries.add(language);
+    final query = (ageGroup: ageGroup, page: page, pageSize: pageSize);
+    shelfQueries.add(query);
+    if (shelf case final serve?) return serve(query);
     return const PaginatedResponse(
       data: [
         Story(
@@ -88,9 +108,14 @@ class FakeDevice implements DeviceRepository {
     String? language,
     int? page,
     int? pageSize,
-  }) async => PaginatedResponse(
-    data: [
-      if (seriesType == SeriesType.entertainment)
+  }) async {
+    seriesQueries.add((
+      seriesType: seriesType,
+      category: category,
+      pageSize: pageSize,
+    ));
+    final rows = [
+      if (categories.isEmpty && seriesType == SeriesType.entertainment)
         const Series(
           id: 'sr1',
           title: 'Counting Club',
@@ -99,11 +124,24 @@ class FakeDevice implements DeviceRepository {
           language: 'ENG',
           episodeCount: 1,
         ),
-    ],
-    total: 1,
-    page: 1,
-    pageSize: 10,
-  );
+      for (final name in categories)
+        if (category == null || category == name)
+          Series(
+            id: 'sr1',
+            title: name.contains('math') ? 'Number Ninjas' : 'Sleepy Songs',
+            category: name,
+            ageGroup: '2-4',
+            language: 'ENG',
+            episodeCount: 3,
+          ),
+    ];
+    return PaginatedResponse(
+      data: rows,
+      total: rows.length,
+      page: page ?? 1,
+      pageSize: pageSize ?? 10,
+    );
+  }
 
   @override
   Future<SeriesDetail> getSeriesDetail(String seriesId) async {
@@ -210,9 +248,26 @@ Future<void> pumpGuestApp(
             builder: (_, _) => HomeView(deviceRepository: device),
           ),
           GoRoute(
+            path: '/stories',
+            builder: (_, _) => StoriesView(deviceRepository: device),
+          ),
+          GoRoute(
             path: '/series',
-            builder: (_, state) => SeriesDetailView(
-              seriesId: state.uri.queryParameters['id']!,
+            builder: (_, state) => switch (state.uri.queryParameters['id']) {
+              final id? => SeriesDetailView(
+                seriesId: id,
+                deviceRepository: device,
+              ),
+              null => SeriesListView(
+                type: SeriesType.entertainment,
+                deviceRepository: device,
+              ),
+            },
+          ),
+          GoRoute(
+            path: '/learning',
+            builder: (_, _) => SeriesListView(
+              type: SeriesType.learning,
               deviceRepository: device,
             ),
           ),

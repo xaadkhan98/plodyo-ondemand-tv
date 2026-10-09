@@ -36,8 +36,12 @@ void main() {
 
       expect(find.text('Picked for this room'), findsOneWidget);
       expect(find.text('Read now'), findsOneWidget);
-      expect(find.text('Stories'), findsOneWidget);
-      expect(find.text('Series'), findsOneWidget);
+      // By their subtitles: the rail's labels carry the same names.
+      expect(find.text('One story at a time, start to finish.'), findsOneWidget);
+      expect(
+        find.text('Follow the same friends through every episode.'),
+        findsOneWidget,
+      );
       expect(find.text('1 Episode'), findsOneWidget);
       expect(find.text('Learning series'), findsNothing);
       // The hero's call to action takes first focus.

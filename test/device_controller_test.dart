@@ -146,19 +146,28 @@ void main() {
   });
 
   testWidgets(
-    'records a guest language pick but not clearing one, and unpairing forgets it',
+    'records a guest language or age pick but not clearing one, and unpairing forgets both',
     (tester) async {
       final controller = await start(tester);
 
-      controller.chooseLanguage('SPA');
-      controller.chooseLanguage(null);
+      controller
+        ..chooseLanguage('SPA')
+        ..chooseLanguage(null)
+        ..chooseAgeGroup(AgeGroup.toddler)
+        ..chooseAgeGroup(null);
 
-      final batch = usage.takeBatch();
-      expect(batch.single['type'], 'LANGUAGE_SELECT');
-      expect(batch.single['language'], 'SPA');
-      controller.chooseLanguage('SPA');
+      expect(
+        usage.takeBatch().map(
+          (e) => (e['type'], e['language'] ?? e['age_group']),
+        ),
+        [('LANGUAGE_SELECT', 'SPA'), ('AGE_SELECT', '0-2')],
+      );
+      controller
+        ..chooseLanguage('SPA')
+        ..chooseAgeGroup(AgeGroup.preschool);
       await controller.unpair();
       expect(controller.language, isNull);
+      expect(controller.ageGroup, isNull);
       await usage.persistNow();
     },
   );

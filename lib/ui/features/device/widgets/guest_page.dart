@@ -3,11 +3,20 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/widgets/console_page.dart';
 import '../../../../core/widgets/side_nav.dart';
+import '../../../../data/models/story_models.dart';
 import 'language_menu.dart';
 
 /// Back where the guest came from, or Home when this screen was the first (a restart, a deep link).
 void goBack(BuildContext context) =>
     context.canPop() ? context.pop() : context.go('/');
+
+/// Plays a story, or reads it when it has no film.
+void openStory(BuildContext context, Story story) =>
+    context.push('/story?id=${Uri.encodeQueryComponent(story.id)}');
+
+/// A series has no media of its own, so its card opens the episode list.
+void openSeries(BuildContext context, Story series) =>
+    context.push('/series?id=${Uri.encodeQueryComponent(series.id)}');
 
 /// A guest screen's frame: the top bar, carrying the language pill, scrolls away with the screen, which
 /// sits past the collapsed rail and owns its own gutters so rails can run to the right edge.

@@ -13,16 +13,17 @@ String normalisePairingCode(String raw) {
   return '${cleaned.substring(0, 4)}-${cleaned.substring(4, end)}';
 }
 
-/// The three buckets the catalogue filters on.
+/// The three buckets the catalogue filters on, each with a face so a parent reads the age before the words.
 enum AgeGroup {
-  toddler('0-2', 'Toddler'),
-  preschool('2-4', 'Preschool'),
-  earlySchool('5-7', 'Early school');
+  toddler('0-2', 'Toddler', '🍼'),
+  preschool('2-4', 'Preschool', '🧸'),
+  earlySchool('5-7', 'Early school', '🎒');
 
-  const AgeGroup(this.code, this.label);
+  const AgeGroup(this.code, this.label, this.emoji);
 
   final String code;
   final String label;
+  final String emoji;
 
   static AgeGroup? parse(String? code) {
     for (final group in values) {

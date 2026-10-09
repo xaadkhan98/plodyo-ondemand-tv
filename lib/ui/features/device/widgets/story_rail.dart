@@ -4,7 +4,6 @@ import '../../../../core/theme/tv_colors.dart';
 import '../../../../core/theme/tv_motion.dart';
 import '../../../../core/theme/tv_scale.dart';
 import '../../../../core/theme/tv_typography.dart';
-import '../../../../core/widgets/skeleton.dart';
 import '../../../../data/models/auth_exception.dart';
 import '../../../../data/models/story_models.dart';
 import 'story_card.dart';
@@ -152,7 +151,7 @@ class _StoryRailState extends State<StoryRail>
               spacing: 1.5 * rem,
               children: [
                 if (stories == null)
-                  for (var i = 0; i < 8; i++) const _SkeletonCard()
+                  for (var i = 0; i < 8; i++) const StoryCardSkeleton()
                 else
                   for (final (index, story) in stories.indexed)
                     _Arrival(
@@ -199,38 +198,6 @@ class _Arrival extends StatelessWidget {
         ),
       ),
       child: child,
-    );
-  }
-}
-
-class _SkeletonCard extends StatelessWidget {
-  const _SkeletonCard();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: StoryCard.width,
-      padding: const EdgeInsets.all(0.625 * rem),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.7),
-        borderRadius: const BorderRadius.all(Radius.circular(1.9 * rem)),
-      ),
-      child: const Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          AspectRatio(
-            aspectRatio: 6 / 5,
-            child: Skeleton(
-              borderRadius: BorderRadius.all(Radius.circular(1.4 * rem)),
-            ),
-          ),
-          SizedBox(height: 0.75 * rem),
-          FractionallySizedBox(
-            widthFactor: 0.75,
-            child: Skeleton(height: 1.25 * rem),
-          ),
-        ],
-      ),
     );
   }
 }

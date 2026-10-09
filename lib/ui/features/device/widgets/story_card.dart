@@ -6,11 +6,10 @@ import '../../../../core/theme/tv_scale.dart';
 import '../../../../core/theme/tv_shadows.dart';
 import '../../../../core/theme/tv_typography.dart';
 import '../../../../core/widgets/tv_focusable.dart';
+import '../../../../core/widgets/skeleton.dart';
+import '../../../../data/models/device_models.dart';
 import '../../../../data/models/story_models.dart';
 import 'story_image.dart';
-
-/// A face per age bucket, so a parent reads the age before the words.
-const _ageTags = {'0-2': '🍼', '2-4': '🧸', '5-7': '🎒'};
 
 /// CSS `capitalize`: the first letter of every word.
 String capitalize(String text) =>
@@ -53,7 +52,7 @@ class StoryCard extends StatelessWidget {
   Widget build(BuildContext context) {
     // The API falls back to the idea text; this guards a row from elsewhere.
     final title = story.title.isEmpty ? 'Untitled' : story.title;
-    final ageTag = _ageTags[story.ageGroup];
+    final ageTag = AgeGroup.parse(story.ageGroup)?.emoji;
 
     return TvFocusable(
       autofocus: autofocus,
@@ -185,6 +184,39 @@ class _Sticker extends StatelessWidget {
         boxShadow: shadows,
       ),
       child: child,
+    );
+  }
+}
+
+/// A card's shape while its row loads: the frame, a pulsing cover and the start of a title.
+class StoryCardSkeleton extends StatelessWidget {
+  const StoryCardSkeleton({super.key, this.fullWidth = false});
+
+  final bool fullWidth;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: fullWidth ? null : StoryCard.width,
+      padding: const EdgeInsets.all(0.625 * rem),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.7),
+        borderRadius: StoryCard._frameRadius,
+      ),
+      child: const Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          AspectRatio(
+            aspectRatio: 6 / 5,
+            child: Skeleton(borderRadius: StoryCard._artRadius),
+          ),
+          SizedBox(height: 0.75 * rem),
+          FractionallySizedBox(
+            widthFactor: 0.75,
+            child: Skeleton(height: 1.25 * rem),
+          ),
+        ],
+      ),
     );
   }
 }

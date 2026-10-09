@@ -4,6 +4,9 @@ import '../../ui/features/device/device_gate.dart';
 import '../../ui/features/device/views/home_view.dart';
 import '../../ui/features/device/views/player_view.dart';
 import '../../ui/features/device/views/series_detail_view.dart';
+import '../../ui/features/device/views/series_list_view.dart';
+import '../../ui/features/device/views/stories_view.dart';
+import '../../data/models/story_models.dart';
 import '../../ui/features/auth/views/sign_in_view.dart';
 import '../../ui/features/auth/views/forgot_password_view.dart';
 import '../../ui/features/auth/views/register_venue_view.dart';
@@ -36,7 +39,7 @@ final GlobalKey<NavigatorState> _shellNavigatorKey =
     GlobalKey<NavigatorState>();
 
 /// The room TV's screens: the device gate decides what they show, so they need no session.
-const _guestPaths = {'/', '/series', '/story'};
+const _guestPaths = {'/', '/stories', '/series', '/learning', '/story'};
 
 /// Reachable without a session: the ways into the console.
 const _publicPaths = {'/sign-in', '/forgot-password', '/register-venue'};
@@ -63,13 +66,23 @@ final GoRouter appRouter = GoRouter(
           DeviceGate(currentPath: state.uri.path, child: child),
       routes: [
         GoRoute(path: '/', builder: (context, state) => const HomeView()),
-        // `?id=` is one series; the bare path becomes the series list with G6.
+        GoRoute(
+          path: '/stories',
+          builder: (context, state) => const StoriesView(),
+        ),
+        // The list, or with `?id=` one series of either type.
         GoRoute(
           path: '/series',
-          redirect: (context, state) =>
-              state.uri.queryParameters['id'] == null ? '/' : null,
           builder: (context, state) =>
-              SeriesDetailView(seriesId: state.uri.queryParameters['id']!),
+              switch (state.uri.queryParameters['id']) {
+                final id? => SeriesDetailView(seriesId: id),
+                null => const SeriesListView(type: SeriesType.entertainment),
+              },
+        ),
+        GoRoute(
+          path: '/learning',
+          builder: (context, state) =>
+              const SeriesListView(type: SeriesType.learning),
         ),
         // A query rather than a path segment, as the reference: a story is only ever opened by its id.
         GoRoute(

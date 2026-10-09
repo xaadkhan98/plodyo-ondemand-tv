@@ -1,5 +1,3 @@
-import 'dart:ui' show PathMetric;
-
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
@@ -8,6 +6,7 @@ import '../../../../core/theme/tv_colors.dart';
 import '../../../../core/theme/tv_scale.dart';
 import '../../../../core/theme/tv_shadows.dart';
 import '../../../../core/theme/tv_typography.dart';
+import '../../../../core/widgets/dashed_border.dart';
 import '../../../../core/widgets/on_screen_keyboard.dart';
 import '../../../../core/widgets/page_layout.dart';
 import '../../../../core/widgets/setup_scene.dart';
@@ -308,7 +307,7 @@ class _Slot extends StatelessWidget {
     return outlined
         ? box
         : CustomPaint(
-            foregroundPainter: const _DashedBorder(_radius),
+            foregroundPainter: const DashedBorder(radius: _radius),
             child: box,
           );
   }
@@ -354,32 +353,4 @@ class _BlinkingBarState extends State<_BlinkingBar>
       ),
     );
   }
-}
-
-/// CSS `border-2 border-dashed` in the border colour: dashes and gaps three border-widths long, as Chrome draws them.
-class _DashedBorder extends CustomPainter {
-  const _DashedBorder(this.radius);
-
-  static const double _width = 2 * px;
-  static const double _dash = 3 * _width;
-
-  final BorderRadius radius;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final rect = (Offset.zero & size).deflate(_width / 2);
-    final paint = Paint()
-      ..color = TvColors.border
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = _width;
-    for (final PathMetric metric
-        in (Path()..addRRect(radius.toRRect(rect))).computeMetrics()) {
-      for (var d = 0.0; d < metric.length; d += 2 * _dash) {
-        canvas.drawPath(metric.extractPath(d, d + _dash), paint);
-      }
-    }
-  }
-
-  @override
-  bool shouldRepaint(_DashedBorder oldDelegate) => oldDelegate.radius != radius;
 }

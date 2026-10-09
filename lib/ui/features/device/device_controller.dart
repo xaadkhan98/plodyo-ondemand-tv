@@ -95,6 +95,16 @@ class DeviceController extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Who's watching, kept across the stories, series and learning screens. Null is every age.
+  AgeGroup? get ageGroup => _ageGroup;
+  AgeGroup? _ageGroup;
+
+  void chooseAgeGroup(AgeGroup? group) {
+    _ageGroup = group;
+    if (group != null) _usage.record(UsageType.ageSelect, ageGroup: group.code);
+    notifyListeners();
+  }
+
   void _settle(DevicePhase next) {
     _phase = next;
     _schedule();
@@ -146,6 +156,7 @@ class DeviceController extends ChangeNotifier {
 
   Future<void> unpair() async {
     _language = null;
+    _ageGroup = null;
     await _device.unpair();
     await resolve();
   }

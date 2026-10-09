@@ -27,6 +27,9 @@ void main() {
 
   const screens = [
     '/',
+    '/stories',
+    '/series',
+    '/learning',
     '/series?id=sr1',
     '/story?id=gone',
     '/story?id=film',

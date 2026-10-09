@@ -13,9 +13,16 @@ import 'device_controller.dart';
 import 'views/pair_view.dart';
 import 'views/welcome_view.dart';
 
-/// The room TV's screens under the guest rail. Only the routes that exist are listed; the rest join as they land.
+/// The room TV's screens under the guest rail. Search joins when it lands.
 const _items = [
   NavItem(path: '/', label: 'Home', icon: LucideIcons.house, exact: true),
+  NavItem(path: '/stories', label: 'Stories', icon: LucideIcons.library),
+  NavItem(path: '/series', label: 'Series', icon: LucideIcons.layers),
+  NavItem(
+    path: '/learning',
+    label: 'Learning',
+    icon: LucideIcons.graduationCap,
+  ),
 ];
 
 /// Renders the guest screens only for a TV paired to a live room. Short of that it shows the way forward:

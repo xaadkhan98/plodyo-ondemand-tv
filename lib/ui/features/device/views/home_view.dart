@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 
 import '../../../../core/theme/tv_scale.dart';
 import '../../../../data/models/story_models.dart';
@@ -59,13 +58,6 @@ class _HomeViewState extends State<HomeView> {
     ),
   ).then((page) => [for (final series in page.data) series.asCard]);
 
-  void _openStory(Story story) =>
-      context.push('/story?id=${Uri.encodeQueryComponent(story.id)}');
-
-  // A series has no playable URL of its own, so its card opens the episode list.
-  void _openSeries(Story series) =>
-      context.push('/series?id=${Uri.encodeQueryComponent(series.id)}');
-
   @override
   Widget build(BuildContext context) {
     return GuestPage(
@@ -85,21 +77,24 @@ class _HomeViewState extends State<HomeView> {
               children: [
                 Padding(
                   padding: const EdgeInsets.only(right: TvInsets.safeX),
-                  child: HeroCarousel(stories: stories, onSelect: _openStory),
+                  child: HeroCarousel(
+                    stories: stories,
+                    onSelect: (story) => openStory(context, story),
+                  ),
                 ),
                 StoryRail(
                   title: 'Stories',
                   subtitle: 'One story at a time, start to finish.',
                   stories: stories,
                   error: _error(snapshot),
-                  onSelect: _openStory,
+                  onSelect: (story) => openStory(context, story),
                 ),
                 _SeriesRail(
                   future: _series,
                   title: 'Series',
                   subtitle: 'Follow the same friends through every episode.',
                   autofocus: noHero,
-                  onSelect: _openSeries,
+                  onSelect: (series) => openSeries(context, series),
                 ),
                 _SeriesRail(
                   future: _learning,
@@ -107,7 +102,7 @@ class _HomeViewState extends State<HomeView> {
                   subtitle:
                       'Numbers, words and feelings, one episode at a time.',
                   autofocus: noHero,
-                  onSelect: _openSeries,
+                  onSelect: (series) => openSeries(context, series),
                 ),
               ],
             );
