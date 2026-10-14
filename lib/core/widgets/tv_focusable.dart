@@ -1,167 +1,170 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import '../theme/tv_colors.dart';
-import '../constants/app_constants.dart';
+import 'package:flutter/rendering.dart';
 
-/// Reusable TV Focusable Wrapper.
-///
-/// Features:
-/// - Smooth scale up on focus
-/// - Glow border / shadow
-/// - Automatic scroll-into-view when focused
-/// - Remote control select/enter key trigger
+import '../audio/chime.dart';
+import '../theme/tv_colors.dart';
+import '../theme/tv_scale.dart';
+
+/// A D-pad focus target. OK/Enter, click and tap select it; a pointer (LG's Magic Remote) focuses it on hover.
+/// Draws the reference's focus ring around the box unless [ring] is false; [builder] styles the focused state.
 class TvFocusable extends StatefulWidget {
   const TvFocusable({
     super.key,
-    required this.child,
-    this.onPressed,
-    this.onFocusChange,
+    required this.builder,
+    this.onSelect,
     this.focusNode,
     this.autofocus = false,
-    this.scaleFactor = 1.05,
-    this.borderRadius = const BorderRadius.all(Radius.circular(12)),
-    this.showFocusBorder = true,
-    this.focusColor,
-    this.padding = EdgeInsets.zero,
+    this.disabled = false,
+    this.ring = true,
+    this.borderRadius = const BorderRadius.all(Radius.circular(0.75 * rem)),
+    this.semanticLabel,
   });
 
-  final Widget child;
-  final VoidCallback? onPressed;
-  final ValueChanged<bool>? onFocusChange;
+  final Widget Function(BuildContext context, bool focused) builder;
+  final VoidCallback? onSelect;
   final FocusNode? focusNode;
   final bool autofocus;
-  final double scaleFactor;
+
+  /// Unfocusable, dimmed and inert, but still on screen.
+  final bool disabled;
+  final bool ring;
+
+  /// The target's shape, which the ring follows.
   final BorderRadius borderRadius;
-  final bool showFocusBorder;
-  final Color? focusColor;
-  final EdgeInsetsGeometry padding;
+  final String? semanticLabel;
 
   @override
   State<TvFocusable> createState() => _TvFocusableState();
 }
 
 class _TvFocusableState extends State<TvFocusable> {
-  late FocusNode _focusNode;
-  bool _isFocused = false;
-  bool _isInternalFocusNode = false;
+  static const _revealDuration = Duration(milliseconds: 250);
 
-  @override
-  void initState() {
-    super.initState();
-    if (widget.focusNode == null) {
-      _focusNode = FocusNode();
-      _isInternalFocusNode = true;
-    } else {
-      _focusNode = widget.focusNode!;
-    }
-  }
+  // Room for the ring and a card's lift, which the reference's box-only reveal leaves clipped at the edge.
+  static const _revealMargin = rem;
 
-  @override
-  void didUpdateWidget(covariant TvFocusable oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (widget.focusNode != oldWidget.focusNode) {
-      if (_isInternalFocusNode) {
-        _focusNode.dispose();
-      }
-      if (widget.focusNode == null) {
-        _focusNode = FocusNode();
-        _isInternalFocusNode = true;
-      } else {
-        _focusNode = widget.focusNode!;
-        _isInternalFocusNode = false;
-      }
-    }
-  }
+  FocusNode? _ownNode;
+  bool _focused = false;
+
+  FocusNode get _node => widget.focusNode ?? (_ownNode ??= FocusNode());
 
   @override
   void dispose() {
-    if (_isInternalFocusNode) {
-      _focusNode.dispose();
-    }
+    _ownNode?.dispose();
     super.dispose();
   }
 
-  void _handleFocusChange(bool hasFocus) {
-    setState(() {
-      _isFocused = hasFocus;
-    });
-
-    if (hasFocus) {
-      // Ensure the newly focused item scrolls into view smoothly on TV screen
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted && _focusNode.hasFocus) {
-          Scrollable.ensureVisible(
-            context,
-            alignment: 0.5,
-            duration: const Duration(milliseconds: 300),
-            curve: Curves.easeOutCubic,
-          );
-        }
-      });
-    }
-
-    widget.onFocusChange?.call(hasFocus);
+  void _onFocusChange(bool focused) {
+    setState(() => _focused = focused);
+    // However focus arrived — D-pad, autofocus, code — bring the target into view, as the reference's
+    // smooth scrollIntoView({block: "nearest"}) does. TvCanvas stops D-pad moves jumping there first.
+    if (focused) WidgetsBinding.instance.addPostFrameCallback((_) => _reveal());
   }
 
-  KeyEventResult _handleKeyEvent(FocusNode node, KeyEvent event) {
-    if (event is KeyDownEvent) {
-      final key = event.logicalKey;
-      if (key == LogicalKeyboardKey.select ||
-          key == LogicalKeyboardKey.enter ||
-          key == LogicalKeyboardKey.space ||
-          key == LogicalKeyboardKey.gameButtonA ||
-          key == LogicalKeyboardKey.numpadEnter) {
-        widget.onPressed?.call();
-        return KeyEventResult.handled;
+  /// Scrolls each enclosing list the least distance that shows the target and its margin: the nearest edge, or not at all.
+  void _reveal() {
+    if (!mounted || !_node.hasFocus) return;
+    final target = context.findRenderObject()!;
+    final rect = target.paintBounds.inflate(_revealMargin);
+    var inner = context;
+    for (
+      var scrollable = Scrollable.maybeOf(inner);
+      scrollable != null;
+      scrollable = Scrollable.maybeOf(inner)
+    ) {
+      final position = scrollable.position;
+      final viewport = RenderAbstractViewport.of(inner.findRenderObject());
+      double align(double edge) => viewport
+          .getOffsetToReveal(target, edge, rect: rect, axis: position.axis)
+          .offset;
+      final (start, end) = (align(0), align(1));
+      // Between the two offsets it is already in view; one larger than the viewport shows its start.
+      final to = clampDouble(
+        end <= start ? clampDouble(position.pixels, end, start) : start,
+        position.minScrollExtent,
+        position.maxScrollExtent,
+      );
+      if (to != position.pixels) {
+        position.animateTo(
+          to,
+          duration: _revealDuration,
+          curve: Curves.easeOut,
+        );
       }
+      inner = scrollable.context;
     }
-    return KeyEventResult.ignored;
+  }
+
+  void _select() {
+    if (widget.disabled) return;
+    Chime.play();
+    _node.requestFocus();
+    widget.onSelect?.call();
   }
 
   @override
   Widget build(BuildContext context) {
-    final activeFocusColor = widget.focusColor ?? TvColors.focusBorder;
+    final focused = _focused && !widget.disabled;
 
-    return Focus(
-      focusNode: _focusNode,
-      autofocus: widget.autofocus,
-      onFocusChange: _handleFocusChange,
-      onKeyEvent: _handleKeyEvent,
-      child: GestureDetector(
-        onTap: widget.onPressed,
-        child: AnimatedScale(
-          scale: _isFocused ? widget.scaleFactor : 1.0,
-          duration: AppConstants.focusAnimationDuration,
-          curve: Curves.easeOutCubic,
-          child: AnimatedContainer(
-            duration: AppConstants.focusAnimationDuration,
-            curve: Curves.easeOutCubic,
-            padding: widget.padding,
-            decoration: BoxDecoration(
-              borderRadius: widget.borderRadius,
-              boxShadow: _isFocused && widget.showFocusBorder
-                  ? [
-                      BoxShadow(
-                        color: activeFocusColor.withValues(alpha: 0.5),
-                        blurRadius: 18,
-                        spreadRadius: 2,
-                      ),
-                    ]
+    return Semantics(
+      button: true,
+      enabled: !widget.disabled,
+      label: widget.semanticLabel,
+      child: FocusableActionDetector(
+        focusNode: _node,
+        autofocus: widget.autofocus,
+        enabled: !widget.disabled,
+        mouseCursor: widget.disabled
+            ? MouseCursor.defer
+            : SystemMouseCursors.click,
+        onFocusChange: _onFocusChange,
+        // The D-pad resumes from wherever the pointer left off.
+        onShowHoverHighlight: (hovered) {
+          if (hovered && !widget.disabled) _node.requestFocus();
+        },
+        actions: {
+          ActivateIntent: CallbackAction<ActivateIntent>(
+            onInvoke: (_) {
+              Chime.play();
+              widget.onSelect?.call();
+              return null;
+            },
+          ),
+        },
+        child: GestureDetector(
+          onTap: widget.disabled ? null : _select,
+          child: Opacity(
+            opacity: widget.disabled ? 0.4 : 1,
+            child: CustomPaint(
+              painter: focused && widget.ring
+                  ? _FocusRing(widget.borderRadius)
                   : null,
-              border: widget.showFocusBorder && _isFocused
-                  ? Border.all(
-                      color: activeFocusColor,
-                      width: 2.5,
-                    )
-                  : Border.all(
-                      color: Colors.transparent,
-                      width: 2.5,
-                    ),
+              child: widget.builder(context, focused),
             ),
-            child: widget.child,
           ),
         ),
       ),
     );
   }
+}
+
+/// Paints only outside the box, so a translucent target never shows the ring through its fill.
+class _FocusRing extends CustomPainter {
+  const _FocusRing(this.borderRadius);
+
+  /// Tailwind's `ring-2 ring-offset-2` with a transparent offset renders as one 4px band against the edge.
+  static const double _width = 4 * px;
+
+  final BorderRadius borderRadius;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final box = borderRadius.toRRect(Offset.zero & size).scaleRadii();
+    canvas.drawDRRect(box.inflate(_width), box, Paint()..color = TvColors.ring);
+  }
+
+  @override
+  bool shouldRepaint(_FocusRing oldDelegate) =>
+      oldDelegate.borderRadius != borderRadius;
 }

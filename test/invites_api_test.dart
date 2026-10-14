@@ -26,7 +26,7 @@ void main() {
               'accepted_at': null,
               'expires_at': '2026-08-25T10:00:00.000Z',
               'created_at': '2026-08-18T10:00:00.000Z',
-            }
+            },
           ],
           'total': 1,
           'page': 1,
@@ -36,7 +36,9 @@ void main() {
         return http.Response(jsonEncode(payload), 200);
       });
 
-      final service = InvitesApiService(apiClient: ApiClient(httpClient: mockClient));
+      final service = InvitesApiService(
+        apiClient: ApiClient(httpClient: mockClient),
+      );
       final repo = InvitesRepositoryImpl(apiService: service);
 
       final response = await repo.getInvites(accessToken: 'test_token');
@@ -67,7 +69,9 @@ void main() {
         return http.Response(jsonEncode(payload), 200);
       });
 
-      final service = InvitesApiService(apiClient: ApiClient(httpClient: mockClient));
+      final service = InvitesApiService(
+        apiClient: ApiClient(httpClient: mockClient),
+      );
       final repo = InvitesRepositoryImpl(apiService: service);
 
       final invite = await repo.createInvite(
@@ -91,7 +95,9 @@ void main() {
         return http.Response(jsonEncode({'message': 'Invite revoked.'}), 200);
       });
 
-      final service = InvitesApiService(apiClient: ApiClient(httpClient: mockClient));
+      final service = InvitesApiService(
+        apiClient: ApiClient(httpClient: mockClient),
+      );
       final repo = InvitesRepositoryImpl(apiService: service);
 
       final message = await repo.revokeInvite(

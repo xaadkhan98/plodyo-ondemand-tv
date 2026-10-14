@@ -32,8 +32,10 @@ class ApiConstants {
   static const String meEndpoint = '/ondemand/auth/me';
 
   // Public Routes
-  static const String publicInvitePreviewEndpoint = '/ondemand/public/invites'; // /:token
-  static const String publicRegistrationsEndpoint = '/ondemand/public/registrations';
+  static const String publicInvitePreviewEndpoint =
+      '/ondemand/public/invites'; // /:token
+  static const String publicRegistrationsEndpoint =
+      '/ondemand/public/registrations';
 
   // Admin Invites Routes
   static const String adminInvitesEndpoint = '/ondemand/admin/invites';
@@ -52,11 +54,17 @@ class ApiConstants {
   static const String adminPeopleEndpoint = '/ondemand/admin/users';
   static const String adminUsersEndpoint = '/ondemand/admin/users';
 
+  // Admin Library Routes: the room TV's catalogue, read with a bearer
+  static const String adminContentEndpoint = '/ondemand/admin/content';
+  static const String adminSeriesEndpoint = '/ondemand/admin/series';
+
   // Device TV Routes (Room TV Flow)
   static const String devicePairEndpoint = '/ondemand/device/pair';
   static const String deviceSessionEndpoint = '/ondemand/device/session';
   static const String deviceConfigEndpoint = '/ondemand/device/config';
   static const String deviceContentEndpoint = '/ondemand/device/content';
+  static const String deviceHeartbeatEndpoint = '/ondemand/device/heartbeat';
+  static const String deviceSeriesEndpoint = '/ondemand/device/series';
 
   // Request Timeouts
   static const Duration connectTimeout = Duration(seconds: 15);

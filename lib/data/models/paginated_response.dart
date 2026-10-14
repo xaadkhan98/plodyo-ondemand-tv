@@ -32,6 +32,14 @@ class PaginatedResponse<T> extends Equatable {
     );
   }
 
+  /// The same page with every row converted, e.g. series into story cards.
+  PaginatedResponse<R> map<R>(R Function(T item) convert) => PaginatedResponse(
+    data: [for (final item in data) convert(item)],
+    total: total,
+    page: page,
+    pageSize: pageSize,
+  );
+
   @override
   List<Object?> get props => [data, total, page, pageSize];
 }

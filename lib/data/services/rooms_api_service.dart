@@ -5,9 +5,7 @@ import 'api_client.dart';
 
 /// Service communicating with OnDemand Plodyo Admin Rooms endpoints.
 class RoomsApiService {
-  RoomsApiService({
-    ApiClient? apiClient,
-  }) : _client = apiClient ?? ApiClient();
+  RoomsApiService({ApiClient? apiClient}) : _client = apiClient ?? ApiClient();
 
   final ApiClient _client;
 
@@ -21,7 +19,8 @@ class RoomsApiService {
     String? clientSecret,
   }) async {
     final queryParams = <String, String>{
-      if (propertyId != null && propertyId.isNotEmpty) 'property_id': propertyId,
+      if (propertyId != null && propertyId.isNotEmpty)
+        'property_id': propertyId,
       if (status != null && status.isNotEmpty) 'status': status,
       if (page != null) 'page': page.toString(),
       if (pageSize != null) 'page_size': pageSize.toString(),
@@ -86,10 +85,10 @@ class RoomsApiService {
     String? defaultLanguage,
     String? clientSecret,
   }) async {
+    // Null means unchanged; an empty language drops an override already set.
     final body = <String, dynamic>{
-      if (roomLabel != null && roomLabel.isNotEmpty) 'room_label': roomLabel,
-      if (defaultLanguage != null && defaultLanguage.isNotEmpty)
-        'default_language': defaultLanguage,
+      'room_label': ?roomLabel,
+      'default_language': ?defaultLanguage,
     };
 
     final res = await _client.patch(

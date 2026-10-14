@@ -26,7 +26,7 @@ void main() {
               'default_language': 'en',
               'created_at': '2026-08-18T10:00:00.000Z',
               'updated_at': '2026-08-20T10:00:00.000Z',
-            }
+            },
           ],
           'total': 1,
           'page': 1,
@@ -36,7 +36,9 @@ void main() {
         return http.Response(jsonEncode(payload), 200);
       });
 
-      final service = PropertiesApiService(apiClient: ApiClient(httpClient: mockClient));
+      final service = PropertiesApiService(
+        apiClient: ApiClient(httpClient: mockClient),
+      );
       final repo = PropertiesRepositoryImpl(apiService: service);
 
       final response = await repo.getProperties(accessToken: 'test_token');
@@ -47,47 +49,52 @@ void main() {
       expect(response.data.first.isActive, isTrue);
     });
 
-    test('createProperty sends POST and returns newly created property', () async {
-      final mockClient = MockClient((request) async {
-        expect(request.url.path, '/ondemand/admin/properties');
-        final body = jsonDecode(request.body) as Map<String, dynamic>;
-        expect(body['name'], 'Seaside Villas');
-        expect(body['country'], 'US');
-        expect(body['city'], 'Miami');
+    test(
+      'createProperty sends POST and returns newly created property',
+      () async {
+        final mockClient = MockClient((request) async {
+          expect(request.url.path, '/ondemand/admin/properties');
+          final body = jsonDecode(request.body) as Map<String, dynamic>;
+          expect(body['name'], 'Seaside Villas');
+          expect(body['country'], 'US');
+          expect(body['city'], 'Miami');
 
-        final payload = {
-          'id': 'prop_new_1',
-          'partner_id': 'partner_123',
-          'name': 'Seaside Villas',
-          'status': 'ACTIVE',
-          'country': 'US',
-          'city': 'Miami',
-          'timezone': 'America/New_York',
-          'default_language': 'en',
-          'created_at': '2026-08-18T10:00:00.000Z',
-        };
+          final payload = {
+            'id': 'prop_new_1',
+            'partner_id': 'partner_123',
+            'name': 'Seaside Villas',
+            'status': 'ACTIVE',
+            'country': 'US',
+            'city': 'Miami',
+            'timezone': 'America/New_York',
+            'default_language': 'en',
+            'created_at': '2026-08-18T10:00:00.000Z',
+          };
 
-        return http.Response(jsonEncode(payload), 200);
-      });
+          return http.Response(jsonEncode(payload), 200);
+        });
 
-      final service = PropertiesApiService(apiClient: ApiClient(httpClient: mockClient));
-      final repo = PropertiesRepositoryImpl(apiService: service);
+        final service = PropertiesApiService(
+          apiClient: ApiClient(httpClient: mockClient),
+        );
+        final repo = PropertiesRepositoryImpl(apiService: service);
 
-      final property = await repo.createProperty(
-        accessToken: 'token',
-        partnerId: 'partner_123',
-        name: 'Seaside Villas',
-        country: 'US',
-        city: 'Miami',
-        timezone: 'America/New_York',
-        defaultLanguage: 'en',
-      );
+        final property = await repo.createProperty(
+          accessToken: 'token',
+          partnerId: 'partner_123',
+          name: 'Seaside Villas',
+          country: 'US',
+          city: 'Miami',
+          timezone: 'America/New_York',
+          defaultLanguage: 'en',
+        );
 
-      expect(property.id, 'prop_new_1');
-      expect(property.name, 'Seaside Villas');
-      expect(property.city, 'Miami');
-      expect(property.isActive, isTrue);
-    });
+        expect(property.id, 'prop_new_1');
+        expect(property.name, 'Seaside Villas');
+        expect(property.city, 'Miami');
+        expect(property.isActive, isTrue);
+      },
+    );
 
     test('suspendProperty and activateProperty toggle status', () async {
       final mockClient = MockClient((request) async {
@@ -117,7 +124,9 @@ void main() {
         return http.Response('Not Found', 404);
       });
 
-      final service = PropertiesApiService(apiClient: ApiClient(httpClient: mockClient));
+      final service = PropertiesApiService(
+        apiClient: ApiClient(httpClient: mockClient),
+      );
       final repo = PropertiesRepositoryImpl(apiService: service);
 
       final suspended = await repo.suspendProperty(

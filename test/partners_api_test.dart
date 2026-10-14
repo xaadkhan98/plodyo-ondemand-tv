@@ -30,7 +30,7 @@ void main() {
               'rejection_reason': null,
               'created_at': '2026-08-18T10:00:00.000Z',
               'updated_at': '2026-08-20T10:00:00.000Z',
-            }
+            },
           ],
           'total': 1,
           'page': 1,
@@ -40,7 +40,9 @@ void main() {
         return http.Response(jsonEncode(payload), 200);
       });
 
-      final service = PartnersApiService(apiClient: ApiClient(httpClient: mockClient));
+      final service = PartnersApiService(
+        apiClient: ApiClient(httpClient: mockClient),
+      );
       final repo = PartnersRepositoryImpl(apiService: service);
 
       final response = await repo.getPartners(accessToken: 'test_token');
@@ -53,7 +55,10 @@ void main() {
 
     test('approvePartner updates partner status to ACTIVE', () async {
       final mockClient = MockClient((request) async {
-        expect(request.url.path, '/ondemand/admin/partners/partner_123/approve');
+        expect(
+          request.url.path,
+          '/ondemand/admin/partners/partner_123/approve',
+        );
         final body = jsonDecode(request.body) as Map<String, dynamic>;
         expect(body['room_limit'], 80);
 
@@ -70,7 +75,9 @@ void main() {
         return http.Response(jsonEncode(payload), 200);
       });
 
-      final service = PartnersApiService(apiClient: ApiClient(httpClient: mockClient));
+      final service = PartnersApiService(
+        apiClient: ApiClient(httpClient: mockClient),
+      );
       final repo = PartnersRepositoryImpl(apiService: service);
 
       final partner = await repo.approvePartner(
@@ -104,7 +111,9 @@ void main() {
         return http.Response(jsonEncode(payload), 200);
       });
 
-      final service = PartnersApiService(apiClient: ApiClient(httpClient: mockClient));
+      final service = PartnersApiService(
+        apiClient: ApiClient(httpClient: mockClient),
+      );
       final repo = PartnersRepositoryImpl(apiService: service);
 
       final partner = await repo.rejectPartner(

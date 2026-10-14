@@ -1,218 +1,184 @@
-import '../models/device_models.dart';
-import '../models/media_item.dart';
-import '../models/paginated_response.dart';
-import '../services/device_api_service.dart';
-import 'vod_repository.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-/// Global shared instance of [DeviceRepository] for TV device state and catalog.
+import '../models/auth_exception.dart';
+import '../models/device_models.dart';
+import '../models/paginated_response.dart';
+import '../models/story_models.dart';
+import '../services/device_api_service.dart';
+import 'auth_repository.dart';
+
 final DeviceRepository sharedDeviceRepository = DeviceRepositoryImpl();
 
-/// Repository for Room TV device operations (pairing, session, config, and live catalogue).
-abstract class DeviceRepository implements VodRepository {
-  /// Pairs this TV using the 8-character pairing code from the console.
-  Future<DevicePairResponse> pair(String pairingCode);
+/// This TV's credential and everything read with it. The token never expires or rotates: it is valid until
+/// the room is revoked or re-provisioned, so there is no refresh step. Unpaired, the catalogue reads go out
+/// with the console's bearer instead, so a signed-in console browses the same library on the same screens.
+abstract class DeviceRepository {
+  /// Reads the token a previous run stored. Called once, before the first frame.
+  Future<void> restore();
 
-  /// Opens or retrieves the room session.
-  Future<DeviceSession> getSession();
+  bool get isPaired;
 
-  /// Retrieves language and age group options for this TV.
+  /// Trades a pairing code for this TV's token and keeps it, so the TV survives a power cut.
+  Future<void> pair(String pairingCode);
+
+  /// Forgets the token, sending the TV back to pairing.
+  Future<void> unpair();
+
+  Future<DeviceSession> openSession();
+
+  Future<DeviceSession> heartbeat({
+    required String sessionId,
+    required bool active,
+    required List<Map<String, Object?>> events,
+  });
+
   Future<DeviceConfig> getConfig();
 
-  /// Retrieves the stories catalog with optional language and age group filtering.
-  Future<PaginatedResponse<DeviceStoryItem>> getCatalogue({
+  Future<PaginatedResponse<Story>> getStories({
     String? language,
-    String? ageGroup,
+    AgeGroup? ageGroup,
+    StoryType? storyType,
     int? page,
     int? pageSize,
   });
 
-  /// Fetches full story detail with the playback `media_url`.
-  Future<DeviceStoryItem> getStoryDetail(String storyId);
+  Future<StoryDetail> getStory(String storyId);
 
-  /// Clears the paired device token.
-  void unpair();
+  Future<PaginatedResponse<Series>> getSeries({
+    SeriesType? seriesType,
+    String? category,
+    AgeGroup? ageGroup,
+    String? language,
+    int? page,
+    int? pageSize,
+  });
 
-  /// Current device token if paired.
-  String? get deviceToken;
-
-  /// Whether this TV has a stored device token.
-  bool get isPaired;
-
-  /// Cached device config (languages, age-groups).
-  DeviceConfig? get currentConfig;
-
-  /// Cached device session.
-  DeviceSession? get currentSession;
+  Future<SeriesDetail> getSeriesDetail(String seriesId);
 }
 
-/// Concrete implementation of [DeviceRepository] talking directly to [DeviceApiService].
 class DeviceRepositoryImpl implements DeviceRepository {
   DeviceRepositoryImpl({
     DeviceApiService? apiService,
-  }) : _apiService = apiService ?? DeviceApiService();
+    String Function()? consoleBearer,
+  }) : _api = apiService ?? DeviceApiService(),
+       _consoleBearer =
+           consoleBearer ?? (() => sharedAuthRepository.accessToken);
 
-  final DeviceApiService _apiService;
+  static const _tokenKey = 'plodyo.ondemand.device-token';
 
-  String? _deviceToken;
-  DeviceConfig? _currentConfig;
-  DeviceSession? _currentSession;
-  List<DeviceStoryItem> _cachedStories = [];
+  final DeviceApiService _api;
+  final String Function() _consoleBearer;
+  String? _token;
+
+  String get _deviceToken =>
+      _token ?? (throw StateError('This TV is not paired.'));
+
+  // A device token wins: a paired set is a TV, whoever else signed in on it.
+  CatalogueReader get _reader => switch (_token) {
+    final token? => CatalogueReader.device(token),
+    null => CatalogueReader.console(_consoleBearer()),
+  };
 
   @override
-  String? get deviceToken => _deviceToken;
+  bool get isPaired => _token != null;
 
   @override
-  bool get isPaired => _deviceToken != null && _deviceToken!.isNotEmpty;
+  Future<void> restore() async {
+    try {
+      _token = (await SharedPreferences.getInstance()).getString(_tokenKey);
+    } on Exception {
+      // Unreadable storage reads as unpaired; pairing again is the remedy either way.
+      _token = null;
+    }
+  }
 
-  @override
-  DeviceConfig? get currentConfig => _currentConfig;
-
-  @override
-  DeviceSession? get currentSession => _currentSession;
-
-  @override
-  Future<DevicePairResponse> pair(String pairingCode) async {
-    final response = await _apiService.pair(pairingCode: pairingCode);
-    _deviceToken = response.deviceToken;
-    return response;
+  Future<void> _persist(String? token) async {
+    _token = token;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      if (token == null) {
+        await prefs.remove(_tokenKey);
+      } else {
+        await prefs.setString(_tokenKey, token);
+      }
+    } on Exception {
+      // The session continues in memory; it just will not survive a restart.
+    }
   }
 
   @override
-  Future<DeviceSession> getSession() async {
-    final token = _deviceToken ?? '';
-    final session = await _apiService.getSession(deviceToken: token);
-    _currentSession = session;
-    return session;
+  Future<void> pair(String pairingCode) async {
+    final code = normalisePairingCode(pairingCode);
+    // Checked here so a half-typed code costs no round trip: /pair is rate limited per property.
+    if (code.replaceAll('-', '').length < pairingCodeLength) {
+      throw const AuthException(
+        message: 'Enter the full 8-character pairing code.',
+        statusCode: 400,
+      );
+    }
+    await _persist(await _api.pair(code));
   }
 
   @override
-  Future<DeviceConfig> getConfig() async {
-    final token = _deviceToken ?? '';
-    final config = await _apiService.getConfig(deviceToken: token);
-    _currentConfig = config;
-    return config;
-  }
+  Future<void> unpair() => _persist(null);
 
   @override
-  Future<PaginatedResponse<DeviceStoryItem>> getCatalogue({
+  Future<DeviceSession> openSession() => _api.openSession(_deviceToken);
+
+  @override
+  Future<DeviceSession> heartbeat({
+    required String sessionId,
+    required bool active,
+    required List<Map<String, Object?>> events,
+  }) => _api.heartbeat(
+    _deviceToken,
+    sessionId: sessionId,
+    active: active,
+    events: events,
+  );
+
+  @override
+  Future<DeviceConfig> getConfig() => _api.getConfig(_deviceToken);
+
+  @override
+  Future<PaginatedResponse<Story>> getStories({
     String? language,
-    String? ageGroup,
+    AgeGroup? ageGroup,
+    StoryType? storyType,
     int? page,
     int? pageSize,
-  }) async {
-    final token = _deviceToken ?? '';
-    final response = await _apiService.getContent(
-      deviceToken: token,
-      language: language,
-      ageGroup: ageGroup,
-      page: page,
-      pageSize: pageSize,
-    );
-    _cachedStories = response.data;
-    return response;
-  }
+  }) => _api.getStories(
+    _reader,
+    language: language,
+    ageGroup: ageGroup,
+    storyType: storyType,
+    page: page,
+    pageSize: pageSize,
+  );
 
   @override
-  Future<DeviceStoryItem> getStoryDetail(String storyId) {
-    final token = _deviceToken ?? '';
-    return _apiService.getStoryDetail(
-      deviceToken: token,
-      storyId: storyId,
-    );
-  }
+  Future<StoryDetail> getStory(String storyId) =>
+      _api.getStory(_reader, storyId);
 
   @override
-  void unpair() {
-    _deviceToken = null;
-    _currentConfig = null;
-    _currentSession = null;
-    _cachedStories = [];
-  }
-
-  // --- VodRepository Implementation backed by live Backend Catalog ---
-
-  Future<List<MediaItem>> _fetchOrGetStories() async {
-    if (_cachedStories.isEmpty) {
-      try {
-        final res = await getCatalogue(pageSize: 50);
-        _cachedStories = res.data;
-      } catch (_) {
-        return [];
-      }
-    }
-    return _cachedStories.map(MediaItem.fromDeviceStory).toList();
-  }
+  Future<PaginatedResponse<Series>> getSeries({
+    SeriesType? seriesType,
+    String? category,
+    AgeGroup? ageGroup,
+    String? language,
+    int? page,
+    int? pageSize,
+  }) => _api.getSeries(
+    _reader,
+    seriesType: seriesType,
+    category: category,
+    ageGroup: ageGroup,
+    language: language,
+    page: page,
+    pageSize: pageSize,
+  );
 
   @override
-  Future<MediaItem> getHeroFeatured() async {
-    final items = await _fetchOrGetStories();
-    if (items.isNotEmpty) return items.first;
-    return const MediaItem(
-      id: 'featured_default',
-      title: 'Plodyo OnDemand Stories',
-      category: 'Family & Children',
-      posterUrl: 'https://picsum.photos/seed/plodyo_poster/400/600',
-      backdropUrl: 'https://picsum.photos/seed/plodyo_hero/1280/720',
-      rating: 9.5,
-      duration: 'Animated Series',
-      releaseYear: 2026,
-      description: 'Explore the wondrous catalog of multilingual animated stories for children and families.',
-      genres: ['Animated', 'Family', 'Educational'],
-    );
-  }
-
-  @override
-  Future<List<MediaItem>> getContinueWatching() async {
-    final items = await _fetchOrGetStories();
-    return items.take(4).map((i) => MediaItem(
-      id: i.id,
-      title: i.title,
-      category: i.category,
-      posterUrl: i.posterUrl,
-      backdropUrl: i.backdropUrl,
-      rating: i.rating,
-      duration: i.duration,
-      releaseYear: i.releaseYear,
-      description: i.description,
-      genres: i.genres,
-      mediaUrl: i.mediaUrl,
-      progress: 0.5,
-    )).toList();
-  }
-
-  @override
-  Future<List<MediaItem>> getTrendingMovies() async {
-    final items = await _fetchOrGetStories();
-    return items;
-  }
-
-  @override
-  Future<List<MediaItem>> getPopularSeries() async {
-    final items = await _fetchOrGetStories();
-    return items.reversed.toList();
-  }
-
-  @override
-  Future<List<MediaItem>> getActionMovies() async {
-    final items = await _fetchOrGetStories();
-    return items;
-  }
-
-  @override
-  Future<List<MediaItem>> getSciFiCatalog() async {
-    final items = await _fetchOrGetStories();
-    return items;
-  }
-
-  @override
-  Future<List<MediaItem>> searchCatalog(String query) async {
-    final items = await _fetchOrGetStories();
-    if (query.trim().isEmpty) return items;
-    final lower = query.toLowerCase();
-    return items.where((item) {
-      return item.title.toLowerCase().contains(lower) ||
-          item.category.toLowerCase().contains(lower) ||
-          item.genres.any((g) => g.toLowerCase().contains(lower));
-    }).toList();
-  }
+  Future<SeriesDetail> getSeriesDetail(String seriesId) =>
+      _api.getSeriesDetail(_reader, seriesId);
 }

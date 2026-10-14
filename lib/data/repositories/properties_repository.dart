@@ -3,7 +3,8 @@ import '../models/property_model.dart';
 import '../services/properties_api_service.dart';
 
 /// Global shared instance of [PropertiesRepository].
-final PropertiesRepository sharedPropertiesRepository = PropertiesRepositoryImpl();
+final PropertiesRepository sharedPropertiesRepository =
+    PropertiesRepositoryImpl();
 
 /// Abstract repository for managing properties.
 abstract class PropertiesRepository {
@@ -53,9 +54,8 @@ abstract class PropertiesRepository {
 
 /// Concrete implementation of [PropertiesRepository] calling live backend API.
 class PropertiesRepositoryImpl implements PropertiesRepository {
-  PropertiesRepositoryImpl({
-    PropertiesApiService? apiService,
-  }) : _apiService = apiService ?? PropertiesApiService();
+  PropertiesRepositoryImpl({PropertiesApiService? apiService})
+    : _apiService = apiService ?? PropertiesApiService();
 
   final PropertiesApiService _apiService;
 
@@ -151,4 +151,3 @@ class PropertiesRepositoryImpl implements PropertiesRepository {
     );
   }
 }
-

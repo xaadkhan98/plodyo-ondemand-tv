@@ -30,6 +30,12 @@ class RoomModel extends Equatable {
   bool get isActive => status == 'ACTIVE';
   bool get isRevoked => status == 'REVOKED';
 
+  /// Refused once provisioned: the session history cascades with the row. Revoke instead.
+  bool get canDelete => isUnprovisioned;
+
+  /// Needs a live credential; a room never set up, or already revoked, has none.
+  bool get canRevoke => isActive;
+
   factory RoomModel.fromJson(Map<String, dynamic> json) {
     return RoomModel(
       id: json['id'] as String? ?? '',
@@ -60,45 +66,19 @@ class RoomModel extends Equatable {
     };
   }
 
-  RoomModel copyWith({
-    String? id,
-    String? propertyId,
-    String? propertyName,
-    String? roomLabel,
-    String? status,
-    String? defaultLanguage,
-    String? provisionedAt,
-    String? lastSeenAt,
-    String? createdAt,
-    String? updatedAt,
-  }) {
-    return RoomModel(
-      id: id ?? this.id,
-      propertyId: propertyId ?? this.propertyId,
-      propertyName: propertyName ?? this.propertyName,
-      roomLabel: roomLabel ?? this.roomLabel,
-      status: status ?? this.status,
-      defaultLanguage: defaultLanguage ?? this.defaultLanguage,
-      provisionedAt: provisionedAt ?? this.provisionedAt,
-      lastSeenAt: lastSeenAt ?? this.lastSeenAt,
-      createdAt: createdAt ?? this.createdAt,
-      updatedAt: updatedAt ?? this.updatedAt,
-    );
-  }
-
   @override
   List<Object?> get props => [
-        id,
-        propertyId,
-        propertyName,
-        roomLabel,
-        status,
-        defaultLanguage,
-        provisionedAt,
-        lastSeenAt,
-        createdAt,
-        updatedAt,
-      ];
+    id,
+    propertyId,
+    propertyName,
+    roomLabel,
+    status,
+    defaultLanguage,
+    provisionedAt,
+    lastSeenAt,
+    createdAt,
+    updatedAt,
+  ];
 }
 
 /// Response payload from POST /ondemand/admin/rooms/:id/provision
@@ -119,9 +99,9 @@ class ProvisionRoomResponse extends Equatable {
   }
 
   Map<String, dynamic> toJson() => {
-        'pairing_code': pairingCode,
-        'expires_at': expiresAt,
-      };
+    'pairing_code': pairingCode,
+    'expires_at': expiresAt,
+  };
 
   @override
   List<Object?> get props => [pairingCode, expiresAt];
@@ -129,10 +109,7 @@ class ProvisionRoomResponse extends Equatable {
 
 /// Response payload from POST /ondemand/admin/rooms/bulk
 class BulkCreateRoomsResponse extends Equatable {
-  const BulkCreateRoomsResponse({
-    required this.created,
-    required this.rooms,
-  });
+  const BulkCreateRoomsResponse({required this.created, required this.rooms});
 
   final int created;
   final List<RoomModel> rooms;

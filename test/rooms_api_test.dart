@@ -25,7 +25,7 @@ void main() {
               'last_seen_at': null,
               'created_at': '2026-08-18T10:00:00.000Z',
               'updated_at': '2026-08-18T10:00:00.000Z',
-            }
+            },
           ],
           'total': 1,
           'page': 1,
@@ -35,7 +35,9 @@ void main() {
         return http.Response(jsonEncode(payload), 200);
       });
 
-      final service = RoomsApiService(apiClient: ApiClient(httpClient: mockClient));
+      final service = RoomsApiService(
+        apiClient: ApiClient(httpClient: mockClient),
+      );
       final repo = RoomsRepositoryImpl(apiService: service);
 
       final response = await repo.getRooms(accessToken: 'test_token');
@@ -65,7 +67,9 @@ void main() {
         return http.Response(jsonEncode(payload), 200);
       });
 
-      final service = RoomsApiService(apiClient: ApiClient(httpClient: mockClient));
+      final service = RoomsApiService(
+        apiClient: ApiClient(httpClient: mockClient),
+      );
       final repo = RoomsRepositoryImpl(apiService: service);
 
       final room = await repo.createRoom(
@@ -87,7 +91,9 @@ void main() {
         return http.Response(jsonEncode({'message': 'Room deleted.'}), 200);
       });
 
-      final service = RoomsApiService(apiClient: ApiClient(httpClient: mockClient));
+      final service = RoomsApiService(
+        apiClient: ApiClient(httpClient: mockClient),
+      );
       final repo = RoomsRepositoryImpl(apiService: service);
 
       final msg = await repo.deleteRoom(

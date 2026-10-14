@@ -104,7 +104,10 @@ void main() {
       expect(exception.statusCode, 400);
       expect(exception.validationErrors.length, 2);
       expect(exception.message, contains('email must be an email'));
-      expect(exception.message, contains('password must be at least 12 characters'));
+      expect(
+        exception.message,
+        contains('password must be at least 12 characters'),
+      );
     });
 
     test('parses 429 rate limit error', () {
@@ -122,7 +125,10 @@ void main() {
 
     test('creates network error with fallback message', () {
       final exception = AuthException.network();
-      expect(exception.message, 'Cannot reach Plodyo TV. Check the network connection.');
+      expect(
+        exception.message,
+        'Cannot reach Plodyo TV. Check the network connection.',
+      );
       expect(exception.statusCode, 0);
     });
   });

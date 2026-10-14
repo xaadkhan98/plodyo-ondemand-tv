@@ -59,9 +59,8 @@ abstract class RoomsRepository {
 
 /// Concrete implementation of [RoomsRepository] calling live backend API.
 class RoomsRepositoryImpl implements RoomsRepository {
-  RoomsRepositoryImpl({
-    RoomsApiService? apiService,
-  }) : _apiService = apiService ?? RoomsApiService();
+  RoomsRepositoryImpl({RoomsApiService? apiService})
+    : _apiService = apiService ?? RoomsApiService();
 
   final RoomsApiService _apiService;
 
@@ -87,10 +86,7 @@ class RoomsRepositoryImpl implements RoomsRepository {
     required String accessToken,
     required String roomId,
   }) {
-    return _apiService.getRoom(
-      accessToken: accessToken,
-      roomId: roomId,
-    );
+    return _apiService.getRoom(accessToken: accessToken, roomId: roomId);
   }
 
   @override
@@ -128,10 +124,7 @@ class RoomsRepositoryImpl implements RoomsRepository {
     required String accessToken,
     required String roomId,
   }) {
-    return _apiService.provisionRoom(
-      accessToken: accessToken,
-      roomId: roomId,
-    );
+    return _apiService.provisionRoom(accessToken: accessToken, roomId: roomId);
   }
 
   @override
@@ -139,10 +132,7 @@ class RoomsRepositoryImpl implements RoomsRepository {
     required String accessToken,
     required String roomId,
   }) {
-    return _apiService.revokeRoom(
-      accessToken: accessToken,
-      roomId: roomId,
-    );
+    return _apiService.revokeRoom(accessToken: accessToken, roomId: roomId);
   }
 
   @override
@@ -165,10 +155,6 @@ class RoomsRepositoryImpl implements RoomsRepository {
     required String accessToken,
     required String roomId,
   }) {
-    return _apiService.deleteRoom(
-      accessToken: accessToken,
-      roomId: roomId,
-    );
+    return _apiService.deleteRoom(accessToken: accessToken, roomId: roomId);
   }
 }
-

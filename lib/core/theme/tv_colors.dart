@@ -1,95 +1,75 @@
-import 'package:flutter/material.dart';
+import 'dart:math' as math;
 
-/// TV-optimized high contrast color palette for 10-foot viewing distance.
-class TvColors {
-  TvColors._();
+import 'package:flutter/widgets.dart';
 
-  // Backgrounds
-  static const Color background = Color(0xFF0D0F12);
-  static const Color surface = Color(0xFF161922);
-  static const Color surfaceElevated = Color(0xFF212634);
-  static const Color sidebarBackground = Color(0xFF080A0E);
+/// Colour tokens from the reference app's globals.css. `*Ink` variants carry text; bare hues are fills.
+abstract final class TvColors {
+  static const Color background = Color(0xFFFAF5FF);
+  static const Color backgroundEnd = Color(0xFFFDF2F8);
+  static const Color foreground = Color(0xFF171717);
+  static const Color mutedForeground = Color(0xFF525252);
+  static const Color card = Color(0xFFFFFFFF);
+  static const Color primary = Color(0xFF8B5CF6);
+  static const Color primaryInk = Color(0xFF4D20B6);
+  static const Color accent = Color(0xFFEC4899);
+  static const Color ring = Color(0xFF8A2CE2);
+  static const Color border = Color(0xFF9E87B5);
+  static const Color input = Color(0xFFE0DAE7);
+  static const Color secondary = Color(0xFFF5EFFB);
+  static const Color muted = Color(0xFFF0EBF4);
+  static const Color destructive = Color(0xFFEF4444);
+  static const Color mint = Color(0xFF36D399);
+  static const Color mintInk = Color(0xFF096748);
+  static const Color sun = Color(0xFFFBC72D);
+  static const Color sunInk = Color(0xFF884C07);
+  static const Color sky = Color(0xFF1485F5);
+  static const Color skyInk = Color(0xFF093F86);
 
-  // Accents & Focus
-  static const Color primary = Color(0xFF00E5FF); // Electric Cyan Focus
-  static const Color primaryVariant = Color(0xFF00B0FF);
-  static const Color secondary = Color(0xFFFF9100); // Amber highlight
-  static const Color focusGlow = Color(0x6600E5FF); // Glow effect for focused elements
-  static const Color focusBorder = Color(0xFF00E5FF);
-  static const Color focusCardBackground = Color(0xFF282E3E);
+  /// Raw brand purple: the wordmark and the stickers on story cards.
+  static const Color purple = Color(0xFFAD46FF);
 
-  // Text
-  static const Color textPrimary = Color(0xFFF8FAFC);
-  static const Color textSecondary = Color(0xFF94A3B8);
-  static const Color textMuted = Color(0xFF64748B);
-  static const Color textOnFocus = Color(0xFF000000);
+  /// Text-safe pink: the raw #EC4899 is 3.4:1 on white, short of what a semibold title needs.
+  static const Color pinkInk = Color(0xFFBE185D);
 
-  // Badges & Status
-  static const Color ratingBadge = Color(0xFFFFB703);
-  static const Color hdBadge = Color(0xFF334155);
-  static const Color liveIndicator = Color(0xFFEF4444);
-
-  // Gradients
-  static const LinearGradient heroGradient = LinearGradient(
+  /// The wash behind every screen.
+  static const LinearGradient canvas = LinearGradient(
     begin: Alignment.topCenter,
     end: Alignment.bottomCenter,
-    colors: [
-      Colors.transparent,
-      Color(0x880D0F12),
-      Color(0xFF0D0F12),
-    ],
-    stops: [0.0, 0.6, 1.0],
+    colors: [background, backgroundEnd],
   );
 
-  static const LinearGradient cardGradient = LinearGradient(
-    begin: Alignment.topCenter,
-    end: Alignment.bottomCenter,
-    colors: [
-      Colors.transparent,
-      Color(0xCC000000),
-    ],
+  /// Brand ramp: wordmark, resting primary control, focused nav item and key.
+  static const LinearGradient brand = LinearGradient(
+    colors: [Color(0xFFEC4899), Color(0xFFAD46FF), Color(0xFF8B5CF6)],
+    transform: CssGradientAngle(135),
   );
 
-  static const LinearGradient focusBorderGradient = LinearGradient(
-    colors: [
-      Color(0xFF00E5FF),
-      Color(0xFF80D8FF),
-    ],
+  /// Two-stop ramp a primary control takes on focus.
+  static const LinearGradient brandBold = LinearGradient(
+    colors: [Color(0xFFAD46FF), Color(0xFFF6339A)],
+    transform: CssGradientAngle(135),
   );
+}
 
-  /// Luminous Purple / Magenta Gradient for Screen Badges
-  static const LinearGradient badgeGradient = LinearGradient(
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-    colors: [
-      Color(0xFFF472B6), // Soft vibrant pink / magenta
-      Color(0xFFA855F7), // Rich royal purple
-      Color(0xFF7E22CE), // Deep purple
-    ],
-  );
+/// Reproduces CSS `linear-gradient(<angle>deg, …)` on a left-to-right [LinearGradient].
+/// Flutter's corner-to-corner alignments tilt with the box's aspect ratio; CSS angles do not.
+class CssGradientAngle extends GradientTransform {
+  const CssGradientAngle(this.degrees);
 
-  /// Dynamic Action Pill Gradient for Primary Buttons
-  static const LinearGradient actionButtonGradient = LinearGradient(
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-    colors: [
-      Color(0xFFE879F9),
-      Color(0xFFA855F7),
-      Color(0xFF9333EA),
-    ],
-  );
+  final double degrees;
 
-  /// Ambient multi-stop card shadow
-  static const List<BoxShadow> ambientCardShadow = [
-    BoxShadow(
-      color: Color(0x0A000000),
-      blurRadius: 10,
-      offset: Offset(0, 3),
-    ),
-    BoxShadow(
-      color: Color(0x069333EA),
-      blurRadius: 14,
-      offset: Offset(0, 4),
-    ),
-  ];
+  @override
+  Matrix4 transform(Rect bounds, {TextDirection? textDirection}) {
+    final angle = degrees * math.pi / 180;
+    // CSS sizes the gradient line so the corners land exactly on the first and last stops.
+    final length =
+        (bounds.width * math.sin(angle)).abs() +
+        (bounds.height * math.cos(angle)).abs();
+    final center = bounds.center;
+    return Matrix4.identity()
+      ..translateByDouble(center.dx, center.dy, 0, 1)
+      ..rotateZ(angle - math.pi / 2)
+      ..scaleByDouble(length / bounds.width, 1, 1, 1)
+      ..translateByDouble(-center.dx, -center.dy, 0, 1);
+  }
 }

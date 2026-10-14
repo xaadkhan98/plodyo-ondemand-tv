@@ -1,172 +1,323 @@
 import 'dart:convert';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+import 'package:plodyo_ondemand_tv/data/models/auth_exception.dart';
+import 'package:plodyo_ondemand_tv/data/models/device_models.dart';
+import 'package:plodyo_ondemand_tv/data/models/story_models.dart';
 import 'package:plodyo_ondemand_tv/data/repositories/device_repository.dart';
 import 'package:plodyo_ondemand_tv/data/services/api_client.dart';
 import 'package:plodyo_ondemand_tv/data/services/device_api_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+const _tokenKey = 'plodyo.ondemand.device-token';
+const _token = 'f3a1c9e2b7d4a6f0';
+
+const _session = {
+  'session_id': 'aaaaaaaa-1111-4111-8111-111111111111',
+  'room_id': '88888888-8888-4888-8888-888888888888',
+  'started_at': '2026-08-28T10:31:00.000Z',
+};
+
+/// A repository over a fake API that answers by path and records every request.
+(DeviceRepositoryImpl, List<http.Request>) _api(
+  Map<String, (int, Object)> routes, {
+  String consoleBearer = '',
+}) {
+  final sent = <http.Request>[];
+  final client = MockClient((request) async {
+    sent.add(request);
+    final (status, body) =
+        routes[request.url.path] ?? (404, {'message': 'Not found'});
+    return http.Response(jsonEncode(body), status);
+  });
+  final service = DeviceApiService(apiClient: ApiClient(httpClient: client));
+  return (
+    DeviceRepositoryImpl(
+      apiService: service,
+      consoleBearer: () => consoleBearer,
+    ),
+    sent,
+  );
+}
+
+/// The same, restored from storage holding [token].
+Future<(DeviceRepositoryImpl, List<http.Request>)> _pairedApi(
+  Map<String, (int, Object)> routes, {
+  String token = _token,
+}) async {
+  SharedPreferences.setMockInitialValues({_tokenKey: token});
+  final api = _api(routes);
+  await api.$1.restore();
+  return api;
+}
 
 void main() {
-  group('DeviceApiService & DeviceRepository Tests', () {
-    test('pair sends POST /ondemand/device/pair and stores deviceToken', () async {
-      final mockClient = MockClient((request) async {
-        expect(request.url.path, '/ondemand/device/pair');
-        final body = jsonDecode(request.body) as Map<String, dynamic>;
-        expect(body['pairing_code'], '4F7K92QT');
+  setUp(() => SharedPreferences.setMockInitialValues({}));
 
-        final payload = {
-          'device_token': 'f3a1c9e2b7d4a6f0e8c1b2a3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3',
-        };
-        return http.Response(jsonEncode(payload), 200);
+  group('pairing', () {
+    test(
+      'normalises the code, sends no credential, and survives a restart',
+      () async {
+        final (repo, sent) = _api({
+          '/ondemand/device/pair': (200, {'device_token': _token}),
+        });
+
+        await repo.pair('4f7k92qt');
+
+        expect(jsonDecode(sent.single.body), {'pairing_code': '4F7K-92QT'});
+        expect(sent.single.headers['X-Device-Token'], isNull);
+        expect(sent.single.headers['Authorization'], isNull);
+        final restarted = DeviceRepositoryImpl();
+        await restarted.restore();
+        expect(restarted.isPaired, isTrue);
+      },
+    );
+
+    test('refuses a short code without spending a request', () async {
+      final (repo, sent) = _api({});
+
+      await expectLater(
+        repo.pair('4F7K'),
+        throwsA(
+          isA<AuthException>().having(
+            (e) => e.message,
+            'message',
+            'Enter the full 8-character pairing code.',
+          ),
+        ),
+      );
+      expect(sent, isEmpty);
+    });
+
+    test('re-pairs without offering the credential it replaces', () async {
+      final (repo, sent) = await _pairedApi({
+        '/ondemand/device/pair': (200, {'device_token': 'new-token'}),
+      }, token: 'stale-token');
+
+      await repo.pair('4F7K-92QT');
+
+      expect(sent.single.headers['X-Device-Token'], isNull);
+    });
+
+    test('keeps the API wording for a bad code and stores nothing', () async {
+      final (repo, _) = _api({
+        '/ondemand/device/pair': (
+          401,
+          {'statusCode': 401, 'message': 'Pairing code is invalid or expired'},
+        ),
       });
 
-      final service = DeviceApiService(apiClient: ApiClient(httpClient: mockClient));
-      final repo = DeviceRepositoryImpl(apiService: service);
-
+      await expectLater(
+        repo.pair('4F7K-92QT'),
+        throwsA(
+          isA<AuthException>().having(
+            (e) => e.message,
+            'message',
+            'Pairing code is invalid or expired',
+          ),
+        ),
+      );
       expect(repo.isPaired, isFalse);
-      final res = await repo.pair('4F7K92QT');
-      expect(res.deviceToken, 'f3a1c9e2b7d4a6f0e8c1b2a3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3');
+    });
+
+    test('unpairing forgets the token for good', () async {
+      final (repo, _) = await _pairedApi({});
+
+      await repo.unpair();
+
+      final restarted = DeviceRepositoryImpl();
+      await restarted.restore();
+      expect(repo.isPaired, isFalse);
+      expect(restarted.isPaired, isFalse);
+    });
+  });
+
+  group('device lane', () {
+    test('sends X-Device-Token and never a bearer or client secret', () async {
+      final (repo, sent) = await _pairedApi({
+        '/ondemand/device/session': (200, _session),
+      });
+
+      final session = await repo.openSession();
+
+      expect(sent.single.headers['X-Device-Token'], _token);
+      expect(sent.single.headers['Authorization'], isNull);
+      expect(sent.single.headers['x-client-secret'], isNull);
+      expect(session.sessionId, _session['session_id']);
+      expect(session.roomId, _session['room_id']);
+    });
+
+    test('a refused credential throws a 401 and is kept', () async {
+      final (repo, _) = await _pairedApi({
+        '/ondemand/device/session': (401, {'statusCode': 401}),
+      });
+
+      await expectLater(
+        repo.openSession(),
+        throwsA(
+          isA<AuthException>().having((e) => e.statusCode, 'status', 401),
+        ),
+      );
       expect(repo.isPaired, isTrue);
-      expect(repo.deviceToken, res.deviceToken);
     });
 
-    test('getSession sends GET /ondemand/device/session with X-Device-Token', () async {
-      final mockClient = MockClient((request) async {
-        if (request.url.path == '/ondemand/device/pair') {
-          return http.Response(
-            jsonEncode({'device_token': 'test_device_token'}),
-            200,
-          );
-        }
-        expect(request.url.path, '/ondemand/device/session');
-        expect(request.headers['X-Device-Token'], 'test_device_token');
+    test(
+      'a heartbeat sends the session, activity and clock, and events only when there are some',
+      () async {
+        final (repo, sent) = await _pairedApi({
+          '/ondemand/device/heartbeat': (200, _session),
+        });
 
-        final payload = {
-          'session_id': 'aaaaaaaa-1111-4111-8111-111111111111',
-          'room_id': '88888888-8888-4888-8888-888888888888',
-          'started_at': '2026-08-28T10:31:00.000Z',
-        };
-        return http.Response(jsonEncode(payload), 200);
-      });
-
-      final service = DeviceApiService(apiClient: ApiClient(httpClient: mockClient));
-      final repo = DeviceRepositoryImpl(apiService: service);
-
-      await repo.pair('CODE1234');
-      final session = await repo.getSession();
-      expect(session.sessionId, 'aaaaaaaa-1111-4111-8111-111111111111');
-      expect(session.roomId, '88888888-8888-4888-8888-888888888888');
-      expect(repo.currentSession, session);
-    });
-
-    test('getConfig sends GET /ondemand/device/config and parses languages/age groups', () async {
-      final mockClient = MockClient((request) async {
-        if (request.url.path == '/ondemand/device/pair') {
-          return http.Response(
-            jsonEncode({'device_token': 'test_device_token'}),
-            200,
-          );
-        }
-        expect(request.url.path, '/ondemand/device/config');
-        expect(request.headers['X-Device-Token'], 'test_device_token');
-
-        final payload = {
-          'languages': [
-            {'code': 'ENG', 'name': 'English'},
-            {'code': 'SPA', 'name': 'Spanish'},
+        await repo.heartbeat(sessionId: 's1', active: true, events: const []);
+        await repo.heartbeat(
+          sessionId: 's1',
+          active: false,
+          events: const [
+            {'id': 'e1', 'type': 'LANGUAGE_SELECT'},
           ],
-          'age_groups': ['0-2', '2-4', '5-7'],
-          'default_language': 'SPA',
-        };
-        return http.Response(jsonEncode(payload), 200);
+        );
+
+        final idle = jsonDecode(sent[0].body) as Map<String, dynamic>;
+        expect(idle['session_id'], 's1');
+        expect(idle['active'], isTrue);
+        expect(DateTime.tryParse(idle['sent_at'] as String), isNotNull);
+        expect(idle.containsKey('events'), isFalse);
+        expect((jsonDecode(sent[1].body) as Map)['events'], [
+          {'id': 'e1', 'type': 'LANGUAGE_SELECT'},
+        ]);
+      },
+    );
+
+    test('config drops an age group /content would refuse', () async {
+      final (repo, _) = await _pairedApi({
+        '/ondemand/device/config': (
+          200,
+          {
+            'languages': [
+              {'code': 'ENG', 'name': 'English'},
+            ],
+            'age_groups': ['0-2', '3-5', '5-7'],
+            'default_language': 'ENG',
+          },
+        ),
       });
 
-      final service = DeviceApiService(apiClient: ApiClient(httpClient: mockClient));
-      final repo = DeviceRepositoryImpl(apiService: service);
-
-      await repo.pair('CODE1234');
       final config = await repo.getConfig();
-      expect(config.languages.length, 2);
-      expect(config.languages.first.code, 'ENG');
-      expect(config.ageGroups, ['0-2', '2-4', '5-7']);
-      expect(config.defaultLanguage, 'SPA');
-      expect(repo.currentConfig, config);
+
+      expect(config.languages.single.name, 'English');
+      expect(config.ageGroups, [AgeGroup.toddler, AgeGroup.earlySchool]);
+      expect(config.defaultLanguage, 'ENG');
     });
+  });
 
-    test('getCatalogue sends GET /ondemand/device/content with query parameters', () async {
-      final mockClient = MockClient((request) async {
-        if (request.url.path == '/ondemand/device/pair') {
-          return http.Response(
-            jsonEncode({'device_token': 'test_device_token'}),
-            200,
-          );
-        }
-        expect(request.url.path, '/ondemand/device/content');
-        expect(request.url.queryParameters['language'], 'ENG');
-        expect(request.url.queryParameters['age_group'], '2-4');
-        expect(request.headers['X-Device-Token'], 'test_device_token');
+  group('catalogue', () {
+    const page = {'data': <Object>[], 'total': 0, 'page': 1, 'page_size': 20};
 
-        final payload = {
-          'data': [
-            {
-              'id': '11111111-2222-4333-8444-555555555555',
-              'title': 'The Brave Little Lighthouse',
-              'description': 'A lighthouse keeper learns to trust the storm.',
-              'artwork_url': 'https://cdn.plodyo.com/covers/lighthouse.jpg',
-              'duration': 'short',
-              'language': 'ENG',
-              'age_group': '2-4',
-            }
-          ],
-          'total': 128,
-          'page': 1,
-          'page_size': 25,
-        };
-        return http.Response(jsonEncode(payload), 200);
-      });
+    test(
+      'omits unset filters, so the room default applies, and passes set ones',
+      () async {
+        final (repo, sent) = await _pairedApi({
+          '/ondemand/device/content': (200, page),
+        });
 
-      final service = DeviceApiService(apiClient: ApiClient(httpClient: mockClient));
-      final repo = DeviceRepositoryImpl(apiService: service);
+        await repo.getStories();
+        await repo.getStories(
+          language: 'SPA',
+          ageGroup: AgeGroup.preschool,
+          storyType: StoryType.standalone,
+          page: 2,
+        );
 
-      await repo.pair('CODE1234');
-      final res = await repo.getCatalogue(language: 'ENG', ageGroup: '2-4');
-      expect(res.total, 128);
-      expect(res.data.length, 1);
-      expect(res.data.first.title, 'The Brave Little Lighthouse');
-      expect(res.data.first.artworkUrl, 'https://cdn.plodyo.com/covers/lighthouse.jpg');
-    });
-
-    test('getStoryDetail sends GET /ondemand/device/content/:id and returns media_url', () async {
-      final mockClient = MockClient((request) async {
-        if (request.url.path == '/ondemand/device/pair') {
-          return http.Response(
-            jsonEncode({'device_token': 'test_device_token'}),
-            200,
-          );
-        }
-        expect(request.url.path, '/ondemand/device/content/story_uuid_1');
-        expect(request.headers['X-Device-Token'], 'test_device_token');
-
-        final payload = {
-          'id': 'story_uuid_1',
-          'title': 'The Brave Little Lighthouse',
-          'description': 'A lighthouse keeper learns to trust the storm.',
-          'artwork_url': 'https://cdn.plodyo.com/covers/lighthouse.jpg',
-          'duration': 'short',
-          'language': 'ENG',
+        expect(sent[0].url.queryParameters, isEmpty);
+        expect(sent[1].url.queryParameters, {
+          'language': 'SPA',
           'age_group': '2-4',
-          'media_url': 'https://cdn.plodyo.com/videos/lighthouse.mp4',
-        };
-        return http.Response(jsonEncode(payload), 200);
+          'story_type': 'STANDALONE',
+          'page': '2',
+        });
+      },
+    );
+
+    test(
+      'a story detail carries the media URL and pages; a missing video stays null',
+      () async {
+        final (repo, _) = await _pairedApi({
+          '/ondemand/device/content/s1': (
+            200,
+            {
+              'id': 's1',
+              'title': 'Moon Picnic',
+              'media_url': null,
+              'pages': [
+                {
+                  'page_number': 1,
+                  'title': null,
+                  'text': 'Once upon a time',
+                  'image_url': null,
+                  'audio_url': 'https://cdn/1.mp3',
+                },
+              ],
+            },
+          ),
+        });
+
+        final detail = await repo.getStory('s1');
+
+        expect(detail.story.title, 'Moon Picnic');
+        expect(detail.mediaUrl, isNull);
+        expect(detail.pages.single.audioUrl, 'https://cdn/1.mp3');
+      },
+    );
+
+    test(
+      'unpaired, the console reads the same rows under /admin with its bearer',
+      () async {
+        final (repo, sent) = _api({
+          '/ondemand/admin/content': (200, page),
+          '/ondemand/admin/series': (200, page),
+        }, consoleBearer: 'console');
+
+        await repo.getStories(ageGroup: AgeGroup.toddler);
+        await repo.getSeries(seriesType: SeriesType.learning);
+
+        expect(sent.map((r) => r.url.path), [
+          '/ondemand/admin/content',
+          '/ondemand/admin/series',
+        ]);
+        expect(sent.first.url.queryParameters, {'age_group': '0-2'});
+        for (final request in sent) {
+          expect(request.headers['Authorization'], 'Bearer console');
+          expect(request.headers['X-Device-Token'], isNull);
+        }
+      },
+    );
+
+    test('series episodes are keyed by their story id', () async {
+      final (repo, _) = await _pairedApi({
+        '/ondemand/device/series/sr1': (
+          200,
+          {
+            'id': 'sr1',
+            'title': 'Counting Club',
+            'series_type': 'LEARNING',
+            'category': 'Math Fundamental & Logic',
+            'age_group': '5-7',
+            'language': 'ENG',
+            'episode_count': 10,
+            'episodes': [
+              {'episode_number': 1, 'story_id': 'st9', 'title': 'One'},
+            ],
+          },
+        ),
       });
 
-      final service = DeviceApiService(apiClient: ApiClient(httpClient: mockClient));
-      final repo = DeviceRepositoryImpl(apiService: service);
+      final detail = await repo.getSeriesDetail('sr1');
 
-      await repo.pair('CODE1234');
-      final detail = await repo.getStoryDetail('story_uuid_1');
-      expect(detail.id, 'story_uuid_1');
-      expect(detail.mediaUrl, 'https://cdn.plodyo.com/videos/lighthouse.mp4');
+      expect(detail.series.seriesType, SeriesType.learning);
+      expect(detail.episodes.single.story.id, 'st9');
+      expect(detail.episodes.single.episodeNumber, 1);
     });
   });
 }

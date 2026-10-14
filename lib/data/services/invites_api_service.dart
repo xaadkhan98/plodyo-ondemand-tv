@@ -5,9 +5,8 @@ import 'api_client.dart';
 
 /// Service communicating with OnDemand Plodyo Admin Invites endpoints.
 class InvitesApiService {
-  InvitesApiService({
-    ApiClient? apiClient,
-  }) : _client = apiClient ?? ApiClient();
+  InvitesApiService({ApiClient? apiClient})
+    : _client = apiClient ?? ApiClient();
 
   final ApiClient _client;
 
@@ -51,7 +50,8 @@ class InvitesApiService {
       'email': email,
       'role': role,
       'partner_id': partnerId,
-      if (propertyId != null && propertyId.isNotEmpty) 'property_id': propertyId,
+      if (propertyId != null && propertyId.isNotEmpty)
+        'property_id': propertyId,
     };
 
     final res = await _client.post(
