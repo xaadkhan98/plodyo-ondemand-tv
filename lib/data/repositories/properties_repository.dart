@@ -1,5 +1,6 @@
 import '../models/paginated_response.dart';
 import '../models/property_model.dart';
+import '../models/viewing_model.dart';
 import '../services/properties_api_service.dart';
 
 /// Global shared instance of [PropertiesRepository].
@@ -19,6 +20,14 @@ abstract class PropertiesRepository {
   Future<PropertyModel> getProperty({
     required String accessToken,
     required String propertyId,
+  });
+
+  /// [from] and [to] are inclusive days, YYYY-MM-DD, in the property's timezone.
+  Future<ViewingTotals> getViewing({
+    required String accessToken,
+    required String propertyId,
+    required String from,
+    required String to,
   });
 
   Future<PropertyModel> createProperty({
@@ -86,6 +95,19 @@ class PropertiesRepositoryImpl implements PropertiesRepository {
       propertyId: propertyId,
     );
   }
+
+  @override
+  Future<ViewingTotals> getViewing({
+    required String accessToken,
+    required String propertyId,
+    required String from,
+    required String to,
+  }) => _apiService.getViewing(
+    accessToken: accessToken,
+    propertyId: propertyId,
+    from: from,
+    to: to,
+  );
 
   @override
   Future<PropertyModel> createProperty({

@@ -8,6 +8,7 @@ import 'package:plodyo_ondemand_tv/data/models/paginated_response.dart';
 import 'package:plodyo_ondemand_tv/data/models/partner_model.dart';
 import 'package:plodyo_ondemand_tv/data/models/property_model.dart';
 import 'package:plodyo_ondemand_tv/data/models/room_model.dart';
+import 'package:plodyo_ondemand_tv/data/models/viewing_model.dart';
 import 'package:plodyo_ondemand_tv/data/repositories/auth_repository.dart';
 import 'package:plodyo_ondemand_tv/data/repositories/invites_repository.dart';
 import 'package:plodyo_ondemand_tv/data/repositories/partners_repository.dart';
@@ -413,6 +414,14 @@ class _MockPropertiesRepo implements PropertiesRepository {
   }) async {
     return _props.first;
   }
+
+  @override
+  Future<ViewingTotals> getViewing({
+    required String accessToken,
+    required String propertyId,
+    required String from,
+    required String to,
+  }) async => ViewingTotals.fromJson(const {});
 }
 
 class _MockRoomsRepo implements RoomsRepository {

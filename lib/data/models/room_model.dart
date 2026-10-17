@@ -11,6 +11,7 @@ class RoomModel extends Equatable {
     this.defaultLanguage,
     this.provisionedAt,
     this.lastSeenAt,
+    this.appVersion,
     required this.createdAt,
     this.updatedAt,
   });
@@ -23,6 +24,9 @@ class RoomModel extends Equatable {
   final String? defaultLanguage;
   final String? provisionedAt;
   final String? lastSeenAt;
+
+  /// The TV app's version, from its last heartbeat.
+  final String? appVersion;
   final String createdAt;
   final String? updatedAt;
 
@@ -46,6 +50,7 @@ class RoomModel extends Equatable {
       defaultLanguage: json['default_language'] as String?,
       provisionedAt: json['provisioned_at'] as String?,
       lastSeenAt: json['last_seen_at'] as String?,
+      appVersion: json['app_version'] as String?,
       createdAt: json['created_at'] as String? ?? '',
       updatedAt: json['updated_at'] as String?,
     );
@@ -61,6 +66,7 @@ class RoomModel extends Equatable {
       'default_language': defaultLanguage,
       'provisioned_at': provisionedAt,
       'last_seen_at': lastSeenAt,
+      'app_version': appVersion,
       'created_at': createdAt,
       'updated_at': updatedAt,
     };
@@ -76,6 +82,7 @@ class RoomModel extends Equatable {
     defaultLanguage,
     provisionedAt,
     lastSeenAt,
+    appVersion,
     createdAt,
     updatedAt,
   ];

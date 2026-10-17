@@ -214,6 +214,10 @@ class _RoomDetailsViewState extends State<RoomDetailsView> {
                   value: LastSeen(room: room, now: _now),
                 ),
                 DetailCard.text(
+                  label: 'App version',
+                  value: room.appVersion ?? 'Not reported yet',
+                ),
+                DetailCard.text(
                   label: 'Created',
                   value: formatDateTime(room.createdAt),
                 ),

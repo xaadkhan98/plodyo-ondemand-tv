@@ -52,6 +52,9 @@ class ApiConstants {
   // Admin Properties Routes
   static const String adminPropertiesEndpoint = '/ondemand/admin/properties';
 
+  // A property's viewing totals; nothing per room
+  static const String adminViewingEndpoint = '/ondemand/admin/viewing';
+
   // Admin Rooms Routes
   static const String adminRoomsEndpoint = '/ondemand/admin/rooms';
   static const String adminRoomsBulkEndpoint = '/ondemand/admin/rooms/bulk';

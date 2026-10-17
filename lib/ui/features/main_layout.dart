@@ -111,6 +111,11 @@ class _MainTvLayoutState extends State<MainTvLayout> {
       icon: LucideIcons.landmark,
     ),
     const NavItem(path: '/rooms', label: 'Rooms', icon: LucideIcons.doorOpen),
+    const NavItem(
+      path: '/viewing',
+      label: 'Viewing',
+      icon: LucideIcons.chartColumn,
+    ),
     const NavItem(path: '/people', label: 'People', icon: LucideIcons.users),
     const NavItem(
       path: '/settings',

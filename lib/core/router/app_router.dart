@@ -30,6 +30,7 @@ import '../../ui/features/rooms/views/room_form_view.dart';
 import '../../data/models/room_model.dart';
 import '../../ui/features/rooms/views/add_many_rooms_view.dart';
 import '../../ui/features/settings/views/settings_view.dart';
+import '../../ui/features/viewing/views/viewing_view.dart';
 import '../../ui/features/people/views/people_view.dart';
 import '../../ui/features/people/views/person_details_view.dart';
 import '../../data/repositories/auth_repository.dart';
@@ -239,6 +240,11 @@ final GoRouter appRouter = GoRouter(
                   AddManyRoomsView(propertyId: state.extra as String?),
             ),
           ],
+        ),
+        GoRoute(
+          path: '/viewing',
+          name: 'viewing',
+          builder: (context, state) => const ViewingView(),
         ),
         GoRoute(
           path: '/people',

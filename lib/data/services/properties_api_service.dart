@@ -1,6 +1,7 @@
 import '../../core/constants/api_constants.dart';
 import '../models/paginated_response.dart';
 import '../models/property_model.dart';
+import '../models/viewing_model.dart';
 import 'api_client.dart';
 
 /// Service communicating with OnDemand Plodyo Admin Properties endpoints.
@@ -137,5 +138,20 @@ class PropertiesApiService {
       clientSecret: clientSecret,
     );
     return PropertyModel.fromJson(res as Map<String, dynamic>);
+  }
+
+  /// GET /ondemand/admin/viewing: plays, watch time, top stories and the age split for a date range.
+  Future<ViewingTotals> getViewing({
+    required String accessToken,
+    required String propertyId,
+    required String from,
+    required String to,
+  }) async {
+    final res = await _client.get(
+      ApiConstants.adminViewingEndpoint,
+      queryParameters: {'property_id': propertyId, 'from': from, 'to': to},
+      accessToken: accessToken,
+    );
+    return ViewingTotals.fromJson(res as Map<String, dynamic>);
   }
 }
