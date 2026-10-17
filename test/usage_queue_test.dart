@@ -3,9 +3,11 @@ import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:plodyo_ondemand_tv/data/repositories/device_repository.dart';
 import 'package:plodyo_ondemand_tv/data/repositories/usage_queue.dart';
+import 'package:plodyo_ondemand_tv/ui/features/device/story_play.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-const _storageKey = 'plodyo.ondemand.usage-queue';
+const _storageKey = 'plodyo.ondemand.viewing-queue';
+const _dayKey = 'plodyo.ondemand.viewing-day';
 
 class _Device implements DeviceRepository {
   _Device({this.isPaired = true});
@@ -21,52 +23,100 @@ void main() {
   setUp(() => SharedPreferences.setMockInitialValues({}));
 
   test('records nothing unpaired, so the console never counts as a guest', () {
-    expect(
-      UsageQueue(_Device(isPaired: false)).record(UsageType.languageSelect),
-      isNull,
-    );
+    expect(UsageQueue(_Device(isPaired: false)).start('s1'), isNull);
   });
 
-  test('stamps each event with a v4 uuid and the clock', () {
-    final at = DateTime.utc(2026, 10, 9, 12);
-    final event = UsageQueue(
-      _Device(),
-      now: () => at,
-    ).record(UsageType.ageSelect, ageGroup: '2-4')!;
+  test('a start counts one play with the age pick, and nothing that names the room', () {
+    final at = DateTime.utc(2026, 10, 25, 12);
+    final play = UsageQueue(_Device(), now: () => at).start('s1', ageGroup: '2-4')!;
 
     expect(
-      event['id'],
-      matches(
-        RegExp(
-          r'^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$',
-        ),
-      ),
+      play['id'],
+      matches(RegExp(r'^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$')),
     );
-    expect(event['occurred_at'], '2026-10-09T12:00:00.000Z');
-    expect(event['age_group'], '2-4');
-    expect(event.containsKey('story_id'), isFalse);
+    expect({...play}..remove('id'), {
+      'story_id': 's1',
+      'occurred_at': '2026-10-25T12:00:00.000Z',
+      'age_group': '2-4',
+      'start': true,
+      'watch_seconds': 0,
+      'first_play_today': true,
+    });
   });
 
-  test('replaces a queued event in place rather than queueing it twice', () {
+  test("counts this TV once a day: on the day's first play only", () {
+    var now = DateTime(2026, 10, 25, 9);
+    final queue = UsageQueue(_Device(), now: () => now);
+
+    final first = queue.start('s1')!;
+    final second = queue.start('s2')!;
+    now = DateTime(2026, 10, 26, 9);
+    final nextDay = queue.start('s1')!;
+
+    expect(first['first_play_today'], isTrue);
+    expect(second.containsKey('first_play_today'), isFalse);
+    expect(nextDay['first_play_today'], isTrue);
+  });
+
+  test('grows an unsent slice in place, and opens a fresh one once that has gone', () {
     final queue = UsageQueue(_Device());
-    final play = queue.record(
-      UsageType.storyPlay,
-      storyId: 's1',
-      watchSeconds: 5,
-    )!;
+    var slice = queue.start('s1', ageGroup: '0-2')!;
 
-    queue.upsert({...play, 'watch_seconds': 30});
+    slice = queue.watched(slice, 5);
+    slice = queue.watched(slice, 3);
+    expect(queue.takeBatch().single['watch_seconds'], 8);
 
-    expect(queue.takeBatch(), [
-      {...play, 'watch_seconds': 30},
-    ]);
+    queue.acknowledge(queue.takeBatch());
+    final fresh = queue.watched(slice, 4);
+
+    final [sent] = queue.takeBatch();
+    expect(sent['id'], fresh['id']);
+    expect({...sent}..remove('id')..remove('occurred_at'), {
+      'story_id': 's1',
+      'age_group': '0-2',
+      'watch_seconds': 4,
+    });
+  });
+
+  test(
+    'keeps only the unsent seconds of a slice that grew in flight, no longer as a start',
+    () {
+      final queue = UsageQueue(_Device());
+      final slice = queue.watched(queue.start('s1')!, 5);
+      final sent = queue.takeBatch();
+
+      queue.watched(slice, 7);
+      queue.acknowledge(sent);
+
+      final [left] = queue.takeBatch();
+      expect(left['watch_seconds'], 7);
+      expect(left.containsKey('start'), isFalse);
+      expect(left.containsKey('first_play_today'), isFalse);
+    },
+  );
+
+  test('a story play counts once it really starts, in whole seconds, with the age pick', () {
+    final queue = UsageQueue(_Device());
+    final play = StoryPlay('s1', ageGroup: '2-4', usage: queue);
+
+    play.watch(0);
+    expect(queue.takeBatch(), isEmpty);
+
+    play
+      ..watch(0.6)
+      ..watch(0.6)
+      ..watch(0.6);
+    final [slice] = queue.takeBatch();
+    expect(slice['start'], isTrue);
+    expect(slice['age_group'], '2-4');
+    expect(slice['watch_seconds'], 1);
   });
 
   test('hands out the oldest 50, and keeps only the newest 500', () {
     final queue = UsageQueue(_Device());
     final ids = [
       for (var i = 0; i < UsageQueue.maxQueued + 20; i++)
-        queue.record(UsageType.languageSelect, language: 'ENG')!['id'],
+        queue.start('s$i')!['id'],
     ];
 
     final batch = queue.takeBatch();
@@ -75,33 +125,11 @@ void main() {
     expect(batch.first['id'], ids[20]);
   });
 
-  test(
-    'drops what a beat delivered, but re-sends a play that grew in flight',
-    () {
-      final queue = UsageQueue(_Device());
-      final pick = queue.record(UsageType.languageSelect, language: 'ENG')!;
-      final play = queue.record(
-        UsageType.storyPlay,
-        storyId: 's1',
-        watchSeconds: 5,
-      )!;
-      final sent = queue.takeBatch();
-
-      queue.upsert({...play, 'watch_seconds': 12});
-      queue.acknowledge(sent);
-
-      final left = queue.takeBatch();
-      expect(left.map((e) => e['id']), [play['id']]);
-      expect(left.single['watch_seconds'], 12);
-      expect(left.any((e) => e['id'] == pick['id']), isFalse);
-    },
-  );
-
   testWidgets('writes to storage after a short delay and survives a restart', (
     tester,
   ) async {
     final queue = UsageQueue(_Device());
-    final event = queue.record(UsageType.languageSelect, language: 'ENG')!;
+    final play = queue.start('s1')!;
     final prefs = await SharedPreferences.getInstance();
     expect(prefs.getString(_storageKey), isNull);
 
@@ -109,7 +137,24 @@ void main() {
 
     final restarted = UsageQueue(_Device());
     await restarted.restore();
-    expect(restarted.takeBatch().single['id'], event['id']);
+    expect(restarted.takeBatch().single['id'], play['id']);
+    // The day it was counted on survives too, so a restart does not count the TV twice.
+    expect(restarted.start('s2')!.containsKey('first_play_today'), isFalse);
+    await restarted.persistNow();
+  });
+
+  test('forgets what the session-era build queued, which the API no longer takes', () async {
+    SharedPreferences.setMockInitialValues({
+      'plodyo.ondemand.usage-queue': jsonEncode([
+        {'id': 'e1', 'type': 'AGE_SELECT', 'age_group': '2-4'},
+      ]),
+    });
+    final queue = UsageQueue(_Device());
+
+    await queue.restore();
+
+    expect(queue.takeBatch(), isEmpty);
+    expect((await SharedPreferences.getInstance()).getKeys(), isNot(contains('plodyo.ondemand.usage-queue')));
   });
 
   test('starts empty rather than failing when storage holds garbage', () async {
@@ -135,13 +180,14 @@ void main() {
     expect(queue.activeWithin(window), isFalse);
   });
 
-  test('persists in the wire format the heartbeat sends', () async {
+  test('persists in the wire format the report sends', () async {
     final queue = UsageQueue(_Device());
-    final event = queue.record(UsageType.storyComplete, storyId: 's1')!;
+    final play = queue.start('s1')!;
 
     await queue.persistNow();
 
     final prefs = await SharedPreferences.getInstance();
-    expect(jsonDecode(prefs.getString(_storageKey)!), [event]);
+    expect(jsonDecode(prefs.getString(_storageKey)!), [play]);
+    expect(prefs.getString(_dayKey), isNotNull);
   });
 }

@@ -17,6 +17,12 @@ class ApiConstants {
   /// Effective base URL.
   static String get effectiveBaseUrl => customBaseUrl ?? baseUrl;
 
+  /// Reported with each heartbeat. Pass `--dart-define=APP_VERSION=` to override; the default tracks pubspec.yaml.
+  static const String appVersion = String.fromEnvironment(
+    'APP_VERSION',
+    defaultValue: '1.0.0+4',
+  );
+
   /// Global secret key header if connecting from non-browser clients (e.g. Flutter TV / macOS / Windows desktop).
   static String clientSecret = '';
 
@@ -60,10 +66,10 @@ class ApiConstants {
 
   // Device TV Routes (Room TV Flow)
   static const String devicePairEndpoint = '/ondemand/device/pair';
-  static const String deviceSessionEndpoint = '/ondemand/device/session';
   static const String deviceConfigEndpoint = '/ondemand/device/config';
   static const String deviceContentEndpoint = '/ondemand/device/content';
   static const String deviceHeartbeatEndpoint = '/ondemand/device/heartbeat';
+  static const String deviceViewingEndpoint = '/ondemand/device/viewing';
   static const String deviceSeriesEndpoint = '/ondemand/device/series';
 
   // Request Timeouts

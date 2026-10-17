@@ -24,13 +24,14 @@ abstract class DeviceRepository {
   /// Forgets the token, sending the TV back to pairing.
   Future<void> unpair();
 
-  Future<DeviceSession> openSession();
-
-  Future<DeviceSession> heartbeat({
-    required String sessionId,
-    required bool active,
-    required List<Map<String, Object?>> events,
+  /// Device status: keeps the room online, with its app version and any Terms notices.
+  Future<void> heartbeat({
+    required String appVersion,
+    required List<Map<String, Object?>> notices,
   });
+
+  /// Adds slices of plays to the property's totals.
+  Future<void> reportViewing(List<Map<String, Object?>> slices);
 
   Future<DeviceConfig> getConfig();
 
@@ -123,19 +124,14 @@ class DeviceRepositoryImpl implements DeviceRepository {
   Future<void> unpair() => _persist(null);
 
   @override
-  Future<DeviceSession> openSession() => _api.openSession(_deviceToken);
+  Future<void> heartbeat({
+    required String appVersion,
+    required List<Map<String, Object?>> notices,
+  }) => _api.heartbeat(_deviceToken, appVersion: appVersion, notices: notices);
 
   @override
-  Future<DeviceSession> heartbeat({
-    required String sessionId,
-    required bool active,
-    required List<Map<String, Object?>> events,
-  }) => _api.heartbeat(
-    _deviceToken,
-    sessionId: sessionId,
-    active: active,
-    events: events,
-  );
+  Future<void> reportViewing(List<Map<String, Object?>> slices) =>
+      _api.reportViewing(_deviceToken, slices);
 
   @override
   Future<DeviceConfig> getConfig() => _api.getConfig(_deviceToken);

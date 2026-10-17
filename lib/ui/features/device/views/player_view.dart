@@ -53,7 +53,16 @@ class PlayerView extends StatefulWidget {
 }
 
 class _PlayerViewState extends State<PlayerView> {
-  late final StoryPlay _play = StoryPlay(widget.storyId, usage: widget.usage);
+  // The age pick as the story opens; read without depending on it, so a later change cannot rebuild this.
+  late final StoryPlay _play = StoryPlay(
+    widget.storyId,
+    ageGroup: context
+        .getInheritedWidgetOfExactType<DeviceScope>()
+        ?.notifier
+        ?.ageGroup
+        ?.code,
+    usage: widget.usage,
+  );
   StoryDetail? _detail;
   Object? _error;
   VideoPlayerController? _video;
@@ -113,7 +122,6 @@ class _PlayerViewState extends State<PlayerView> {
     }
     // The end is the one moment the app has to feel earned; playing again lifts it.
     if (value.isCompleted != _finished) {
-      if (value.isCompleted) _play.complete();
       setState(() => _finished = value.isCompleted);
     }
     if (value.isPlaying && _playbackError != null) {

@@ -49,9 +49,10 @@ void main() {
     media = [];
   });
 
+  // A start counts the play; any slice after it only adds seconds.
   List<String> recorded() => [
-    for (final event in usage.takeBatch())
-      '${event['type']} ${event['watch_seconds'] ?? ''}'.trim(),
+    for (final slice in usage.takeBatch())
+      '${slice['start'] == true ? 'PLAY' : 'WATCH'} ${slice['watch_seconds']}',
   ];
 
   testWidgets(
@@ -87,7 +88,7 @@ void main() {
       await settleFor(tester, 6);
 
       expect(find.text('The end!'), findsOneWidget);
-      expect(recorded(), ['STORY_PLAY 3', 'STORY_COMPLETE']);
+      expect(recorded(), ['PLAY 3']);
 
       await tester.tap(find.text('Again'));
       await settleFor(tester, 2);
@@ -160,7 +161,7 @@ void main() {
 
       // A second on the last page finishes the story.
       await tester.pump(const Duration(seconds: 1));
-      expect(recorded(), ['STORY_PLAY ${onPageOne + 1}', 'STORY_COMPLETE']);
+      expect(recorded(), ['PLAY ${onPageOne + 1}']);
 
       // From Previous, left is a page back rather than the side rail.
       await tester.sendKeyEvent(LogicalKeyboardKey.arrowLeft);

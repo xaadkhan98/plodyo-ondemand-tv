@@ -43,36 +43,38 @@ class DeviceApiService {
     return (res as Map<String, dynamic>)['device_token'] as String;
   }
 
-  /// GET /ondemand/device/session: opens a room_sessions row. Called once on startup.
-  Future<DeviceSession> openSession(String deviceToken) async {
-    final res = await _client.get(
-      ApiConstants.deviceSessionEndpoint,
-      deviceToken: deviceToken,
-    );
-    return DeviceSession.fromJson(res as Map<String, dynamic>);
-  }
-
-  /// POST /ondemand/device/heartbeat: keeps the room online and answers with the session to hold.
-  Future<DeviceSession> heartbeat(
+  /// POST /ondemand/device/heartbeat: device status only, the app version and any Terms notices.
+  Future<void> heartbeat(
     String deviceToken, {
-    required String sessionId,
-    required bool active,
-    required List<Map<String, Object?>> events,
-  }) async {
-    final res = await _client.post(
-      ApiConstants.deviceHeartbeatEndpoint,
-      deviceToken: deviceToken,
-      body: {
-        'session_id': sessionId,
-        'active': active,
-        // The API corrects event times by this, so a TV with a wrong clock is fine.
-        'sent_at': DateTime.now().toUtc().toIso8601String(),
-        // Omitted when empty, so an idle beat stays tiny.
-        if (events.isNotEmpty) 'events': events,
-      },
-    );
-    return DeviceSession.fromJson(res as Map<String, dynamic>);
-  }
+    required String appVersion,
+    required List<Map<String, Object?>> notices,
+  }) => _client.post(
+    ApiConstants.deviceHeartbeatEndpoint,
+    deviceToken: deviceToken,
+    body: {
+      'app_version': appVersion,
+      // The API corrects notice times by this, so a TV with a wrong clock is fine.
+      'sent_at': DateTime.now().toUtc().toIso8601String(),
+      // Omitted when empty, so an idle beat stays tiny.
+      if (notices.isNotEmpty) 'notices': notices,
+    },
+  );
+
+  /// POST /ondemand/device/viewing: slices of plays, added to the property's totals and kept nowhere else.
+  Future<void> reportViewing(
+    String deviceToken,
+    List<Map<String, Object?>> slices,
+  ) => _client.post(
+    ApiConstants.deviceViewingEndpoint,
+    deviceToken: deviceToken,
+    body: {
+      'sent_at': DateTime.now().toUtc().toIso8601String(),
+      // The local id only matches acknowledgements; the API never needs to tell two slices apart.
+      'events': [
+        for (final slice in slices) {...slice}..remove('id'),
+      ],
+    },
+  );
 
   /// GET /ondemand/device/config
   Future<DeviceConfig> getConfig(String deviceToken) async {

@@ -1,5 +1,6 @@
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:plodyo_ondemand_tv/core/constants/api_constants.dart';
 
 import 'support/guest_harness.dart';
 
@@ -9,7 +10,7 @@ void main() {
   setUp(() => device = FakeDevice());
 
   testWidgets(
-    'the blue button opens This TV: the language first, then the ids support asks for',
+    'the blue button opens This TV: the language first, then the room and app version support asks for',
     (tester) async {
       await pumpGuestApp(tester, device);
 
@@ -23,7 +24,7 @@ void main() {
       expect(find.text('This TV'), findsOneWidget);
       expect(find.text('English (room default)'), findsOneWidget);
       expect(find.text('r1'), findsOneWidget);
-      expect(find.text('s1'), findsOneWidget);
+      expect(find.text(ApiConstants.appVersion), findsOneWidget);
       // The picker is the first control, so it takes the ring.
       expect(hasFocus(tester, 'As set for this room (English)'), isTrue);
     },

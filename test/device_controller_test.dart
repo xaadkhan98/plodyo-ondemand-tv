@@ -1,8 +1,6 @@
-import 'dart:async';
-
-import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:plodyo_ondemand_tv/core/constants/api_constants.dart';
 import 'package:plodyo_ondemand_tv/data/models/auth_exception.dart';
 import 'package:plodyo_ondemand_tv/data/models/device_models.dart';
 import 'package:plodyo_ondemand_tv/data/repositories/device_repository.dart';
@@ -10,39 +8,35 @@ import 'package:plodyo_ondemand_tv/data/repositories/usage_queue.dart';
 import 'package:plodyo_ondemand_tv/ui/features/device/device_controller.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-const _config = DeviceConfig(languages: [], ageGroups: []);
+const _config = DeviceConfig(languages: [], ageGroups: [], roomId: 'r1');
 
-DeviceSession _session(String id) => DeviceSession(
-  sessionId: id,
-  roomId: 'r1',
-  startedAt: '2026-10-09T12:00:00Z',
-);
-
-/// A device API whose answers each test sets, recording the heartbeats it is sent.
+/// A device API whose answers each test sets, recording what it is sent.
 class _Device implements DeviceRepository {
   @override
   bool isPaired = true;
 
   Future<DeviceConfig> Function() config = () async => _config;
-  Future<DeviceSession> Function() session = () async => _session('s1');
-  Future<DeviceSession> Function(String sessionId) beat = (id) async =>
-      _session(id);
-  final beats = <({String sessionId, bool active, List<UsageEvent> events})>[];
+  Future<void> Function() beat = () async {};
+  Future<void> Function() report = () async {};
+  final beats = <({String appVersion, List<Map<String, Object?>> notices})>[];
+  final reports = <List<Map<String, Object?>>>[];
 
   @override
   Future<DeviceConfig> getConfig() => config();
 
   @override
-  Future<DeviceSession> openSession() => session();
+  Future<void> heartbeat({
+    required String appVersion,
+    required List<Map<String, Object?>> notices,
+  }) {
+    beats.add((appVersion: appVersion, notices: notices));
+    return beat();
+  }
 
   @override
-  Future<DeviceSession> heartbeat({
-    required String sessionId,
-    required bool active,
-    required List<UsageEvent> events,
-  }) {
-    beats.add((sessionId: sessionId, active: active, events: events));
-    return beat(sessionId);
+  Future<void> reportViewing(List<Map<String, Object?>> slices) {
+    reports.add(slices);
+    return report();
   }
 
   @override
@@ -60,6 +54,8 @@ void main() {
 
   late _Device device;
   late UsageQueue usage;
+  // The queue's clock, which is what "idle" is measured on.
+  late DateTime now;
 
   Future<DeviceController> start(WidgetTester tester) async {
     final controller = DeviceController(device: device, usage: usage);
@@ -68,8 +64,9 @@ void main() {
   }
 
   setUp(() {
+    now = DateTime.utc(2026, 10, 25, 20);
     device = _Device();
-    usage = UsageQueue(device);
+    usage = UsageQueue(device, now: () => now);
   });
 
   testWidgets('an unpaired TV asks to be set up', (tester) async {
@@ -80,32 +77,19 @@ void main() {
     expect(controller.phase, isA<DeviceUnpaired>());
   });
 
-  testWidgets('opens the session alongside config, not after it', (
+  testWidgets('is ready on config alone, with the room it is paired to', (
     tester,
   ) async {
-    final config = Completer<DeviceConfig>();
-    var sessionAsked = false;
-    device
-      ..config = (() => config.future)
-      ..session = () async {
-        sessionAsked = true;
-        return _session('s1');
-      };
-
     final controller = await start(tester);
-    expect(sessionAsked, isTrue);
-    expect(controller.phase, isA<DeviceLoading>());
 
-    config.complete(_config);
-    await tester.pump();
     expect(
       controller.phase,
-      isA<DeviceReady>().having((p) => p.session.sessionId, 'session', 's1'),
+      isA<DeviceReady>().having((p) => p.config.roomId, 'room', 'r1'),
     );
   });
 
   testWidgets('keeps the credential when the API refuses it', (tester) async {
-    device.session = () async =>
+    device.config = () async =>
         throw const AuthException(message: 'Unauthorized', statusCode: 401);
 
     final controller = await start(tester);
@@ -146,84 +130,58 @@ void main() {
   });
 
   testWidgets(
-    'records a guest language or age pick but not clearing one, and unpairing forgets both',
+    "keeps a guest's language and age on this TV, sending neither, and unpairing forgets both",
     (tester) async {
       final controller = await start(tester);
 
       controller
         ..chooseLanguage('SPA')
-        ..chooseLanguage(null)
-        ..chooseAgeGroup(AgeGroup.toddler)
-        ..chooseAgeGroup(null);
+        ..chooseAgeGroup(AgeGroup.toddler);
+      await tester.pump(DeviceController.heartbeatInterval);
 
-      expect(
-        usage.takeBatch().map(
-          (e) => (e['type'], e['language'] ?? e['age_group']),
-        ),
-        [('LANGUAGE_SELECT', 'SPA'), ('AGE_SELECT', '0-2')],
-      );
-      controller
-        ..chooseLanguage('SPA')
-        ..chooseAgeGroup(AgeGroup.preschool);
+      expect(controller.ageGroup, AgeGroup.toddler);
+      expect(usage.takeBatch(), isEmpty);
+      expect(device.reports, isEmpty);
       await controller.unpair();
       expect(controller.language, isNull);
       expect(controller.ageGroup, isNull);
+    },
+  );
+
+  testWidgets(
+    'beats once a minute with the app version, and reports viewing only when there is some',
+    (tester) async {
+      await start(tester);
+
+      await tester.pump(DeviceController.heartbeatInterval);
+      expect(device.beats.single.appVersion, ApiConstants.appVersion);
+      expect(device.reports, isEmpty);
+
+      final slice = usage.start('s1')!;
+      await tester.pump(DeviceController.heartbeatInterval);
+      expect(device.reports.single.single['id'], slice['id']);
       await usage.persistNow();
     },
   );
 
   testWidgets(
-    'beats once a minute, active only after a remote press, even one a screen consumed',
+    'keeps viewing through a network failure, and drops a batch the API refuses',
     (tester) async {
       await start(tester);
+      final slice = usage.start('s1')!;
 
+      device.report = () async => throw AuthException.network();
       await tester.pump(DeviceController.heartbeatInterval);
-      final beat = device.beats.single;
-      expect(beat.sessionId, 's1');
-      expect(beat.active, isFalse);
-      expect(beat.events, isEmpty);
+      expect(device.reports.last.single['id'], slice['id']);
 
-      await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+      device.report = () async =>
+          throw const AuthException(message: 'Bad slice', statusCode: 400);
       await tester.pump(DeviceController.heartbeatInterval);
-      expect(device.beats.last.active, isTrue);
-    },
-  );
+      expect(device.reports.last.single['id'], slice['id']);
 
-  testWidgets(
-    'swaps in the session a heartbeat hands back, and beats with it after',
-    (tester) async {
-      device.beat = (_) async => _session('s2');
-      final controller = await start(tester);
-
+      device.report = () async {};
       await tester.pump(DeviceController.heartbeatInterval);
-      expect(
-        controller.phase,
-        isA<DeviceReady>().having((p) => p.session.sessionId, 'session', 's2'),
-      );
-
-      await tester.pump(DeviceController.heartbeatInterval);
-      expect(device.beats.map((b) => b.sessionId), ['s1', 's2']);
-    },
-  );
-
-  testWidgets(
-    'carries queued usage, keeps it through a network failure, and drops a batch the API refuses',
-    (tester) async {
-      await start(tester);
-      final event = usage.record(UsageType.languageSelect, language: 'ENG')!;
-
-      device.beat = (_) async => throw AuthException.network();
-      await tester.pump(DeviceController.heartbeatInterval);
-      expect(device.beats.last.events, [event]);
-
-      device.beat = (_) async =>
-          throw const AuthException(message: 'Bad event', statusCode: 400);
-      await tester.pump(DeviceController.heartbeatInterval);
-      expect(device.beats.last.events, [event]);
-
-      device.beat = (id) async => _session(id);
-      await tester.pump(DeviceController.heartbeatInterval);
-      expect(device.beats.last.events, isEmpty);
+      expect(usage.takeBatch(), isEmpty);
       await usage.persistNow();
     },
   );

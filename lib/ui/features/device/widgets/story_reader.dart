@@ -98,7 +98,6 @@ class _StoryReaderState extends State<StoryReader> {
       if (!onScreen || counted >= _pageReadCap) return;
       counted++;
       widget.play.watch(1);
-      if (_index == _last) widget.play.complete();
     });
     _voice?.dispose();
     final audio = widget.pages[_index].audioUrl;

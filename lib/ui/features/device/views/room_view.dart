@@ -3,11 +3,11 @@ import 'package:flutter/services.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../core/audio/chime.dart';
+import '../../../../core/constants/api_constants.dart';
 import '../../../../core/theme/tv_colors.dart';
 import '../../../../core/theme/tv_scale.dart';
 import '../../../../core/theme/tv_shadows.dart';
 import '../../../../core/theme/tv_typography.dart';
-import '../../../../core/utils/format.dart';
 import '../../../../core/widgets/language_flag.dart';
 import '../../../../core/widgets/language_picker.dart';
 import '../../../../core/widgets/page_title.dart';
@@ -47,7 +47,7 @@ class _RoomViewState extends State<RoomView> {
   Widget build(BuildContext context) {
     // Reached only through the device gate, which routes nothing here before the TV is ready.
     final device = DeviceScope.of(context) as DeviceController;
-    final DeviceReady(:config, :session) = device.phase as DeviceReady;
+    final DeviceReady(:config) = device.phase as DeviceReady;
     String? nameOf(String? code) =>
         config.languages.where((l) => l.code == code).firstOrNull?.name;
     final chosen = nameOf(device.language);
@@ -138,9 +138,8 @@ class _RoomViewState extends State<RoomView> {
                   child: Column(
                     spacing: 0.375 * rem,
                     children: [
-                      _Fact('Room', session.roomId, strong: true),
-                      _Fact('Session', session.sessionId, strong: true),
-                      _Fact('Started', formatDateTime(session.startedAt)),
+                      _Fact('Room', config.roomId ?? '—', strong: true),
+                      _Fact('App', ApiConstants.appVersion),
                     ],
                   ),
                 ),

@@ -33,31 +33,13 @@ enum AgeGroup {
   }
 }
 
-/// The room_sessions row a TV holds; a heartbeat replaces it once a visit idles out.
-class DeviceSession {
-  const DeviceSession({
-    required this.sessionId,
-    required this.roomId,
-    required this.startedAt,
-  });
-
-  factory DeviceSession.fromJson(Map<String, dynamic> json) => DeviceSession(
-    sessionId: json['session_id'] as String,
-    roomId: json['room_id'] as String,
-    startedAt: json['started_at'] as String,
-  );
-
-  final String sessionId;
-  final String roomId;
-  final String startedAt;
-}
-
 /// What this room's pickers are built from.
 class DeviceConfig {
   const DeviceConfig({
     required this.languages,
     required this.ageGroups,
     this.defaultLanguage,
+    this.roomId,
   });
 
   factory DeviceConfig.fromJson(Map<String, dynamic> json) => DeviceConfig(
@@ -73,6 +55,7 @@ class DeviceConfig {
         ?AgeGroup.parse('$code'),
     ],
     defaultLanguage: json['default_language'] as String?,
+    roomId: json['room_id'] as String?,
   );
 
   final List<Language> languages;
@@ -80,4 +63,7 @@ class DeviceConfig {
 
   /// The room's setting, falling back to its property's; null when neither has one.
   final String? defaultLanguage;
+
+  /// The room this TV is paired to, which support asks for. Null in the console, which has no room.
+  final String? roomId;
 }

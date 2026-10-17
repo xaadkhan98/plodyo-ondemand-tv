@@ -61,15 +61,23 @@ class FakeDevice implements DeviceRepository {
       languages: [Language('ENG', 'English'), Language('SPA', 'Spanish')],
       ageGroups: [AgeGroup.preschool],
       defaultLanguage: 'ENG',
+      roomId: 'r1',
     );
   }
 
+  /// Every heartbeat's notices, and every viewing report, in order.
+  final notices = <Map<String, Object?>>[];
+  final viewing = <Map<String, Object?>>[];
+
   @override
-  Future<DeviceSession> openSession() async => const DeviceSession(
-    sessionId: 's1',
-    roomId: 'r1',
-    startedAt: '2026-10-09T12:00:00Z',
-  );
+  Future<void> heartbeat({
+    required String appVersion,
+    required List<Map<String, Object?>> notices,
+  }) async => this.notices.addAll(notices);
+
+  @override
+  Future<void> reportViewing(List<Map<String, Object?>> slices) async =>
+      viewing.addAll(slices);
 
   @override
   Future<PaginatedResponse<Story>> getStories({

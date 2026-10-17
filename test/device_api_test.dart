@@ -14,10 +14,11 @@ import 'package:shared_preferences/shared_preferences.dart';
 const _tokenKey = 'plodyo.ondemand.device-token';
 const _token = 'f3a1c9e2b7d4a6f0';
 
-const _session = {
-  'session_id': 'aaaaaaaa-1111-4111-8111-111111111111',
+const _config = {
   'room_id': '88888888-8888-4888-8888-888888888888',
-  'started_at': '2026-08-28T10:31:00.000Z',
+  'languages': <Object>[],
+  'age_groups': <Object>[],
+  'default_language': null,
 };
 
 /// A repository over a fake API that answers by path and records every request.
@@ -137,25 +138,24 @@ void main() {
   group('device lane', () {
     test('sends X-Device-Token and never a bearer or client secret', () async {
       final (repo, sent) = await _pairedApi({
-        '/ondemand/device/session': (200, _session),
+        '/ondemand/device/config': (200, _config),
       });
 
-      final session = await repo.openSession();
+      final config = await repo.getConfig();
 
       expect(sent.single.headers['X-Device-Token'], _token);
       expect(sent.single.headers['Authorization'], isNull);
       expect(sent.single.headers['x-client-secret'], isNull);
-      expect(session.sessionId, _session['session_id']);
-      expect(session.roomId, _session['room_id']);
+      expect(config.roomId, _config['room_id']);
     });
 
     test('a refused credential throws a 401 and is kept', () async {
       final (repo, _) = await _pairedApi({
-        '/ondemand/device/session': (401, {'statusCode': 401}),
+        '/ondemand/device/config': (401, {'statusCode': 401}),
       });
 
       await expectLater(
-        repo.openSession(),
+        repo.getConfig(),
         throwsA(
           isA<AuthException>().having((e) => e.statusCode, 'status', 401),
         ),
@@ -164,28 +164,55 @@ void main() {
     });
 
     test(
-      'a heartbeat sends the session, activity and clock, and events only when there are some',
+      'a heartbeat is device status: the app version and clock, and notices only when there are some',
       () async {
         final (repo, sent) = await _pairedApi({
-          '/ondemand/device/heartbeat': (200, _session),
+          '/ondemand/device/heartbeat': (200, {'session_id': 'ignored'}),
         });
+        const notice = {
+          'event': 'notice_accepted',
+          'terms_version': '2026-10-25',
+          'occurred_at': '2026-10-25T20:00:00.000Z',
+        };
 
-        await repo.heartbeat(sessionId: 's1', active: true, events: const []);
-        await repo.heartbeat(
-          sessionId: 's1',
-          active: false,
-          events: const [
-            {'id': 'e1', 'type': 'LANGUAGE_SELECT'},
-          ],
-        );
+        await repo.heartbeat(appVersion: '1.0.0+5', notices: const []);
+        await repo.heartbeat(appVersion: '1.0.0+5', notices: const [notice]);
 
         final idle = jsonDecode(sent[0].body) as Map<String, dynamic>;
-        expect(idle['session_id'], 's1');
-        expect(idle['active'], isTrue);
+        expect(idle.keys, unorderedEquals(['app_version', 'sent_at']));
+        expect(idle['app_version'], '1.0.0+5');
         expect(DateTime.tryParse(idle['sent_at'] as String), isNotNull);
-        expect(idle.containsKey('events'), isFalse);
-        expect((jsonDecode(sent[1].body) as Map)['events'], [
-          {'id': 'e1', 'type': 'LANGUAGE_SELECT'},
+        expect((jsonDecode(sent[1].body) as Map)['notices'], [notice]);
+      },
+    );
+
+    test(
+      "a viewing report carries slices without their local id, and takes the API's empty answer",
+      () async {
+        final (repo, sent) = await _pairedApi({
+          '/ondemand/device/viewing': (204, ''),
+        });
+
+        await repo.reportViewing(const [
+          {
+            'id': 'local-1',
+            'story_id': 'st1',
+            'occurred_at': '2026-10-25T20:00:00.000Z',
+            'start': true,
+            'watch_seconds': 0,
+          },
+        ]);
+
+        final body = jsonDecode(sent.single.body) as Map<String, dynamic>;
+        expect(sent.single.url.path, '/ondemand/device/viewing');
+        expect(DateTime.tryParse(body['sent_at'] as String), isNotNull);
+        expect(body['events'], [
+          {
+            'story_id': 'st1',
+            'occurred_at': '2026-10-25T20:00:00.000Z',
+            'start': true,
+            'watch_seconds': 0,
+          },
         ]);
       },
     );

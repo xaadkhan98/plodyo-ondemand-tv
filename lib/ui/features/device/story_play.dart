@@ -1,38 +1,31 @@
 import '../../../data/repositories/usage_queue.dart';
 
-/// One opening of a story: recorded once it has really started, then its watch time grows in place.
+/// One opening of a story: counted once it has really started, then its watch time reported as it grows.
 class StoryPlay {
-  StoryPlay(this.storyId, {UsageQueue? usage})
+  StoryPlay(this.storyId, {this.ageGroup, UsageQueue? usage})
     : _usage = usage ?? sharedUsageQueue;
 
   final String storyId;
-  final UsageQueue _usage;
-  UsageEvent? _event;
-  double _seconds = 0;
-  bool _completed = false;
 
-  /// Adds time actually spent in the story; the first call is what records the play.
+  /// The guest's pick when the story opened. It leaves the TV only inside the property's totals.
+  final String? ageGroup;
+  final UsageQueue _usage;
+  UsageEvent? _slice;
+  double _seconds = 0;
+  int _reported = 0;
+
+  /// Adds time actually spent in the story; the first call is what counts the play.
   void watch(double seconds) {
     if (seconds <= 0) return;
     _usage.markActive();
-    final event = _event ??= _usage.record(
-      UsageType.storyPlay,
-      storyId: storyId,
-      watchSeconds: 0,
-    );
-    if (event == null) return;
+    final slice = _slice ??= _usage.start(storyId, ageGroup: ageGroup);
+    if (slice == null) return;
     _seconds += seconds;
-    // Whole seconds only, so a play is re-queued once a second at most.
+    // Whole seconds only, so a play touches the queue once a second at most.
     final whole = _seconds.floor();
-    if (whole != event['watch_seconds']) {
-      _usage.upsert(_event = {...event, 'watch_seconds': whole});
+    if (whole > _reported) {
+      _slice = _usage.watched(slice, whole - _reported);
+      _reported = whole;
     }
-  }
-
-  /// The story reached its end, recorded once per play.
-  void complete() {
-    if (_event == null || _completed) return;
-    _completed = true;
-    _usage.record(UsageType.storyComplete, storyId: storyId);
   }
 }

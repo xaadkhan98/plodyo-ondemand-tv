@@ -4,6 +4,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
+import '../../../core/constants/api_constants.dart';
 import '../../../core/constants/languages.dart';
 import '../../../core/utils/retry.dart';
 import '../../../data/models/auth_exception.dart';
@@ -46,15 +47,14 @@ class DeviceUnavailable extends DevicePhase {
 }
 
 class DeviceReady extends DevicePhase {
-  const DeviceReady({required this.config, required this.session});
+  const DeviceReady({required this.config});
 
   final DeviceConfig config;
-  final DeviceSession session;
 }
 
 /// What the catalogue screens read: the languages and ages on offer, and the viewer's picks. The picks live
 /// here rather than in storage: a hotel TV is reset between guests by being switched off, and reviving the
-/// last guest's language for the next one is worse than starting over.
+/// last guest's language for the next one is worse than starting over. They never leave the TV on their own.
 abstract class LibrarySession extends ChangeNotifier {
   /// What the pickers offer; null while a TV's room is unresolved.
   DeviceConfig? get config;
@@ -89,7 +89,8 @@ class ConsoleLibrary extends LibrarySession {
   );
 }
 
-/// Resolves what this TV may show and, once it is ready, keeps its room online with a heartbeat.
+/// Resolves what this TV may show and, once it is ready, keeps its room online with a heartbeat and reports
+/// viewing to the property's totals.
 class DeviceController extends LibrarySession {
   DeviceController({DeviceRepository? device, UsageQueue? usage})
     : _device = device ?? sharedDeviceRepository,
@@ -103,9 +104,6 @@ class DeviceController extends LibrarySession {
 
   /// Well inside the console's three-minute "online" window, so one lost beat never reads as offline.
   static const heartbeatInterval = Duration(minutes: 1);
-
-  /// A remote press or a playing story this recent makes a beat count as a guest using the TV.
-  static const activeWindow = Duration(minutes: 1);
 
   final DeviceRepository _device;
   final UsageQueue _usage;
@@ -126,19 +124,6 @@ class DeviceController extends LibrarySession {
     _ => null,
   };
 
-  // A guest's pick is usage the venue sees; clearing a filter is not a pick.
-  @override
-  void chooseLanguage(String? code) {
-    if (code != null) _usage.record(UsageType.languageSelect, language: code);
-    super.chooseLanguage(code);
-  }
-
-  @override
-  void chooseAgeGroup(AgeGroup? group) {
-    if (group != null) _usage.record(UsageType.ageSelect, ageGroup: group.code);
-    super.chooseAgeGroup(group);
-  }
-
   void _settle(DevicePhase next) {
     _phase = next;
     _schedule();
@@ -154,19 +139,8 @@ class DeviceController extends LibrarySession {
     }
     _settle(const DeviceLoading());
     try {
-      // Fetched together: they fail for the same reasons.
-      final [config, session] = await Future.wait<Object>([
-        _device.getConfig(),
-        _device.openSession(),
-      ]);
-      if (generation == _generation) {
-        _settle(
-          DeviceReady(
-            config: config as DeviceConfig,
-            session: session as DeviceSession,
-          ),
-        );
-      }
+      final config = await _device.getConfig();
+      if (generation == _generation) _settle(DeviceReady(config: config));
     } catch (error) {
       if (generation != _generation) return;
       _settle(
@@ -225,30 +199,38 @@ class DeviceController extends LibrarySession {
   }
 
   Future<void> _beat() async {
-    final phase = _phase;
-    if (phase is! DeviceReady || _beating) return;
+    if (_phase is! DeviceReady || _beating) return;
     _beating = true;
-    final generation = _generation;
     final events = _usage.takeBatch();
     try {
-      final session = await _device.heartbeat(
-        sessionId: phase.session.sessionId,
-        active: _usage.activeWithin(activeWindow),
-        events: events,
+      await _send(
+        () => _device.heartbeat(
+          appVersion: ApiConstants.appVersion,
+          notices: const [],
+        ),
+        () {},
       );
-      _usage.acknowledge(events);
-      // A visit that idled out is replaced in place, so This TV shows the session the API now counts.
-      if (generation == _generation &&
-          session.sessionId != phase.session.sessionId) {
-        _settle(DeviceReady(config: phase.config, session: session));
-      }
-    } catch (error) {
-      // A batch the API refuses never succeeds, so it is dropped; anything else is retried next beat.
-      if (error is AuthException && error.statusCode == 400) {
-        _usage.acknowledge(events);
+      if (events.isNotEmpty) {
+        await _send(
+          () => _device.reportViewing(events),
+          () => _usage.acknowledge(events),
+        );
       }
     } finally {
       _beating = false;
+    }
+  }
+
+  /// Sends, then forgets what went. A refusal never succeeds, so it is forgotten too; anything else retries.
+  static Future<void> _send(
+    Future<void> Function() send,
+    void Function() forget,
+  ) async {
+    try {
+      await send();
+      forget();
+    } catch (error) {
+      if (error is AuthException && error.statusCode == 400) forget();
     }
   }
 

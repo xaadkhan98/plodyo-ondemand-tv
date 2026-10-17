@@ -6,33 +6,27 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'device_repository.dart';
 
-/// One event in the API's wire format, so the queue is sent exactly as it is stored.
+/// A slice of one play in the API's wire format, plus a local `id` the API never sees.
 typedef UsageEvent = Map<String, Object?>;
-
-enum UsageType {
-  storyPlay('STORY_PLAY'),
-  storyComplete('STORY_COMPLETE'),
-  languageSelect('LANGUAGE_SELECT'),
-  ageSelect('AGE_SELECT');
-
-  const UsageType(this.code);
-
-  final String code;
-}
 
 final UsageQueue sharedUsageQueue = UsageQueue(sharedDeviceRepository);
 
-/// What guests do on this TV, held until a heartbeat carries it. Stored, so a power cut loses seconds, not plays.
+/// What guests watch on this TV, held until a report carries it to the property's totals. Stored, so a power
+/// cut loses seconds, not plays. Each slice holds only seconds not yet sent, so the API just adds them up.
 class UsageQueue {
   UsageQueue(this._device, {DateTime Function()? now})
     : _now = now ?? DateTime.now;
 
-  static const _storageKey = 'plodyo.ondemand.usage-queue';
+  static const _storageKey = 'plodyo.ondemand.viewing-queue';
+  static const _dayKey = 'plodyo.ondemand.viewing-day';
 
-  /// The API's cap per heartbeat.
+  /// Where the session-era build queued events the API no longer takes.
+  static const _legacyKey = 'plodyo.ondemand.usage-queue';
+
+  /// The API's cap per report.
   static const maxPerBeat = 50;
 
-  /// A TV offline for days keeps its newest events rather than an ever-growing backlog.
+  /// A TV offline for days keeps its newest slices rather than an ever-growing backlog.
   static const maxQueued = 500;
 
   /// Watch time ticks every second, so storage writes are batched to this.
@@ -42,88 +36,115 @@ class UsageQueue {
   final DateTime Function() _now;
   final Random _random = Random.secure();
   List<UsageEvent> _events = [];
+  String? _countedDay;
   Timer? _persistTimer;
   DateTime? _lastActive;
 
   /// Reads what a previous run left unsent. Called once, before the first frame.
   Future<void> restore() async {
     try {
-      final stored = (await SharedPreferences.getInstance()).getString(
-        _storageKey,
-      );
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_legacyKey);
+      _countedDay = prefs.getString(_dayKey);
       _events = [
-        for (final event in jsonDecode(stored ?? '[]') as List<dynamic>)
+        for (final event
+            in jsonDecode(prefs.getString(_storageKey) ?? '[]') as List<dynamic>)
           (event as Map).cast<String, Object?>(),
       ];
     } on Object {
-      // Unreadable storage starts an empty queue rather than failing every beat.
+      // Unreadable storage starts an empty queue rather than failing every report.
       _events = [];
     }
   }
 
-  /// Queues a new event. Only a paired TV records, so a console previewing stories never counts as a guest.
-  UsageEvent? record(
-    UsageType type, {
-    String? storyId,
-    String? language,
-    String? ageGroup,
-    int? watchSeconds,
-  }) {
+  /// A play starting: counts one play, with the guest's age pick. The day's first also counts this TV, which
+  /// is how the console tells a busy day from one TV's. Null unpaired, so the console never counts as a guest.
+  UsageEvent? start(String storyId, {String? ageGroup}) {
     if (!_device.isPaired) return null;
+    final now = _now();
+    final day = _localDay(now);
     final event = <String, Object?>{
       'id': _uuid(),
-      'type': type.code,
-      'occurred_at': _now().toUtc().toIso8601String(),
-      'story_id': ?storyId,
-      'language': ?language,
+      'story_id': storyId,
+      'occurred_at': now.toUtc().toIso8601String(),
       'age_group': ?ageGroup,
-      'watch_seconds': ?watchSeconds,
+      'start': true,
+      'watch_seconds': 0,
+      if (day != _countedDay) 'first_play_today': true,
     };
-    upsert(event);
+    _countedDay = day;
+    _add(event);
     return event;
   }
 
-  /// Queues the event or replaces its queued copy. Re-sending a play is how its watch time grows.
-  void upsert(UsageEvent event) {
-    final at = _events.indexWhere((queued) => queued['id'] == event['id']);
+  /// Adds seconds to a play: onto its slice while that is unsent, else onto a fresh one. Returns the slice to
+  /// add to next time.
+  UsageEvent watched(UsageEvent play, int seconds) {
+    final at = _events.indexWhere((queued) => queued['id'] == play['id']);
     if (at >= 0) {
-      _events[at] = {...event};
-    } else {
-      _events.add({...event});
+      final grown = {
+        ..._events[at],
+        'watch_seconds': (_events[at]['watch_seconds']! as int) + seconds,
+      };
+      _events[at] = grown;
+      _persistSoon();
+      return grown;
     }
+    final next = <String, Object?>{
+      'id': _uuid(),
+      'story_id': play['story_id'],
+      'occurred_at': _now().toUtc().toIso8601String(),
+      'age_group': ?play['age_group'],
+      'watch_seconds': seconds,
+    };
+    _add(next);
+    return next;
+  }
+
+  void _add(UsageEvent event) {
+    _events.add(event);
     if (_events.length > maxQueued) {
       _events.removeRange(0, _events.length - maxQueued);
     }
-    _persistTimer ??= Timer(persistDelay, persistNow);
+    _persistSoon();
   }
 
-  /// The oldest events, copied, so one that grows while in flight is told apart on acknowledge.
+  /// The oldest slices, copied, so one that grows while in flight is told apart on acknowledge.
   List<UsageEvent> takeBatch() => [
     for (final event in _events.take(maxPerBeat)) {...event},
   ];
 
-  /// Drops what a beat delivered, unless it grew since: that play goes again with its new total.
+  /// Drops what a report delivered. A slice that grew in flight keeps only its unsent seconds, and is no
+  /// longer a start: that play has been counted.
   void acknowledge(List<UsageEvent> sent) {
     if (sent.isEmpty) return;
-    _events.removeWhere(
-      (queued) => sent.any(
-        (event) =>
-            event['id'] == queued['id'] &&
-            event['watch_seconds'] == queued['watch_seconds'],
-      ),
-    );
-    _persistTimer ??= Timer(persistDelay, persistNow);
+    for (final event in sent) {
+      final at = _events.indexWhere((queued) => queued['id'] == event['id']);
+      if (at < 0) continue;
+      final left =
+          (_events[at]['watch_seconds']! as int) -
+          (event['watch_seconds']! as int);
+      if (left > 0) {
+        _events[at] = {..._events[at], 'watch_seconds': left}
+          ..remove('start')
+          ..remove('first_play_today');
+      } else {
+        _events.removeAt(at);
+      }
+    }
+    _persistSoon();
   }
+
+  void _persistSoon() => _persistTimer ??= Timer(persistDelay, persistNow);
 
   /// Writes the queue now; also called when the app leaves the screen.
   Future<void> persistNow() async {
     _persistTimer?.cancel();
     _persistTimer = null;
     try {
-      await (await SharedPreferences.getInstance()).setString(
-        _storageKey,
-        jsonEncode(_events),
-      );
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_storageKey, jsonEncode(_events));
+      if (_countedDay case final day?) await prefs.setString(_dayKey, day);
     } on Exception {
       // Kept in memory; it just will not survive a restart.
     }
@@ -135,7 +156,11 @@ class UsageQueue {
   bool activeWithin(Duration window) =>
       _lastActive != null && _now().difference(_lastActive!) < window;
 
-  /// A version 4 UUID, which the API dedupes re-sent events by.
+  // The set's own calendar day, which is the venue's when its clock is.
+  static String _localDay(DateTime at) =>
+      at.toLocal().toIso8601String().substring(0, 10);
+
+  /// A version 4 UUID, which only matches acknowledgements on this TV.
   String _uuid() {
     final bytes = List<int>.generate(16, (_) => _random.nextInt(256));
     bytes[6] = (bytes[6] & 0x0f) | 0x40;
