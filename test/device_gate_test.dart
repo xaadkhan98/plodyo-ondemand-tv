@@ -115,6 +115,10 @@ void main() {
     device.refusal = null;
     await tester.tap(find.text('Try again'));
     await settleFor(tester);
+    // Recovered is still before any content, so the Terms notice comes first.
+    expect(find.text('Continue'), findsOneWidget);
+    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+    await settleFor(tester);
     expect(find.text('Read now'), findsOneWidget);
   });
 

@@ -13,6 +13,7 @@ import '../../../core/widgets/tv_button.dart';
 import '../../../data/repositories/device_repository.dart';
 import 'device_controller.dart';
 import 'views/pair_view.dart';
+import 'views/terms_notice_view.dart';
 import 'views/welcome_view.dart';
 
 /// The room TV's screens under the guest rail. This TV is left off: support reaches it by the blue button.
@@ -26,6 +27,11 @@ const _items = [
     icon: LucideIcons.graduationCap,
   ),
   NavItem(path: '/search', label: 'Search', icon: LucideIcons.search),
+  NavItem(
+    path: '/terms',
+    label: 'Terms & Privacy',
+    icon: LucideIcons.scrollText,
+  ),
 ];
 
 /// Renders the guest screens only for a TV paired to a live room. Short of that it shows the way forward:
@@ -114,6 +120,11 @@ class _DeviceGateState extends State<DeviceGate> {
             NoticeAction(label: 'Try again', onSelect: _device.resolve),
           ],
         ),
+      ),
+      // Before any content, on every cold start and after four idle hours.
+      DeviceReady() when _device.noticeDue => TermsNoticeView(
+        onShown: _device.noticeShown,
+        onContinue: _device.acceptNotice,
       ),
       // The blue button is support's way to This TV: a remote has one, and a child does not go hunting for it.
       // Material gives the rail's labels their text theme; each screen brings its own Scaffold.

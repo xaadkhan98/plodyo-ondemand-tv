@@ -6,6 +6,7 @@ import 'package:flutter/widgets.dart';
 
 import '../../../core/constants/api_constants.dart';
 import '../../../core/constants/languages.dart';
+import '../../../core/constants/legal.dart';
 import '../../../core/utils/retry.dart';
 import '../../../data/models/auth_exception.dart';
 import '../../../data/models/device_models.dart';
@@ -89,8 +90,8 @@ class ConsoleLibrary extends LibrarySession {
   );
 }
 
-/// Resolves what this TV may show and, once it is ready, keeps its room online with a heartbeat and reports
-/// viewing to the property's totals.
+/// Resolves what this TV may show and, once it is ready, keeps its room online with a heartbeat. Guards the
+/// catalogue behind the Terms notice, and reports viewing to the property's totals.
 class DeviceController extends LibrarySession {
   DeviceController({DeviceRepository? device, UsageQueue? usage})
     : _device = device ?? sharedDeviceRepository,
@@ -123,6 +124,43 @@ class DeviceController extends LibrarySession {
     DeviceReady(:final config) => config,
     _ => null,
   };
+
+  /// The Terms notice stands before any content: on every cold start, and again after [noticeIdleLimit].
+  bool get noticeDue => _noticeDue;
+  bool _noticeDue = true;
+
+  // Notices not yet sent; they ride the next heartbeat.
+  final List<Map<String, Object?>> _notices = [];
+
+  /// The notice is on screen.
+  void noticeShown() => _logNotice('notice_shown');
+
+  /// Continue: a grown-up agreed, and the catalogue opens.
+  void acceptNotice() {
+    _logNotice('notice_accepted');
+    _usage.markActive();
+    _noticeDue = false;
+    notifyListeners();
+  }
+
+  // The device and the Terms version only: never content or anything about the child.
+  void _logNotice(String event) {
+    _notices.add({
+      'event': event,
+      'terms_version': termsVersion,
+      'occurred_at': DateTime.now().toUtc().toIso8601String(),
+    });
+    // ponytail: held in memory and sent at once, so a power cut before it lands loses it; persist if needed.
+    _beat();
+  }
+
+  bool get _idleTooLong => !_usage.activeWithin(noticeIdleLimit);
+
+  void _dueIfIdle() {
+    if (_noticeDue || !_idleTooLong) return;
+    _noticeDue = true;
+    notifyListeners();
+  }
 
   void _settle(DevicePhase next) {
     _phase = next;
@@ -165,6 +203,7 @@ class DeviceController extends LibrarySession {
   Future<void> unpair() async {
     _language = null;
     _ageGroup = null;
+    _noticeDue = true;
     await _device.unpair();
     await resolve();
   }
@@ -177,8 +216,10 @@ class DeviceController extends LibrarySession {
         : null;
   }
 
+  // Time in standby counts as untouched, so a TV woken after the idle limit shows the notice first.
   void _onShow() {
     _visible = true;
+    if (_phase is DeviceReady) _dueIfIdle();
     _beat();
     _schedule();
   }
@@ -189,26 +230,37 @@ class DeviceController extends LibrarySession {
     _usage.persistNow();
   }
 
+  // A press past the idle limit wakes the notice, and is spent on it rather than on whatever was focused.
   bool _onKey(KeyEvent event) {
-    if (event is! KeyUpEvent) _usage.markActive();
-    return false;
+    if (event is KeyUpEvent) return false;
+    final wakes = _phase is DeviceReady && !_noticeDue && _idleTooLong;
+    _usage.markActive();
+    if (wakes) {
+      _noticeDue = true;
+      notifyListeners();
+    }
+    return wakes;
   }
 
   void _onPointer(PointerEvent event) {
-    if (event is PointerDownEvent) _usage.markActive();
+    if (event is! PointerDownEvent) return;
+    if (_phase is DeviceReady) _dueIfIdle();
+    _usage.markActive();
   }
 
   Future<void> _beat() async {
     if (_phase is! DeviceReady || _beating) return;
+    _dueIfIdle();
     _beating = true;
+    final notices = [..._notices];
     final events = _usage.takeBatch();
     try {
       await _send(
         () => _device.heartbeat(
           appVersion: ApiConstants.appVersion,
-          notices: const [],
+          notices: notices,
         ),
-        () {},
+        () => _notices.removeRange(0, notices.length),
       );
       if (events.isNotEmpty) {
         await _send(

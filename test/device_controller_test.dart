@@ -1,6 +1,8 @@
+import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:plodyo_ondemand_tv/core/constants/api_constants.dart';
+import 'package:plodyo_ondemand_tv/core/constants/legal.dart';
 import 'package:plodyo_ondemand_tv/data/models/auth_exception.dart';
 import 'package:plodyo_ondemand_tv/data/models/device_models.dart';
 import 'package:plodyo_ondemand_tv/data/repositories/device_repository.dart';
@@ -147,6 +149,88 @@ void main() {
       expect(controller.ageGroup, isNull);
     },
   );
+
+  group('Terms notice', () {
+    testWidgets('is due before any content on a cold start', (tester) async {
+      final controller = await start(tester);
+
+      expect(controller.noticeDue, isTrue);
+    });
+
+    testWidgets(
+      'logs shown and accepted with the Terms version and nothing else, then lets the catalogue open',
+      (tester) async {
+        final controller = await start(tester);
+
+        controller.noticeShown();
+        controller.acceptNotice();
+        // The first goes at once; the second waits for that beat, then rides the next.
+        await tester.pump(DeviceController.heartbeatInterval);
+
+        expect(controller.noticeDue, isFalse);
+        final sent = [for (final beat in device.beats) ...beat.notices];
+        expect(sent.map((n) => n['event']), ['notice_shown', 'notice_accepted']);
+        for (final notice in sent) {
+          expect(notice.keys, unorderedEquals(['event', 'terms_version', 'occurred_at']));
+          expect(notice['terms_version'], termsVersion);
+        }
+      },
+    );
+
+    testWidgets('keeps an unsent notice for the next beat', (tester) async {
+      device.beat = () async => throw AuthException.network();
+      final controller = await start(tester);
+
+      controller.acceptNotice();
+      await tester.pump();
+      device.beat = () async {};
+      await tester.pump(DeviceController.heartbeatInterval);
+
+      expect(device.beats.last.notices.single['event'], 'notice_accepted');
+      await tester.pump(DeviceController.heartbeatInterval);
+      expect(device.beats.last.notices, isEmpty);
+    });
+
+    testWidgets('comes back after four idle hours, not before', (tester) async {
+      final controller = (await start(tester))..acceptNotice();
+
+      now = now.add(noticeIdleLimit - const Duration(minutes: 1));
+      await tester.pump(DeviceController.heartbeatInterval);
+      expect(controller.noticeDue, isFalse);
+
+      now = now.add(const Duration(minutes: 1));
+      await tester.pump(DeviceController.heartbeatInterval);
+      expect(controller.noticeDue, isTrue);
+    });
+
+    testWidgets(
+      'a press after the idle limit wakes the notice and goes no further; one before it passes through',
+      (tester) async {
+        final controller = (await start(tester))..acceptNotice();
+
+        now = now.add(const Duration(hours: 1));
+        expect(await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown), isFalse);
+        expect(controller.noticeDue, isFalse);
+
+        now = now.add(noticeIdleLimit);
+        expect(await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown), isTrue);
+        expect(controller.noticeDue, isTrue);
+      },
+    );
+
+    testWidgets('a TV woken after the idle limit shows it first', (tester) async {
+      final controller = (await start(tester))..acceptNotice();
+
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
+      now = now.add(const Duration(hours: 9));
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+      await tester.pump();
+
+      expect(controller.noticeDue, isTrue);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    });
+  });
 
   testWidgets(
     'beats once a minute with the app version, and reports viewing only when there is some',

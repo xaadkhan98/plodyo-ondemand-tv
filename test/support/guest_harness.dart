@@ -19,6 +19,8 @@ import 'package:plodyo_ondemand_tv/ui/features/device/views/search_view.dart';
 import 'package:plodyo_ondemand_tv/ui/features/device/views/series_detail_view.dart';
 import 'package:plodyo_ondemand_tv/ui/features/device/views/series_list_view.dart';
 import 'package:plodyo_ondemand_tv/ui/features/device/views/stories_view.dart';
+import 'package:plodyo_ondemand_tv/ui/features/device/views/terms_notice_view.dart';
+import 'package:plodyo_ondemand_tv/ui/features/device/views/terms_view.dart';
 import 'package:video_player/video_player.dart';
 
 const notFound = AuthException(message: 'Not found', statusCode: 404);
@@ -243,6 +245,7 @@ Future<void> pumpGuestApp(
   UsageQueue? usage,
   List<FakeMedia>? media,
   bool mediaFails = false,
+  bool acceptTerms = true,
 }) async {
   tester.view.physicalSize = size;
   tester.view.devicePixelRatio = dpr;
@@ -281,6 +284,7 @@ Future<void> pumpGuestApp(
             },
           ),
           GoRoute(path: '/room', builder: (_, _) => const RoomView()),
+          GoRoute(path: '/terms', builder: (_, _) => const TermsView()),
           GoRoute(
             path: '/search',
             builder: (_, _) => SearchView(deviceRepository: device),
@@ -317,6 +321,12 @@ Future<void> pumpGuestApp(
     ),
   );
   await settleFor(tester);
+  // A paired TV opens on the Terms notice; OK on the remote takes it, as a guest would.
+  if (acceptTerms && find.byType(TermsNoticeView).evaluate().isNotEmpty) {
+    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+    await settleFor(tester);
+    chimes = 0;
+  }
 }
 
 /// Animations loop (the spinner, skeletons), so pump time rather than settling.

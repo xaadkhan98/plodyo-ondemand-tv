@@ -8,6 +8,7 @@ import '../../ui/features/device/views/series_list_view.dart';
 import '../../ui/features/device/views/room_view.dart';
 import '../../ui/features/device/views/search_view.dart';
 import '../../ui/features/device/views/stories_view.dart';
+import '../../ui/features/device/views/terms_view.dart';
 import '../../data/models/story_models.dart';
 import '../../ui/features/auth/views/sign_in_view.dart';
 import '../../ui/features/auth/views/forgot_password_view.dart';
@@ -44,7 +45,7 @@ final GlobalKey<NavigatorState> _shellNavigatorKey =
 const _libraryPaths = {'/', '/stories', '/series', '/learning', '/story'};
 
 /// The room TV's own screens: the console has no room for them to show.
-const _devicePaths = {'/search', '/room'};
+const _devicePaths = {'/search', '/room', '/terms'};
 
 /// Reachable without a session: the ways into the console.
 const _publicPaths = {'/sign-in', '/forgot-password', '/register-venue'};
@@ -120,6 +121,7 @@ final GoRouter appRouter = GoRouter(
           builder: (context, state) => const SearchView(),
         ),
         GoRoute(path: '/room', builder: (context, state) => const RoomView()),
+        GoRoute(path: '/terms', builder: (context, state) => const TermsView()),
         // A query rather than a path segment, as the reference: a story is only ever opened by its id.
         GoRoute(
           path: '/story',
