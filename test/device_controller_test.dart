@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -164,16 +166,43 @@ void main() {
 
         controller.noticeShown();
         controller.acceptNotice();
-        // The first goes at once; the second waits for that beat, then rides the next.
-        await tester.pump(DeviceController.heartbeatInterval);
+        // The first goes at once; the second as soon as that beat lands, not a minute later.
+        await tester.pump();
 
         expect(controller.noticeDue, isFalse);
         final sent = [for (final beat in device.beats) ...beat.notices];
-        expect(sent.map((n) => n['event']), ['notice_shown', 'notice_accepted']);
+        expect(sent.map((n) => n['event']), [
+          'notice_shown',
+          'notice_accepted',
+        ]);
         for (final notice in sent) {
-          expect(notice.keys, unorderedEquals(['event', 'terms_version', 'occurred_at']));
+          expect(
+            notice.keys,
+            unorderedEquals(['event', 'terms_version', 'occurred_at']),
+          );
           expect(notice['terms_version'], termsVersion);
         }
+      },
+    );
+
+    testWidgets(
+      'sends a notice logged while a beat is in flight as soon as that beat lands',
+      (tester) async {
+        final reply = Completer<void>();
+        device.beat = () => reply.future;
+        final controller = await start(tester);
+
+        controller.noticeShown();
+        await tester.pump();
+        device.beat = () async {};
+        controller.acceptNotice();
+        await tester.pump();
+        expect(device.beats, hasLength(1));
+
+        reply.complete();
+        await tester.pump();
+        expect(device.beats, hasLength(2));
+        expect(device.beats.last.notices.single['event'], 'notice_accepted');
       },
     );
 
@@ -209,7 +238,10 @@ void main() {
         final controller = (await start(tester))..acceptNotice();
 
         now = now.add(const Duration(hours: 1));
-        expect(await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown), isFalse);
+        expect(
+          await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown),
+          isFalse,
+        );
         expect(controller.noticeDue, isFalse);
 
         now = now.add(noticeIdleLimit);
@@ -218,7 +250,9 @@ void main() {
       },
     );
 
-    testWidgets('a TV woken after the idle limit shows it first', (tester) async {
+    testWidgets('a TV woken after the idle limit shows it first', (
+      tester,
+    ) async {
       final controller = (await start(tester))..acceptNotice();
 
       tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);

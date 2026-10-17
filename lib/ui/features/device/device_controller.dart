@@ -113,6 +113,8 @@ class DeviceController extends LibrarySession {
   Timer? _timer;
   bool _visible = true;
   bool _beating = false;
+  // A beat asked for mid-flight runs right after it, so a Terms notice never waits a whole interval.
+  bool _beatAgain = false;
 
   // Bumped by every resolve and by dispose, so a stale answer never lands over a newer phase.
   int _generation = 0;
@@ -249,7 +251,11 @@ class DeviceController extends LibrarySession {
   }
 
   Future<void> _beat() async {
-    if (_phase is! DeviceReady || _beating) return;
+    if (_phase is! DeviceReady) return;
+    if (_beating) {
+      _beatAgain = true;
+      return;
+    }
     _dueIfIdle();
     _beating = true;
     final notices = [..._notices];
@@ -270,6 +276,10 @@ class DeviceController extends LibrarySession {
       }
     } finally {
       _beating = false;
+      if (_beatAgain) {
+        _beatAgain = false;
+        _beat();
+      }
     }
   }
 
@@ -289,6 +299,7 @@ class DeviceController extends LibrarySession {
   @override
   void dispose() {
     _generation++;
+    _beatAgain = false;
     _timer?.cancel();
     HardwareKeyboard.instance.removeHandler(_onKey);
     GestureBinding.instance.pointerRouter.removeGlobalRoute(_onPointer);
