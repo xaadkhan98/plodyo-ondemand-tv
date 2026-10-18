@@ -61,7 +61,7 @@ void main() {
     expect(find.text(legalAddress), findsWidgets);
   });
 
-  test('the code encodes the legal page, and the app version tracks pubspec', () {
+  test('the code encodes the short address, and the app version tracks pubspec', () {
     final svg = File('assets/images/legal_qr.svg').readAsStringSync();
     expect(svg, contains('<title>$legalUrl</title>'));
 

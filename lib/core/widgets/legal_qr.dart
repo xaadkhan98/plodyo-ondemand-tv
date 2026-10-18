@@ -6,8 +6,8 @@ import '../theme/tv_colors.dart';
 import '../theme/tv_scale.dart';
 import '../theme/tv_typography.dart';
 
-/// The code and short address that take a phone to the Terms and both privacy notices. Dark on white and a
-/// third of the screen tall, so it scans from across a hotel room.
+/// The code and short address that take a phone to the Terms of Service. Dark on white and a third of the
+/// screen tall, so it scans from across a hotel room.
 class LegalQr extends StatelessWidget {
   const LegalQr({super.key});
 
