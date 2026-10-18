@@ -52,12 +52,13 @@ void main() {
     },
   );
 
-  testWidgets('Terms & Privacy in the rail shows the same code, address and date', (
+  testWidgets('Terms of Service in the rail shows the same code, address and date', (
     tester,
   ) async {
     await pumpGuestApp(tester, device, at: '/terms');
 
-    expect(find.text('Terms & Privacy'), findsWidgets);
+    expect(find.text('Terms of Service'), findsWidgets);
+    expect(find.text('Terms & Privacy'), findsNothing);
     expect(find.byType(LegalQr), findsOneWidget);
     expect(find.text(legalAddress), findsWidgets);
     expect(find.text('Terms effective 25 October 2026'), findsOneWidget);

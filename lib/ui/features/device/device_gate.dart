@@ -29,7 +29,7 @@ const _items = [
   NavItem(path: '/search', label: 'Search', icon: LucideIcons.search),
   NavItem(
     path: '/terms',
-    label: 'Terms & Privacy',
+    label: 'Terms of Service',
     icon: LucideIcons.scrollText,
   ),
 ];

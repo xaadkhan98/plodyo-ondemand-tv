@@ -8,7 +8,7 @@ import '../../../../core/widgets/page_title.dart';
 import '../device_controller.dart';
 import '../widgets/guest_page.dart';
 
-/// Terms & Privacy in the guest rail: the notice's code, address and date, to read on a phone at any time.
+/// Terms of Service in the guest rail: the notice's code, address and date, to read on a phone at any time.
 class TermsView extends StatelessWidget {
   const TermsView({super.key});
 
@@ -29,7 +29,7 @@ class TermsView extends StatelessWidget {
           children: [
             const PageTitle(
               icon: LucideIcons.scrollText,
-              title: 'Terms & Privacy',
+              title: 'Terms of Service',
               subtitle:
                   'Scan the code or visit $legalAddress to read the Plodyo Terms of Service.',
             ),
