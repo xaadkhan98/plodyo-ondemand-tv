@@ -29,6 +29,51 @@ void main() {
     },
   );
 
+  testWidgets(
+    'Back before the catalogue: welcome and Cannot reach Plodyo leave the app, pairing deletes then returns',
+    (tester) async {
+      final exits = recordExits(tester);
+      device.isPaired = false;
+      await pumpGuestApp(tester, device);
+
+      await tester.binding.handlePopRoute();
+      await settleFor(tester);
+      expect(exits, hasLength(1));
+      expect(find.text('Set up this TV'), findsOneWidget);
+
+      // Sign-in sits over the gate, so Back closes it rather than the app.
+      await tester.tap(find.text('Sign in to the console'));
+      await settleFor(tester);
+      expect(find.text('sign in'), findsOneWidget);
+      await tester.binding.handlePopRoute();
+      await settleFor(tester);
+      expect(find.text('sign in'), findsNothing);
+      expect(exits, hasLength(1));
+
+      await tester.tap(find.text('Set up this TV'));
+      await tester.pump(const Duration(milliseconds: 300));
+      await tester.sendKeyEvent(LogicalKeyboardKey.keyA);
+      await tester.binding.handlePopRoute();
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(find.text('Enter the pairing code'), findsOneWidget);
+      await tester.binding.handlePopRoute();
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(find.text('Set up this TV'), findsOneWidget);
+      expect(exits, hasLength(1));
+
+      await pumpGuestApp(
+        tester,
+        FakeDevice()
+          ..refusal = AuthException.network('Cannot reach Plodyo TV.'),
+      );
+      expect(find.text('Cannot reach Plodyo'), findsOneWidget);
+      await tester.binding.handlePopRoute();
+      await settleFor(tester);
+      expect(exits, hasLength(2));
+      expect(find.text('Cannot reach Plodyo'), findsOneWidget);
+    },
+  );
+
   testWidgets('a selection chimes on a paired TV, never before pairing', (
     tester,
   ) async {

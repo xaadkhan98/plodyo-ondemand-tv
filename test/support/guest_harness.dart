@@ -337,5 +337,20 @@ Future<void> settleFor(WidgetTester tester, [int frames = 4]) async {
   }
 }
 
+/// Every time the app asked the platform to exit.
+List<String> recordExits(WidgetTester tester) {
+  final exits = <String>[];
+  final messenger = tester.binding.defaultBinaryMessenger;
+  messenger.setMockMethodCallHandler(
+    SystemChannels.platform,
+    (call) async =>
+        call.method == 'SystemNavigator.pop' ? exits.add(call.method) : null,
+  );
+  addTearDown(
+    () => messenger.setMockMethodCallHandler(SystemChannels.platform, null),
+  );
+  return exits;
+}
+
 bool hasFocus(WidgetTester tester, String label) =>
     Focus.of(tester.element(find.text(label))).hasFocus;

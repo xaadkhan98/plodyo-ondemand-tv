@@ -94,19 +94,7 @@ void main() {
   testWidgets(
     'Back or Escape on the notice leaves the app; the film behind it never opens',
     (tester) async {
-      final exits = <String>[];
-      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
-        SystemChannels.platform,
-        (call) async => call.method == 'SystemNavigator.pop'
-            ? exits.add(call.method)
-            : null,
-      );
-      addTearDown(
-        () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
-          SystemChannels.platform,
-          null,
-        ),
-      );
+      final exits = recordExits(tester);
       device.stories['film'] = const StoryDetail(
         story: Story(id: 'film', title: 'Moon Picnic'),
         mediaUrl: 'https://cdn.example/moon.mp4',
