@@ -64,6 +64,12 @@ class _DeviceGateState extends State<DeviceGate> {
     setState(() {});
   }
 
+  // Back on the notice exits the app, as on any first screen: go_router can't pop the navigator this gate unmounted.
+  static Future<bool> _leave() async {
+    await SystemNavigator.pop();
+    return true;
+  }
+
   @override
   void dispose() {
     Chime.enabled = false;
@@ -122,10 +128,13 @@ class _DeviceGateState extends State<DeviceGate> {
         ),
       ),
       // Before any content, on every cold start and after four idle hours.
-      DeviceReady(:final config) when _device.noticeDue => TermsNoticeView(
-        effectiveDate: config.termsEffectiveDate,
-        onShown: _device.noticeShown,
-        onContinue: _device.acceptNotice,
+      DeviceReady(:final config) when _device.noticeDue => BackButtonListener(
+        onBackButtonPressed: _leave,
+        child: TermsNoticeView(
+          effectiveDate: config.termsEffectiveDate,
+          onShown: _device.noticeShown,
+          onContinue: _device.acceptNotice,
+        ),
       ),
       // The blue button is support's way to This TV: a remote has one, and a child does not go hunting for it.
       // Material gives the rail's labels their text theme; each screen brings its own Scaffold.
