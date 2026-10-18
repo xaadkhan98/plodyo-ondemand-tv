@@ -14,10 +14,13 @@ const termsNoticeText =
 class TermsNoticeView extends StatefulWidget {
   const TermsNoticeView({
     super.key,
+    required this.effectiveDate,
     required this.onShown,
     required this.onContinue,
   });
 
+  /// The Terms' effective date, from /device/config.
+  final String? effectiveDate;
   final VoidCallback onShown;
   final VoidCallback onContinue;
 
@@ -56,7 +59,7 @@ class _TermsNoticeViewState extends State<TermsNoticeView> {
                   ),
                 ),
                 const SizedBox(height: 1.25 * rem),
-                const LegalQr(),
+                LegalQr(effectiveDate: widget.effectiveDate),
                 const SizedBox(height: 1.5 * rem),
                 // Focused from the first frame, so OK on the remote is all it takes.
                 TvButton(

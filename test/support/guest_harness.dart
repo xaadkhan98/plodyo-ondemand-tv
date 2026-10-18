@@ -64,6 +64,7 @@ class FakeDevice implements DeviceRepository {
       ageGroups: [AgeGroup.preschool],
       defaultLanguage: 'ENG',
       roomId: 'r1',
+      termsEffectiveDate: '2026-10-25',
     );
   }
 

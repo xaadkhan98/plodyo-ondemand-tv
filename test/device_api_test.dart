@@ -227,6 +227,7 @@ void main() {
             ],
             'age_groups': ['0-2', '3-5', '5-7'],
             'default_language': 'ENG',
+            'terms_effective_date': '2026-10-25',
           },
         ),
       });
@@ -236,6 +237,7 @@ void main() {
       expect(config.languages.single.name, 'English');
       expect(config.ageGroups, [AgeGroup.toddler, AgeGroup.earlySchool]);
       expect(config.defaultLanguage, 'ENG');
+      expect(config.termsEffectiveDate, '2026-10-25');
     });
   });
 

@@ -122,7 +122,8 @@ class _DeviceGateState extends State<DeviceGate> {
         ),
       ),
       // Before any content, on every cold start and after four idle hours.
-      DeviceReady() when _device.noticeDue => TermsNoticeView(
+      DeviceReady(:final config) when _device.noticeDue => TermsNoticeView(
+        effectiveDate: config.termsEffectiveDate,
         onShown: _device.noticeShown,
         onContinue: _device.acceptNotice,
       ),

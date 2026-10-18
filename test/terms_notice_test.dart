@@ -16,13 +16,14 @@ void main() {
   setUp(() => device = FakeDevice());
 
   testWidgets(
-    'stands before any content: the wording, the code and the address, with Continue focused',
+    'stands before any content: the wording, the code, the address and the date, with Continue focused',
     (tester) async {
       await pumpGuestApp(tester, device, acceptTerms: false);
 
       expect(find.text(termsNoticeText), findsOneWidget);
       expect(find.byType(LegalQr), findsOneWidget);
       expect(find.text(legalAddress), findsOneWidget);
+      expect(find.text('Terms effective 25 October 2026'), findsOneWidget);
       expect(find.text('Moon Picnic'), findsNothing);
       expect(hasFocus(tester, 'Continue'), isTrue);
       // A third of the screen tall, as drawn: 360 px on a 1080p set.
@@ -46,12 +47,12 @@ void main() {
         'notice_accepted',
       ]);
       expect(device.notices.map((notice) => notice['terms_version']).toSet(), {
-        termsVersion,
+        '2026-10-25',
       });
     },
   );
 
-  testWidgets('Terms & Privacy in the rail shows the same code and address', (
+  testWidgets('Terms & Privacy in the rail shows the same code, address and date', (
     tester,
   ) async {
     await pumpGuestApp(tester, device, at: '/terms');
@@ -59,6 +60,7 @@ void main() {
     expect(find.text('Terms & Privacy'), findsWidgets);
     expect(find.byType(LegalQr), findsOneWidget);
     expect(find.text(legalAddress), findsWidgets);
+    expect(find.text('Terms effective 25 October 2026'), findsOneWidget);
   });
 
   test('the code encodes the short address, and the app version tracks pubspec', () {

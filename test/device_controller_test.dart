@@ -12,7 +12,12 @@ import 'package:plodyo_ondemand_tv/data/repositories/usage_queue.dart';
 import 'package:plodyo_ondemand_tv/ui/features/device/device_controller.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-const _config = DeviceConfig(languages: [], ageGroups: [], roomId: 'r1');
+const _config = DeviceConfig(
+  languages: [],
+  ageGroups: [],
+  roomId: 'r1',
+  termsEffectiveDate: '2026-10-25',
+);
 
 /// A device API whose answers each test sets, recording what it is sent.
 class _Device implements DeviceRepository {
@@ -160,7 +165,7 @@ void main() {
     });
 
     testWidgets(
-      'logs shown and accepted with the Terms version and nothing else, then lets the catalogue open',
+      'logs shown and accepted with the Terms date from config and nothing else, then lets the catalogue open',
       (tester) async {
         final controller = await start(tester);
 
@@ -180,7 +185,7 @@ void main() {
             notice.keys,
             unorderedEquals(['event', 'terms_version', 'occurred_at']),
           );
-          expect(notice['terms_version'], termsVersion);
+          expect(notice['terms_version'], '2026-10-25');
         }
       },
     );
