@@ -159,7 +159,7 @@ void main() {
 
   group('Terms notice', () {
     testWidgets(
-      "logs the room's language as shown, never the guest's pick, even when that pick is approved",
+      "logs the language the notice was read in: the guest's pick, when approved",
       (tester) async {
         TermsNotice notice(String language) => TermsNotice(
           language: language,
@@ -183,7 +183,7 @@ void main() {
         await tester.pump();
 
         final sent = [for (final beat in device.beats) ...beat.notices];
-        expect(sent.map((n) => n['language']), ['ARA']);
+        expect(sent.map((n) => n['language']), ['URD']);
       },
     );
 

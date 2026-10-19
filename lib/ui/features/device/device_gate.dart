@@ -133,11 +133,14 @@ class _DeviceGateState extends State<DeviceGate> {
         ),
       ),
       // Before any content, on every cold start and after four idle hours.
-      // The room's language, never the guest's pick: the notice log records it, and a pick never leaves the TV.
-      DeviceReady(:final config) => TermsNoticeView(
-        notice: config.termsNotice(null),
-        onShown: _device.noticeShown,
-        onContinue: _device.acceptNotice,
+      // The guest's pick, else the room's: the notice log records the language it was read in. Scoped for its pill.
+      DeviceReady(:final config) => DeviceScope(
+        session: _device,
+        child: TermsNoticeView(
+          notice: config.termsNotice(_device.language),
+          onShown: _device.noticeShown,
+          onContinue: _device.acceptNotice,
+        ),
       ),
     };
   }

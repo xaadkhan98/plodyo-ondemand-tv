@@ -55,7 +55,8 @@ class DeviceReady extends DevicePhase {
 
 /// What the catalogue screens read: the languages and ages on offer, and the viewer's picks. The picks live
 /// here rather than in storage: a hotel TV is reset between guests by being switched off, and reviving the
-/// last guest's language for the next one is worse than starting over. They never leave the TV on their own.
+/// last guest's language for the next one is worse than starting over. The age never leaves the TV on its own;
+/// the language rides with the Terms notice log.
 abstract class LibrarySession extends ChangeNotifier {
   /// What the pickers offer; null while a TV's room is unresolved.
   DeviceConfig? get config;
@@ -145,12 +146,12 @@ class DeviceController extends LibrarySession {
     notifyListeners();
   }
 
-  // The Terms effective date and the room's language as shown: never content, the guest's pick, or the child.
+  // The Terms effective date and the language the notice was read in: never content, the age, or the child.
   void _logNotice(String event) {
     _notices.add({
       'event': event,
       'terms_version': config?.termsEffectiveDate,
-      'language': config?.termsNotice(null).language,
+      'language': config?.termsNotice(language).language,
       'occurred_at': DateTime.now().toUtc().toIso8601String(),
     });
     // ponytail: held in memory and sent at once, so a power cut before it lands loses it; persist if needed.

@@ -8,6 +8,7 @@ import 'package:plodyo_ondemand_tv/core/constants/api_constants.dart';
 import 'package:plodyo_ondemand_tv/core/constants/legal.dart';
 import 'package:plodyo_ondemand_tv/core/theme/tv_scale.dart';
 import 'package:plodyo_ondemand_tv/core/widgets/tv_button.dart';
+import 'package:plodyo_ondemand_tv/data/models/device_models.dart';
 import 'package:plodyo_ondemand_tv/data/models/story_models.dart';
 import 'package:plodyo_ondemand_tv/core/widgets/legal_qr.dart';
 import 'package:plodyo_ondemand_tv/ui/features/device/device_controller.dart';
@@ -15,6 +16,16 @@ import 'package:plodyo_ondemand_tv/ui/features/device/views/terms_notice_view.da
 import 'package:plodyo_ondemand_tv/ui/features/device/views/terms_view.dart';
 
 import 'support/guest_harness.dart';
+
+// Made-up wording: only that it switches matters here.
+const spanish = TermsNotice(
+  language: 'SPA',
+  locale: 'es',
+  notice: 'Aviso en español',
+  dateLine: 'Vigentes desde el 25 de octubre de 2026',
+  menuItem: 'Condiciones del servicio',
+  continueLabel: 'Continuar',
+);
 
 void main() {
   late FakeDevice device;
@@ -34,7 +45,14 @@ void main() {
       expect(hasFocus(tester, 'Continue'), isTrue);
       // A third of the screen tall, as drawn: 360 px on a 1080p set.
       expect(
-        tester.getRect(find.byType(SvgPicture)).height,
+        tester
+            .getRect(
+              find.descendant(
+                of: find.byType(LegalQr),
+                matching: find.byType(SvgPicture),
+              ),
+            )
+            .height,
         closeTo(1080 / 3, 0.5),
       );
     },
@@ -85,6 +103,57 @@ void main() {
         'ARA',
         'ARA',
       ]);
+    },
+  );
+
+  testWidgets(
+    'beside Continue, a guest can read it in another language: shown is logged once, accepted in the pick, which carries on',
+    (tester) async {
+      device.termsNotices = [spanish];
+      await pumpGuestApp(tester, device, acceptTerms: false);
+      expect(hasFocus(tester, 'Continue'), isTrue);
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowLeft);
+      await tester.pump();
+      expect(hasFocus(tester, 'English'), isTrue);
+      await tester.sendKeyEvent(LogicalKeyboardKey.select);
+      await tester.pump(const Duration(milliseconds: 400));
+      expect(find.text('Pick a language'), findsOneWidget);
+      await tester.tap(find.text('Spanish'));
+      await settleFor(tester);
+
+      expect(find.text(spanish.notice), findsOneWidget);
+      await tester.tap(find.text(spanish.continueLabel));
+      await tester.pump(const Duration(minutes: 1));
+      await settleFor(tester);
+
+      expect(find.byType(TermsNoticeView), findsNothing);
+      expect(
+        device.notices.map((notice) => [notice['event'], notice['language']]),
+        [
+          ['notice_shown', 'ENG'],
+          ['notice_accepted', 'SPA'],
+        ],
+      );
+      expect(device.storyQueries.last, 'SPA');
+    },
+  );
+
+  testWidgets(
+    "Back in the notice's language picker closes it, and the notice stays up",
+    (tester) async {
+      final exits = recordExits(tester);
+      await pumpGuestApp(tester, device, acceptTerms: false);
+      await tester.tap(find.text('English'));
+      await tester.pump(const Duration(milliseconds: 400));
+      expect(find.text('Pick a language'), findsOneWidget);
+
+      await tester.binding.handlePopRoute();
+      await settleFor(tester);
+
+      expect(find.text('Pick a language'), findsNothing);
+      expect(find.byType(TermsNoticeView), findsOneWidget);
+      expect(exits, isEmpty);
     },
   );
 

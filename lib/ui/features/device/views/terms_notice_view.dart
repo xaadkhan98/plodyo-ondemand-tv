@@ -6,6 +6,7 @@ import '../../../../core/theme/tv_typography.dart';
 import '../../../../core/widgets/legal_qr.dart';
 import '../../../../core/widgets/tv_button.dart';
 import '../../../../data/models/device_models.dart';
+import '../widgets/language_menu.dart';
 
 /// What a guest sees before any content: on every cold start, and after the TV has sat idle four hours.
 class TermsNoticeView extends StatefulWidget {
@@ -16,7 +17,7 @@ class TermsNoticeView extends StatefulWidget {
     required this.onContinue,
   });
 
-  /// In the room's language, from /device/config.
+  /// In the guest's pick, else the room's language, from /device/config.
   final TermsNotice notice;
   final VoidCallback onShown;
   final VoidCallback onContinue;
@@ -62,11 +63,21 @@ class _TermsNoticeViewState extends State<TermsNoticeView> {
                   const SizedBox(height: 1.25 * rem),
                   LegalQr(dateLine: notice.dateLine),
                   const SizedBox(height: 1.5 * rem),
-                  // Focused from the first frame, so OK on the remote is all it takes.
-                  TvButton(
-                    label: notice.continueLabel,
-                    onSelect: widget.onContinue,
-                    autofocus: true,
+                  // Beside Continue, a guest can read it in another language; the pick carries on into the catalogue.
+                  Wrap(
+                    alignment: WrapAlignment.center,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    spacing: 1 * rem,
+                    runSpacing: 1 * rem,
+                    children: [
+                      const LanguageMenu(),
+                      // Focused from the first frame, so OK on the remote is all it takes.
+                      TvButton(
+                        label: notice.continueLabel,
+                        onSelect: widget.onContinue,
+                        autofocus: true,
+                      ),
+                    ],
                   ),
                 ],
               ),
