@@ -39,7 +39,7 @@ const arabic = TermsNotice(
   locale: 'ar',
   rtl: true,
   notice:
-      'للبالغين: بالضغط على «متابعة»، فإنك توافق على شروط خدمة Plodyo. امسح الرمز أو زُر plodyo.com/tos لقراءتها. الشروط مكتوبة باللغة الإنجليزية، وتُطبَّق النسخة الإنجليزية.',
+      'للبالغين: بالضغط على «متابعة»، فإنك توافق على شروط خدمة Plodyo. امسح الرمز أو زُر plodyo.com/tos لقراءتها. الشروط مكتوبة باللغة الإنجليزية. وفي حال اختلاف أي ترجمة عنها، تسود النسخة الإنجليزية.',
   dateLine: 'تاريخ سريان الشروط: 25 أكتوبر 2026',
   menuItem: 'شروط الخدمة',
   continueLabel: 'متابعة',
@@ -50,7 +50,7 @@ const french = TermsNotice(
   language: 'FRA',
   locale: 'fr',
   notice:
-      'Pour les adultes\u00a0: en appuyant sur «\u00a0Continuer\u00a0», vous acceptez les Conditions d’utilisation de Plodyo. Scannez le code ou rendez-vous sur plodyo.com/tos pour les lire. Les Conditions d’utilisation sont rédigées en anglais. C’est la version anglaise qui s’applique.',
+      'Pour les adultes\u00a0: en appuyant sur «\u00a0Continuer\u00a0», vous acceptez les Conditions d’utilisation de Plodyo. Scannez le code ou rendez-vous sur plodyo.com/tos pour les lire. Les Conditions d’utilisation sont rédigées en anglais. En cas de divergence avec une traduction, la version anglaise prévaut.',
   dateLine: 'Conditions en vigueur à compter du 25 octobre 2026',
   menuItem: 'Conditions d’utilisation',
   continueLabel: 'Continuer',
