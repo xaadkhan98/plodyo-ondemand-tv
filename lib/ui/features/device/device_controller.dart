@@ -145,11 +145,11 @@ class DeviceController extends LibrarySession {
     notifyListeners();
   }
 
-  // The device and the Terms version only: never content or anything about the child.
+  // The device and the Terms effective date only: never content or anything about the child.
   void _logNotice(String event) {
     _notices.add({
       'event': event,
-      'terms_version': termsVersion,
+      'terms_version': config?.termsEffectiveDate,
       'occurred_at': DateTime.now().toUtc().toIso8601String(),
     });
     // ponytail: held in memory and sent at once, so a power cut before it lands loses it; persist if needed.

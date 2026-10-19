@@ -29,7 +29,7 @@ const _items = [
   NavItem(path: '/search', label: 'Search', icon: LucideIcons.search),
   NavItem(
     path: '/terms',
-    label: 'Terms & Privacy',
+    label: 'Terms of Service',
     icon: LucideIcons.scrollText,
   ),
 ];
@@ -64,6 +64,12 @@ class _DeviceGateState extends State<DeviceGate> {
     setState(() {});
   }
 
+  // go_router can't pop the shell navigator this gate unmounts, so Back goes to the root route's scopes, else exits.
+  Future<bool> _back() async {
+    if (!await Navigator.maybePop(context)) await SystemNavigator.pop();
+    return true;
+  }
+
   @override
   void dispose() {
     Chime.enabled = false;
@@ -73,6 +79,11 @@ class _DeviceGateState extends State<DeviceGate> {
 
   @override
   Widget build(BuildContext context) {
+    if (_device.phase is DeviceReady && !_device.noticeDue) return _catalogue();
+    return BackButtonListener(onBackButtonPressed: _back, child: _setUp());
+  }
+
+  Widget _setUp() {
     return switch (_device.phase) {
       DeviceLoading() => const Scaffold(body: Spinner()),
       DeviceUnpaired() when _pairing => PairView(
@@ -122,30 +133,32 @@ class _DeviceGateState extends State<DeviceGate> {
         ),
       ),
       // Before any content, on every cold start and after four idle hours.
-      DeviceReady() when _device.noticeDue => TermsNoticeView(
+      DeviceReady(:final config) => TermsNoticeView(
+        effectiveDate: config.termsEffectiveDate,
         onShown: _device.noticeShown,
         onContinue: _device.acceptNotice,
       ),
-      // The blue button is support's way to This TV: a remote has one, and a child does not go hunting for it.
-      // Material gives the rail's labels their text theme; each screen brings its own Scaffold.
-      DeviceReady() => CallbackShortcuts(
-        bindings: {
-          const SingleActivator(LogicalKeyboardKey.colorF3Blue): () {
-            if (widget.currentPath != '/room') context.push('/room');
-          },
-        },
-        child: DeviceScope(
-          session: _device,
-          child: Material(
-            type: MaterialType.transparency,
-            child: SideNav(
-              items: _items,
-              currentPath: widget.currentPath,
-              child: widget.child,
-            ),
-          ),
-        ),
-      ),
     };
   }
+
+  // The blue button is support's way to This TV: a remote has one, and a child does not go hunting for it.
+  // Material gives the rail's labels their text theme; each screen brings its own Scaffold.
+  Widget _catalogue() => CallbackShortcuts(
+    bindings: {
+      const SingleActivator(LogicalKeyboardKey.colorF3Blue): () {
+        if (widget.currentPath != '/room') context.push('/room');
+      },
+    },
+    child: DeviceScope(
+      session: _device,
+      child: Material(
+        type: MaterialType.transparency,
+        child: SideNav(
+          items: _items,
+          currentPath: widget.currentPath,
+          child: widget.child,
+        ),
+      ),
+    ),
+  );
 }

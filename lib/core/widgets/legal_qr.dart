@@ -6,10 +6,13 @@ import '../theme/tv_colors.dart';
 import '../theme/tv_scale.dart';
 import '../theme/tv_typography.dart';
 
-/// The code and short address that take a phone to the Terms and both privacy notices. Dark on white and a
-/// third of the screen tall, so it scans from across a hotel room.
+/// The code, short address and effective date of the Terms of Service. Dark on white and a third of the
+/// screen tall, so it scans from across a hotel room.
 class LegalQr extends StatelessWidget {
-  const LegalQr({super.key});
+  const LegalQr({super.key, required this.effectiveDate});
+
+  /// From /device/config; the line is left off without it.
+  final String? effectiveDate;
 
   static const double size = TvCanvas.designHeight / 3;
 
@@ -33,6 +36,13 @@ class LegalQr extends StatelessWidget {
             color: TvColors.foreground,
           ),
         ),
+        if (effectiveDate case final date?) ...[
+          const SizedBox(height: 0.75 * rem),
+          Text(
+            termsEffectiveLine(date),
+            style: TvText.sm.copyWith(color: TvColors.mutedForeground),
+          ),
+        ],
       ],
     );
   }

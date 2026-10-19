@@ -227,6 +227,7 @@ void main() {
             ],
             'age_groups': ['0-2', '3-5', '5-7'],
             'default_language': 'ENG',
+            'terms_effective_date': '2026-10-25',
           },
         ),
       });
@@ -236,6 +237,7 @@ void main() {
       expect(config.languages.single.name, 'English');
       expect(config.ageGroups, [AgeGroup.toddler, AgeGroup.earlySchool]);
       expect(config.defaultLanguage, 'ENG');
+      expect(config.termsEffectiveDate, '2026-10-25');
     });
   });
 
@@ -252,7 +254,6 @@ void main() {
         await repo.getStories();
         await repo.getStories(
           language: 'SPA',
-          ageGroup: AgeGroup.preschool,
           storyType: StoryType.standalone,
           page: 2,
         );
@@ -260,9 +261,44 @@ void main() {
         expect(sent[0].url.queryParameters, isEmpty);
         expect(sent[1].url.queryParameters, {
           'language': 'SPA',
-          'age_group': '2-4',
           'story_type': 'STANDALONE',
           'page': '2',
+        });
+      },
+    );
+
+    test(
+      "the guest's age pick never leaves the TV: rows are matched and paged here",
+      () async {
+        final (repo, sent) = await _pairedApi({
+          '/ondemand/device/content': (
+            200,
+            {
+              'data': [
+                {'id': 'a', 'title': 'A', 'age_group': '2-4'},
+                {'id': 'b', 'title': 'B', 'age_group': '0-2'},
+                {'id': 'c', 'title': 'C', 'age_group': '2-4'},
+              ],
+              'total': 3,
+              'page': 1,
+              'page_size': 100,
+            },
+          ),
+        });
+
+        final second = await repo.getStories(
+          language: 'SPA',
+          ageGroup: AgeGroup.preschool,
+          page: 2,
+          pageSize: 1,
+        );
+
+        expect(second.data.single.id, 'c');
+        expect((second.total, second.page, second.pageSize), (2, 2, 1));
+        expect(sent.single.url.queryParameters, {
+          'language': 'SPA',
+          'page': '1',
+          'page_size': '100',
         });
       },
     );
@@ -313,7 +349,10 @@ void main() {
           '/ondemand/admin/content',
           '/ondemand/admin/series',
         ]);
-        expect(sent.first.url.queryParameters, {'age_group': '0-2'});
+        expect(sent.first.url.queryParameters, {
+          'page': '1',
+          'page_size': '100',
+        });
         for (final request in sent) {
           expect(request.headers['Authorization'], 'Bearer console');
           expect(request.headers['X-Device-Token'], isNull);

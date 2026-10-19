@@ -40,6 +40,7 @@ class DeviceConfig {
     required this.ageGroups,
     this.defaultLanguage,
     this.roomId,
+    this.termsEffectiveDate,
   });
 
   factory DeviceConfig.fromJson(Map<String, dynamic> json) => DeviceConfig(
@@ -56,6 +57,7 @@ class DeviceConfig {
     ],
     defaultLanguage: json['default_language'] as String?,
     roomId: json['room_id'] as String?,
+    termsEffectiveDate: json['terms_effective_date'] as String?,
   );
 
   final List<Language> languages;
@@ -66,4 +68,7 @@ class DeviceConfig {
 
   /// The room this TV is paired to, which support asks for. Null in the console, which has no room.
   final String? roomId;
+
+  /// The Terms of Service's effective date, e.g. `2026-10-25`: their only identifier. Null in the console.
+  final String? termsEffectiveDate;
 }

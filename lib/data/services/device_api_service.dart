@@ -4,6 +4,35 @@ import '../models/paginated_response.dart';
 import '../models/story_models.dart';
 import 'api_client.dart';
 
+// The API's page sizes: its default, and the most one request may ask for.
+const _apiPageSize = 25;
+const _apiMaxPageSize = 100;
+
+/// The guest's age pick never leaves the TV: every page is pulled without it, then matched and paged here.
+// ponytail: a full pull per page asked for; cache the rows if a room's catalogue outgrows a few hundred.
+Future<PaginatedResponse<T>> _matchedHere<T>(
+  Future<PaginatedResponse<T>> Function(int page) fetch,
+  bool Function(T row) keep, {
+  int? page,
+  int? pageSize,
+}) async {
+  final rows = <T>[];
+  for (var at = 1; ; at++) {
+    final next = await fetch(at);
+    rows.addAll(next.data);
+    if (next.data.isEmpty || rows.length >= next.total) break;
+  }
+  final matched = rows.where(keep).toList();
+  final number = page ?? 1;
+  final size = pageSize ?? _apiPageSize;
+  return PaginatedResponse(
+    data: matched.skip((number - 1) * size).take(size).toList(),
+    total: matched.length,
+    page: number,
+    pageSize: size,
+  );
+}
+
 /// Who reads the catalogue, which decides the routes: a paired TV with its token under /device, or the
 /// console with its bearer under /admin. The rows are the same, capped by the API to the reader's tier.
 class CatalogueReader {
@@ -94,13 +123,26 @@ class DeviceApiService {
     int? page,
     int? pageSize,
   }) async {
+    if (ageGroup != null) {
+      return _matchedHere(
+        (at) => getStories(
+          reader,
+          language: language,
+          storyType: storyType,
+          page: at,
+          pageSize: _apiMaxPageSize,
+        ),
+        (story) => story.ageGroup == ageGroup.code,
+        page: page,
+        pageSize: pageSize,
+      );
+    }
     final res = await _client.get(
       reader._content,
       deviceToken: reader.deviceToken,
       accessToken: reader.accessToken,
       queryParameters: {
         'language': ?language,
-        'age_group': ?ageGroup?.code,
         'story_type': ?storyType?.code,
         'page': ?page?.toString(),
         'page_size': ?pageSize?.toString(),
@@ -132,6 +174,21 @@ class DeviceApiService {
     int? page,
     int? pageSize,
   }) async {
+    if (ageGroup != null) {
+      return _matchedHere(
+        (at) => getSeries(
+          reader,
+          seriesType: seriesType,
+          category: category,
+          language: language,
+          page: at,
+          pageSize: _apiMaxPageSize,
+        ),
+        (series) => series.ageGroup == ageGroup.code,
+        page: page,
+        pageSize: pageSize,
+      );
+    }
     final res = await _client.get(
       reader._series,
       deviceToken: reader.deviceToken,
@@ -139,7 +196,6 @@ class DeviceApiService {
       queryParameters: {
         'series_type': ?seriesType?.code,
         'category': ?category,
-        'age_group': ?ageGroup?.code,
         'language': ?language,
         'page': ?page?.toString(),
         'page_size': ?pageSize?.toString(),

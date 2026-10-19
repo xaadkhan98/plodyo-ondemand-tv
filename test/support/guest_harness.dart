@@ -64,6 +64,7 @@ class FakeDevice implements DeviceRepository {
       ageGroups: [AgeGroup.preschool],
       defaultLanguage: 'ENG',
       roomId: 'r1',
+      termsEffectiveDate: '2026-10-25',
     );
   }
 
@@ -334,6 +335,21 @@ Future<void> settleFor(WidgetTester tester, [int frames = 4]) async {
   for (var i = 0; i < frames; i++) {
     await tester.pump(const Duration(milliseconds: 300));
   }
+}
+
+/// Every time the app asked the platform to exit.
+List<String> recordExits(WidgetTester tester) {
+  final exits = <String>[];
+  final messenger = tester.binding.defaultBinaryMessenger;
+  messenger.setMockMethodCallHandler(
+    SystemChannels.platform,
+    (call) async =>
+        call.method == 'SystemNavigator.pop' ? exits.add(call.method) : null,
+  );
+  addTearDown(
+    () => messenger.setMockMethodCallHandler(SystemChannels.platform, null),
+  );
+  return exits;
 }
 
 bool hasFocus(WidgetTester tester, String label) =>
