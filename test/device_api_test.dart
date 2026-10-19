@@ -1,8 +1,10 @@
 import 'dart:convert';
+import 'dart:ui' show Locale;
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+import 'package:plodyo_ondemand_tv/core/constants/legal.dart';
 import 'package:plodyo_ondemand_tv/data/models/auth_exception.dart';
 import 'package:plodyo_ondemand_tv/data/models/device_models.dart';
 import 'package:plodyo_ondemand_tv/data/models/story_models.dart';
@@ -238,6 +240,51 @@ void main() {
       expect(config.ageGroups, [AgeGroup.toddler, AgeGroup.earlySchool]);
       expect(config.defaultLanguage, 'ENG');
       expect(config.termsEffectiveDate, '2026-10-25');
+      // An older backend serves no notices: the bundled English stands in.
+      expect(config.termsNotices, isEmpty);
+      expect(config.termsNotice('SPA').notice, termsNoticeText);
+      expect(
+        config.termsNotice(null).dateLine,
+        'Terms effective 25 October 2026',
+      );
+    });
+
+    test('config reads the approved Terms notices', () async {
+      final (repo, _) = await _pairedApi({
+        '/ondemand/device/config': (
+          200,
+          {
+            'languages': <Object>[],
+            'age_groups': <Object>[],
+            'default_language': 'ARA',
+            'terms_effective_date': '2026-10-25',
+            'terms_notices': [
+              {
+                'language': 'ARA',
+                'locale': 'ar',
+                'dir': 'rtl',
+                'notice': 'notice',
+                'date_line': 'date',
+                'menu_item': 'menu',
+                'continue_label': 'continue',
+              },
+            ],
+          },
+        ),
+      });
+
+      final config = await repo.getConfig();
+      final arabic = config.termsNotice(null);
+
+      expect(arabic.language, 'ARA');
+      expect(arabic.rtl, isTrue);
+      expect(arabic.textLocale, const Locale('ar'));
+      expect(
+        [arabic.notice, arabic.dateLine, arabic.menuItem, arabic.continueLabel],
+        ['notice', 'date', 'menu', 'continue'],
+      );
+      // A language with no approved notice falls back to English.
+      expect(config.termsNotice('SPA').language, 'ENG');
     });
   });
 

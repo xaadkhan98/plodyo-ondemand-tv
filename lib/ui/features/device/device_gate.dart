@@ -133,12 +133,24 @@ class _DeviceGateState extends State<DeviceGate> {
         ),
       ),
       // Before any content, on every cold start and after four idle hours.
+      // The room's language, never the guest's pick: the notice log records it, and a pick never leaves the TV.
       DeviceReady(:final config) => TermsNoticeView(
-        effectiveDate: config.termsEffectiveDate,
+        notice: config.termsNotice(null),
         onShown: _device.noticeShown,
         onContinue: _device.acceptNotice,
       ),
     };
+  }
+
+  // The rail's Terms item follows the TV's current language.
+  List<NavItem> get _navItems {
+    final label = _device.config!.termsNotice(_device.language).menuItem;
+    return [
+      for (final item in _items)
+        item.path == '/terms'
+            ? NavItem(path: item.path, label: label, icon: item.icon)
+            : item,
+    ];
   }
 
   // The blue button is support's way to This TV: a remote has one, and a child does not go hunting for it.
@@ -154,7 +166,7 @@ class _DeviceGateState extends State<DeviceGate> {
       child: Material(
         type: MaterialType.transparency,
         child: SideNav(
-          items: _items,
+          items: _navItems,
           currentPath: widget.currentPath,
           child: widget.child,
         ),

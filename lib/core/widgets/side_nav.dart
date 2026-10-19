@@ -212,6 +212,9 @@ class _NavTile extends StatelessWidget {
   final bool active;
 
   static const _radius = BorderRadius.all(Radius.circular(0.75 * rem));
+
+  // The open rail less its padding, the tile's, the icon and the gap.
+  static const _labelWidth = 10.25 * rem;
   static const _labelSlide = Duration(milliseconds: 300);
   static final _lift = SpringCurve(
     stiffness: 380,
@@ -267,11 +270,18 @@ class _NavTile extends StatelessWidget {
                       offset: Offset(open ? 0 : -0.3, 0),
                       duration: _labelSlide,
                       curve: TvMotion.focus,
-                      child: Text(
-                        item.label,
-                        style: TvText.sm.copyWith(
-                          fontWeight: FontWeight.w600,
-                          color: color,
+                      // The open rail's width: a long translation wraps to a second line rather than being cut off.
+                      child: SizedBox(
+                        width: _labelWidth,
+                        child: Text(
+                          item.label,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: TvText.sm.copyWith(
+                            fontWeight: FontWeight.w600,
+                            color: color,
+                            height: 1.25,
+                          ),
                         ),
                       ),
                     ),

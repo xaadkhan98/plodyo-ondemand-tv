@@ -9,10 +9,10 @@ import '../theme/tv_typography.dart';
 /// The code, short address and effective date of the Terms of Service. Dark on white and a third of the
 /// screen tall, so it scans from across a hotel room.
 class LegalQr extends StatelessWidget {
-  const LegalQr({super.key, required this.effectiveDate});
+  const LegalQr({super.key, required this.dateLine});
 
-  /// From /device/config; the line is left off without it.
-  final String? effectiveDate;
+  /// "Terms effective …" in the notice's language; left off when there is none.
+  final String? dateLine;
 
   static const double size = TvCanvas.designHeight / 3;
 
@@ -36,10 +36,10 @@ class LegalQr extends StatelessWidget {
             color: TvColors.foreground,
           ),
         ),
-        if (effectiveDate case final date?) ...[
+        if (dateLine case final line?) ...[
           const SizedBox(height: 0.75 * rem),
           Text(
-            termsEffectiveLine(date),
+            line,
             style: TvText.sm.copyWith(color: TvColors.mutedForeground),
           ),
         ],

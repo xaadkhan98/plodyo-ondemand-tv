@@ -33,9 +33,36 @@ typedef SeriesQuery = ({
 });
 
 /// A room with a small catalogue, whose answers each test can change.
+// Draft wording, served in tests as if approved.
+const arabic = TermsNotice(
+  language: 'ARA',
+  locale: 'ar',
+  rtl: true,
+  notice:
+      'للبالغين: بالضغط على «متابعة»، فإنك توافق على شروط خدمة Plodyo. امسح الرمز أو زُر plodyo.com/tos لقراءتها. الشروط مكتوبة باللغة الإنجليزية، وتُطبَّق النسخة الإنجليزية.',
+  dateLine: 'تاريخ سريان الشروط: 25 أكتوبر 2026',
+  menuItem: 'شروط الخدمة',
+  continueLabel: 'متابعة',
+);
+
+/// The longest draft, French: twice the English.
+const french = TermsNotice(
+  language: 'FRA',
+  locale: 'fr',
+  notice:
+      'Pour les adultes\u00a0: en appuyant sur «\u00a0Continuer\u00a0», vous acceptez les Conditions d’utilisation de Plodyo. Scannez le code ou rendez-vous sur plodyo.com/tos pour les lire. Les Conditions d’utilisation sont rédigées en anglais. C’est la version anglaise qui s’applique.',
+  dateLine: 'Conditions en vigueur à compter du 25 octobre 2026',
+  menuItem: 'Conditions d’utilisation',
+  continueLabel: 'Continuer',
+);
+
 class FakeDevice implements DeviceRepository {
   @override
   bool isPaired = true;
+
+  /// The room's language, and the approved notices /device/config serves.
+  String defaultLanguage = 'ENG';
+  List<TermsNotice> termsNotices = const [];
 
   Object? refusal;
   Object? seriesRefusal;
@@ -59,12 +86,13 @@ class FakeDevice implements DeviceRepository {
   @override
   Future<DeviceConfig> getConfig() async {
     if (refusal case final error?) throw error;
-    return const DeviceConfig(
-      languages: [Language('ENG', 'English'), Language('SPA', 'Spanish')],
-      ageGroups: [AgeGroup.preschool],
-      defaultLanguage: 'ENG',
+    return DeviceConfig(
+      languages: const [Language('ENG', 'English'), Language('SPA', 'Spanish')],
+      ageGroups: const [AgeGroup.preschool],
+      defaultLanguage: defaultLanguage,
       roomId: 'r1',
       termsEffectiveDate: '2026-10-25',
+      termsNotices: termsNotices,
     );
   }
 

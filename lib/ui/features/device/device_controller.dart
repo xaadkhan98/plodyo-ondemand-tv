@@ -145,11 +145,12 @@ class DeviceController extends LibrarySession {
     notifyListeners();
   }
 
-  // The device and the Terms effective date only: never content or anything about the child.
+  // The Terms effective date and the room's language as shown: never content, the guest's pick, or the child.
   void _logNotice(String event) {
     _notices.add({
       'event': event,
       'terms_version': config?.termsEffectiveDate,
+      'language': config?.termsNotice(null).language,
       'occurred_at': DateTime.now().toUtc().toIso8601String(),
     });
     // ponytail: held in memory and sent at once, so a power cut before it lands loses it; persist if needed.

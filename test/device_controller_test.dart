@@ -158,6 +158,35 @@ void main() {
   );
 
   group('Terms notice', () {
+    testWidgets(
+      "logs the room's language as shown, never the guest's pick, even when that pick is approved",
+      (tester) async {
+        TermsNotice notice(String language) => TermsNotice(
+          language: language,
+          locale: 'xx',
+          notice: language,
+          menuItem: language,
+          continueLabel: language,
+        );
+        device.config = () async => DeviceConfig(
+          languages: const [],
+          ageGroups: const [],
+          defaultLanguage: 'ARA',
+          termsEffectiveDate: '2026-10-25',
+          termsNotices: [notice('ARA'), notice('URD')],
+        );
+        final controller = await start(tester);
+        await tester.pump();
+
+        controller.chooseLanguage('URD');
+        controller.noticeShown();
+        await tester.pump();
+
+        final sent = [for (final beat in device.beats) ...beat.notices];
+        expect(sent.map((n) => n['language']), ['ARA']);
+      },
+    );
+
     testWidgets('is due before any content on a cold start', (tester) async {
       final controller = await start(tester);
 
@@ -183,9 +212,15 @@ void main() {
         for (final notice in sent) {
           expect(
             notice.keys,
-            unorderedEquals(['event', 'terms_version', 'occurred_at']),
+            unorderedEquals([
+              'event',
+              'terms_version',
+              'language',
+              'occurred_at',
+            ]),
           );
           expect(notice['terms_version'], '2026-10-25');
+          expect(notice['language'], 'ENG');
         }
       },
     );
