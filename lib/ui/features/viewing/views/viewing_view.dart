@@ -171,6 +171,15 @@ class _ViewingViewState extends State<ViewingView> {
     }
     final totals = _totals;
     if (totals == null) return const [Spinner()];
+    if (totals.rooms < totals.minRooms) {
+      return [
+        StatusMessage(
+          tone: StatusTone.info,
+          message:
+              'Viewing reports appear once a property has at least ${totals.minRooms} rooms or seats.',
+        ),
+      ];
+    }
     return [
       TwoColumnGrid(
         children: [

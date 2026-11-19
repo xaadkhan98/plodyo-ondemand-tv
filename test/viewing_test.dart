@@ -32,6 +32,8 @@ const _totals = {
   ],
   'hidden_days': 2,
   'min_devices': 5,
+  'rooms': 40,
+  'min_rooms': 20,
 };
 
 PropertyModel _property(String id, String name) => PropertyModel.fromJson({
@@ -51,6 +53,9 @@ class _Auth implements AuthRepository {
 }
 
 class _Properties implements PropertiesRepository {
+  _Properties([this.totals = _totals]);
+
+  final Map<String, dynamic> totals;
   final asked = <({String propertyId, String from, String to})>[];
 
   @override
@@ -75,7 +80,7 @@ class _Properties implements PropertiesRepository {
     required String to,
   }) async {
     asked.add((propertyId: propertyId, from: from, to: to));
-    return ViewingTotals.fromJson(_totals);
+    return ViewingTotals.fromJson(totals);
   }
 
   @override
@@ -165,4 +170,27 @@ void main() {
       expect(properties.asked.last.propertyId, 'p2');
     },
   );
+
+  testWidgets('shows only the small-property message under 20 rooms or seats', (tester) async {
+    tester.view.physicalSize = const Size(1920, 1080);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        builder: (context, child) => TvCanvas(child: child!),
+        home: ViewingView(
+          propertiesRepository: _Properties({..._totals, 'rooms': 12}),
+          authRepository: _Auth(),
+          today: () => DateTime(2026, 10, 25),
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump();
+
+    expect(find.text('Viewing reports appear once a property has at least 20 rooms or seats.'), findsOneWidget);
+    expect(find.text('Plays'), findsNothing);
+    expect(find.text('Top stories'), findsNothing);
+  });
 }

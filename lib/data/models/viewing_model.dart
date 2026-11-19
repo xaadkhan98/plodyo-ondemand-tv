@@ -20,6 +20,8 @@ class ViewingTotals {
     required this.ageGroups,
     required this.hiddenDays,
     required this.minDevices,
+    required this.rooms,
+    required this.minRooms,
   });
 
   factory ViewingTotals.fromJson(Map<String, dynamic> json) {
@@ -40,6 +42,8 @@ class ViewingTotals {
       ageGroups: lines('age_groups', 'age_group'),
       hiddenDays: json['hidden_days'] as int? ?? 0,
       minDevices: json['min_devices'] as int? ?? 5,
+      rooms: json['rooms'] as int? ?? 0,
+      minRooms: json['min_rooms'] as int? ?? 20,
     );
   }
 
@@ -53,6 +57,10 @@ class ViewingTotals {
   /// Days left out of every figure because fewer than [minDevices] TVs reported.
   final int hiddenDays;
   final int minDevices;
+
+  /// Configured rooms or seats. Under [minRooms] the API sends no viewing at all.
+  final int rooms;
+  final int minRooms;
 }
 
 /// "3 h 20 min", "45 min", "under a minute".
