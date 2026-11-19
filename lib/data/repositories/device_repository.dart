@@ -45,6 +45,17 @@ abstract class DeviceRepository {
 
   Future<StoryDetail> getStory(String storyId);
 
+  /// Public library films, every language of a film its own row; [search] matches the title.
+  Future<PaginatedResponse<Story>> getVideos({
+    String? language,
+    String? search,
+    int? page,
+    int? pageSize,
+  });
+
+  /// A film's playable detail, read by its video id.
+  Future<StoryDetail> getVideo(String videoId);
+
   Future<PaginatedResponse<Series>> getSeries({
     SeriesType? seriesType,
     String? category,
@@ -155,6 +166,24 @@ class DeviceRepositoryImpl implements DeviceRepository {
   @override
   Future<StoryDetail> getStory(String storyId) =>
       _api.getStory(_reader, storyId);
+
+  @override
+  Future<PaginatedResponse<Story>> getVideos({
+    String? language,
+    String? search,
+    int? page,
+    int? pageSize,
+  }) => _api.getVideos(
+    _reader,
+    language: language,
+    search: search,
+    page: page,
+    pageSize: pageSize,
+  );
+
+  @override
+  Future<StoryDetail> getVideo(String videoId) =>
+      _api.getVideo(_reader, videoId);
 
   @override
   Future<PaginatedResponse<Series>> getSeries({

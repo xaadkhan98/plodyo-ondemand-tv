@@ -21,6 +21,8 @@ import 'package:plodyo_ondemand_tv/ui/features/device/views/series_list_view.dar
 import 'package:plodyo_ondemand_tv/ui/features/device/views/stories_view.dart';
 import 'package:plodyo_ondemand_tv/ui/features/device/views/terms_notice_view.dart';
 import 'package:plodyo_ondemand_tv/ui/features/device/views/terms_view.dart';
+import 'package:plodyo_ondemand_tv/ui/features/device/views/videos_view.dart';
+import 'package:plodyo_ondemand_tv/ui/features/device/widgets/story_image.dart';
 import 'package:video_player/video_player.dart';
 
 const notFound = AuthException(message: 'Not found', statusCode: 404);
@@ -29,6 +31,12 @@ typedef ShelfQuery = ({AgeGroup? ageGroup, int? page, int? pageSize});
 typedef SeriesQuery = ({
   SeriesType? seriesType,
   String? category,
+  int? pageSize,
+});
+typedef VideoQuery = ({
+  String? language,
+  String? search,
+  int? page,
   int? pageSize,
 });
 
@@ -79,6 +87,14 @@ class FakeDevice implements DeviceRepository {
 
   /// Story details by id; any other id is a 404.
   final stories = <String, StoryDetail>{};
+
+  /// The room's public films, matched by title as the API's search does; none unless a test sets them.
+  List<Story> videos = const [];
+  final videoQueries = <VideoQuery>[];
+
+  /// Film details by video id; any other id is a 404.
+  final films = <String, StoryDetail>{};
+  final filmsAsked = <String>[];
 
   @override
   Future<void> unpair() async => isPaired = false;
@@ -141,6 +157,39 @@ class FakeDevice implements DeviceRepository {
   @override
   Future<StoryDetail> getStory(String storyId) async =>
       stories[storyId] ?? (throw notFound);
+
+  @override
+  Future<PaginatedResponse<Story>> getVideos({
+    String? language,
+    String? search,
+    int? page,
+    int? pageSize,
+  }) async {
+    videoQueries.add((
+      language: language,
+      search: search,
+      page: page,
+      pageSize: pageSize,
+    ));
+    final rows = [
+      for (final video in videos)
+        if (search == null ||
+            video.title.toLowerCase().contains(search.toLowerCase()))
+          video,
+    ];
+    return PaginatedResponse(
+      data: rows,
+      total: rows.length,
+      page: page ?? 1,
+      pageSize: pageSize ?? 25,
+    );
+  }
+
+  @override
+  Future<StoryDetail> getVideo(String videoId) async {
+    filmsAsked.add(videoId);
+    return films[videoId] ?? (throw notFound);
+  }
 
   @override
   Future<PaginatedResponse<Series>> getSeries({
@@ -214,9 +263,13 @@ class FakeDevice implements DeviceRepository {
 
 /// A video or voice that plays only when told to, standing in for the platform player tests lack.
 class FakeMedia extends VideoPlayerController {
-  FakeMedia(super.url, {this.fails = false}) : super.networkUrl();
+  FakeMedia(super.url, {this.fails = false, this.refusesPlay = false})
+    : super.networkUrl();
 
   final bool fails;
+
+  /// A TV that will not start playback, as some refuse autoplay.
+  final bool refusesPlay;
   bool disposed = false;
 
   @override
@@ -229,12 +282,34 @@ class FakeMedia extends VideoPlayerController {
     );
   }
 
+  /// From the end, playing starts over, as the platform player does.
   @override
-  Future<void> play() async =>
-      value = value.copyWith(isPlaying: true, isCompleted: false);
+  Future<void> play() async {
+    if (refusesPlay) throw PlatformException(code: 'NotAllowed');
+    value = value.copyWith(
+      isPlaying: true,
+      isCompleted: false,
+      position: value.position == value.duration
+          ? Duration.zero
+          : value.position,
+    );
+  }
 
   @override
   Future<void> pause() async => value = value.copyWith(isPlaying: false);
+
+  /// Clamped to the film, and the end is the end, as the platform player reports it.
+  @override
+  Future<void> seekTo(Duration position) async {
+    final to = position < Duration.zero
+        ? Duration.zero
+        : (position > value.duration ? value.duration : position);
+    value = value.copyWith(
+      position: to,
+      isCompleted: to == value.duration,
+      isPlaying: value.isPlaying && to != value.duration,
+    );
+  }
 
   /// Where the platform would report playback has reached.
   void reach(Duration position) => value = value.copyWith(position: position);
@@ -264,7 +339,7 @@ const tvScreens = [
 /// Chimes since the last [pumpGuestApp], which keeps the tone off the platform.
 int chimes = 0;
 
-/// The guest lane as the app routes it, starting at [at], with every media player recorded in [media].
+/// The guest lane as the app routes it, starting at [at]; media players land in [media], card stills in [stills].
 Future<void> pumpGuestApp(
   WidgetTester tester,
   FakeDevice device, {
@@ -273,7 +348,9 @@ Future<void> pumpGuestApp(
   double dpr = 1,
   UsageQueue? usage,
   List<FakeMedia>? media,
+  List<FakeMedia>? stills,
   bool mediaFails = false,
+  bool playRefused = false,
   bool acceptTerms = true,
 }) async {
   tester.view.physicalSize = size;
@@ -281,6 +358,11 @@ Future<void> pumpGuestApp(
   addTearDown(tester.view.reset);
   chimes = 0;
   Chime.sound = () => chimes++;
+  StoryImage.openStill = (url) {
+    final still = FakeMedia(url, fails: mediaFails);
+    stills?.add(still);
+    return still;
+  };
   final router = GoRouter(
     initialLocation: at,
     routes: [
@@ -326,13 +408,24 @@ Future<void> pumpGuestApp(
             ),
           ),
           GoRoute(
+            path: '/videos',
+            builder: (_, _) => VideosView(deviceRepository: device),
+          ),
+          GoRoute(
             path: '/story',
             builder: (_, state) => PlayerView(
-              storyId: state.uri.queryParameters['id']!,
+              storyId:
+                  state.uri.queryParameters['video'] ??
+                  state.uri.queryParameters['id']!,
+              video: state.uri.queryParameters.containsKey('video'),
               deviceRepository: device,
               usage: usage,
               openMedia: (url) {
-                final player = FakeMedia(url, fails: mediaFails);
+                final player = FakeMedia(
+                  url,
+                  fails: mediaFails,
+                  refusesPlay: playRefused,
+                );
                 media?.add(player);
                 return player;
               },

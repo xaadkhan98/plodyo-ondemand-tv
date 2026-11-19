@@ -29,8 +29,8 @@ const transportKeys = [
   SingleActivator(LogicalKeyboardKey.mediaPause),
 ];
 
-/// mm:ss. A page's narration runs about a minute, so there is no hours branch.
-String _clock(Duration time) =>
+/// m:ss, as a player counts. A page's narration and a film both run minutes, so there is no hours branch.
+String clock(Duration time) =>
     '${time.inMinutes}:${(time.inSeconds % 60).toString().padLeft(2, '0')}';
 
 /// The picture book, for a story whose video was never made, which is most of the catalogue: one page
@@ -505,7 +505,7 @@ class _Narration extends StatelessWidget {
                           children: [
                             SizedBox(
                               width: 3.5 * rem,
-                              child: Text(_clock(value.position), style: time),
+                              child: Text(clock(value.position), style: time),
                             ),
                             // A bar, not a slider: nothing can scrub it on a remote, so a handle would promise
                             // an interaction that is not there. The dot is where the voice has reached.
@@ -522,7 +522,7 @@ class _Narration extends StatelessWidget {
                             SizedBox(
                               width: 3.5 * rem,
                               child: Text(
-                                _clock(length),
+                                clock(length),
                                 textAlign: TextAlign.right,
                                 style: time,
                               ),

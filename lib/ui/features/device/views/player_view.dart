@@ -1,7 +1,9 @@
+import 'dart:async';
 import 'dart:math' as math;
-import 'dart:ui' show ImageFilter;
+import 'dart:ui' show FontFeature, ImageFilter;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:video_player/video_player.dart';
@@ -13,6 +15,7 @@ import '../../../../core/theme/tv_shadows.dart';
 import '../../../../core/theme/tv_typography.dart';
 import '../../../../core/widgets/filled_icon.dart';
 import '../../../../core/widgets/loading.dart';
+import '../../../../core/widgets/outset_shadow.dart';
 import '../../../../core/widgets/status_message.dart';
 import '../../../../core/widgets/tv_button.dart';
 import '../../../../core/widgets/tv_focusable.dart';
@@ -32,18 +35,55 @@ import '../widgets/story_reader.dart';
 /// Further than playback moves between two position reports, so a bigger jump is a seek, not watching.
 const _maxPlaybackStep = Duration(seconds: 2);
 
+/// One press of ◀ or ▶ in full screen.
+const _skip = Duration(seconds: 10);
+
+/// How long the full-screen controls stay up after the last key while the film plays.
+const _controlsShownFor = Duration(milliseconds: 3500);
+
+enum _FilmControl { back, play, forward }
+
+/// The remote keys full screen keeps, Back aside; the rest, volume included, stay the TV's.
+final _remoteKeys = {
+  LogicalKeyboardKey.arrowUp,
+  LogicalKeyboardKey.arrowDown,
+  LogicalKeyboardKey.arrowLeft,
+  LogicalKeyboardKey.arrowRight,
+  LogicalKeyboardKey.select,
+  LogicalKeyboardKey.enter,
+  LogicalKeyboardKey.numpadEnter,
+  LogicalKeyboardKey.mediaPlayPause,
+  LogicalKeyboardKey.mediaPlay,
+  LogicalKeyboardKey.mediaPause,
+  LogicalKeyboardKey.mediaStop,
+  LogicalKeyboardKey.mediaRewind,
+  LogicalKeyboardKey.mediaFastForward,
+  LogicalKeyboardKey.colorF3Blue,
+};
+
+final _okKeys = {
+  LogicalKeyboardKey.select,
+  LogicalKeyboardKey.enter,
+  LogicalKeyboardKey.numpadEnter,
+};
+
 /// Plays one story. The detail call is made here and nowhere else, since only it mints a playable URL.
 /// A story with no film yet is read as a picture book instead, which is most of the catalogue.
 class PlayerView extends StatefulWidget {
   const PlayerView({
     super.key,
     required this.storyId,
+    this.video = false,
     this.deviceRepository,
     this.usage,
     this.openMedia = VideoPlayerController.networkUrl,
   });
 
+  /// The story, or with [video] the film, whose play is counted under this id.
   final String storyId;
+
+  /// A film from the Videos lane: read by its video id, and opened straight into full-screen playback.
+  final bool video;
   final DeviceRepository? deviceRepository;
   final UsageQueue? usage;
   final MediaOpener openMedia;
@@ -74,6 +114,21 @@ class _PlayerViewState extends State<PlayerView> {
   String? _playbackError;
   Duration _position = Duration.zero;
 
+  // Until the film first plays, full screen shows it loading rather than paused.
+  bool _started = false;
+  bool _wasPlaying = false;
+  bool _controlsShown = true;
+  Timer? _hideControls;
+
+  // The button the remote's last key drove, lit with its tooltip as a focused one would be.
+  _FilmControl? _lit;
+  final _portal = OverlayPortalController()..show();
+  final _film = FocusNode();
+  final _again = FocusNode();
+  bool _covered = false;
+
+  bool get _fullScreen => widget.video && _video != null && !_mediaFailed;
+
   @override
   void initState() {
     super.initState();
@@ -81,18 +136,30 @@ class _PlayerViewState extends State<PlayerView> {
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // A screen opened over this one: the film stops rather than playing on unseen.
+    _covered = !TickerMode.valuesOf(context).enabled;
+    if (_covered) _video?.pause();
+  }
+
+  @override
   void dispose() {
+    _hideControls?.cancel();
     // A TV that navigates away mid-story must not keep playing under the next screen.
     _video?.dispose();
+    _film.dispose();
+    _again.dispose();
     super.dispose();
   }
 
   Future<void> _load() async {
+    final catalogue = widget.deviceRepository ?? sharedDeviceRepository;
     try {
       final detail = await catalogueRead(
-        () => (widget.deviceRepository ?? sharedDeviceRepository).getStory(
-          widget.storyId,
-        ),
+        () => widget.video
+            ? catalogue.getVideo(widget.storyId)
+            : catalogue.getStory(widget.storyId),
       );
       if (!mounted) return;
       setState(() => _detail = detail);
@@ -101,9 +168,26 @@ class _PlayerViewState extends State<PlayerView> {
           ..addListener(_onVideo);
         // Metadata only, as `preload="metadata"`: the poster holds until the guest presses play.
         _videoReady = video.initialize().catchError((Object _) => _fail());
+        if (widget.video) _autoplay(video);
       }
     } on Object catch (error) {
       if (mounted) setState(() => _error = error);
+    }
+  }
+
+  // A film starts itself, here rather than on load, so a TV that refuses says so instead of showing black.
+  Future<void> _autoplay(VideoPlayerController video) async {
+    await _videoReady;
+    if (!mounted || _mediaFailed) return;
+    try {
+      await video.play();
+    } on Object {
+      if (mounted) {
+        setState(
+          () => _playbackError =
+              'This TV would not start the video. Press OK to play.',
+        );
+      }
     }
   }
 
@@ -123,10 +207,89 @@ class _PlayerViewState extends State<PlayerView> {
     // The end is the one moment the app has to feel earned; playing again lifts it.
     if (value.isCompleted != _finished) {
       setState(() => _finished = value.isCompleted);
+      // Full screen hands the ring to the end card's Again, and back to the film when it plays again.
+      if (_fullScreen) {
+        final next = _finished ? _again : _film;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) next.requestFocus();
+        });
+      }
     }
     if (value.isPlaying && _playbackError != null) {
       setState(() => _playbackError = null);
     }
+    // Starting, or playing again, brings the full-screen controls up.
+    if (value.isPlaying && !_wasPlaying && _fullScreen) {
+      setState(() => _started = true);
+      _showControls();
+    }
+    _wasPlaying = value.isPlaying;
+  }
+
+  // The player clamps a seek to the film, so a skip past the end lands on the end and plays the curtain call.
+  void _skipBy(Duration by) {
+    final video = _video;
+    if (video == null || !video.value.isInitialized) return;
+    video.seekTo(video.value.position + by);
+  }
+
+  // Any key, click or pointer move brings the full-screen controls up; they hide again while the film plays.
+  void _showControls() {
+    _hideControls?.cancel();
+    _hideControls = Timer(_controlsShownFor, () {
+      if (!mounted) return;
+      setState(() {
+        _controlsShown = false;
+        _lit = null;
+      });
+    });
+    if (!_controlsShown) setState(() => _controlsShown = true);
+  }
+
+  // Nothing is focused until the end card: OK plays or pauses, ◀ ▶ skip, any remote key shows the controls.
+  KeyEventResult _onFilmKey(FocusNode _, KeyEvent event) {
+    final key = event.logicalKey;
+    if (event is KeyUpEvent || !_remoteKeys.contains(key)) {
+      return KeyEventResult.ignored;
+    }
+    final controls = !_finished;
+    if (controls) _showControls();
+    if (transportKeys.any((transport) => transport.trigger == key)) {
+      _toggle();
+      setState(() => _lit = _FilmControl.play);
+      return KeyEventResult.handled;
+    }
+    if (controls) {
+      if (_okKeys.contains(key)) {
+        _toggle();
+        setState(() => _lit = _FilmControl.play);
+      } else if (key == LogicalKeyboardKey.arrowLeft ||
+          key == LogicalKeyboardKey.mediaRewind) {
+        _skipBy(-_skip);
+        setState(() => _lit = _FilmControl.back);
+      } else if (key == LogicalKeyboardKey.arrowRight ||
+          key == LogicalKeyboardKey.mediaFastForward) {
+        _skipBy(_skip);
+        setState(() => _lit = _FilmControl.forward);
+      }
+      return KeyEventResult.handled;
+    }
+    // The end card keeps the D-pad on its two buttons: the rail under the film is out of sight.
+    switch (key) {
+      case LogicalKeyboardKey.arrowLeft:
+        FocusManager.instance.primaryFocus?.focusInDirection(
+          TraversalDirection.left,
+        );
+      case LogicalKeyboardKey.arrowRight:
+        FocusManager.instance.primaryFocus?.focusInDirection(
+          TraversalDirection.right,
+        );
+      case LogicalKeyboardKey.arrowUp || LogicalKeyboardKey.arrowDown:
+        break;
+      default:
+        return KeyEventResult.ignored;
+    }
+    return KeyEventResult.handled;
   }
 
   Future<void> _toggle() async {
@@ -145,6 +308,83 @@ class _PlayerViewState extends State<PlayerView> {
         );
       }
     }
+  }
+
+  /// The film edge to edge: loading dots until it starts, then its controls, then the curtain call.
+  Widget _fullScreenFilm(VideoPlayerController video, Story story) {
+    final ready = _started || _playbackError != null;
+    final poster = story.artworkUrl;
+    return Focus(
+      focusNode: _film,
+      autofocus: true,
+      skipTraversal: true,
+      onKeyEvent: _onFilmKey,
+      child: Listener(
+        onPointerDown: (_) => _showControls(),
+        onPointerHover: (_) => _showControls(),
+        child: ColoredBox(
+          color: Colors.black,
+          child: ValueListenableBuilder(
+            valueListenable: video,
+            builder: (context, value, _) => Stack(
+              fit: StackFit.expand,
+              children: [
+                // A click on the film plays or pauses it.
+                GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: _toggle,
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      if (value.isInitialized)
+                        Center(
+                          child: AspectRatio(
+                            aspectRatio: value.aspectRatio,
+                            child: VideoPlayer(video),
+                          ),
+                        ),
+                      // The poster, until the film first plays.
+                      if (!_started && poster != null)
+                        Image.network(
+                          poster,
+                          fit: BoxFit.contain,
+                          errorBuilder: (_, _, _) => const SizedBox.shrink(),
+                        ),
+                    ],
+                  ),
+                ),
+                if (!ready)
+                  const IgnorePointer(
+                    child: Center(child: LoadingDots(color: Colors.white)),
+                  ),
+                if (ready && !_finished && (!value.isPlaying || _controlsShown))
+                  _FilmControls(
+                    title: story.title,
+                    value: value,
+                    lit: _lit,
+                    message: _playbackError,
+                    onToggle: _toggle,
+                    onSkip: _skipBy,
+                  ),
+                AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 300),
+                  // Every click on the card lands on it, never on the film under it.
+                  child: _finished
+                      ? ColoredBox(
+                          color: Colors.transparent,
+                          child: _StoryEnd(
+                            onAgain: video.play,
+                            againFocusNode: _again,
+                          ),
+                        )
+                      : const SizedBox.shrink(),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   @override
@@ -171,6 +411,19 @@ class _PlayerViewState extends State<PlayerView> {
         pages: detail.pages,
         play: _play,
         openMedia: widget.openMedia,
+      );
+    }
+
+    // Over the rail and the top bar, the whole screen is the film; Back leaves it.
+    if (widget.video && video != null) {
+      return OverlayPortal(
+        controller: _portal,
+        overlayLocation: OverlayChildLocation.rootOverlay,
+        // Drawn over the whole app, so it steps aside while another screen is open over this one.
+        overlayChildBuilder: (_) => _covered
+            ? const SizedBox.shrink()
+            : _fullScreenFilm(video, detail.story),
+        child: const ColoredBox(color: Colors.black),
       );
     }
 
@@ -353,9 +606,12 @@ class _Unfilmed extends StatelessWidget {
 /// The curtain call: three fixed stars rather than a score, since there is no progress the server keeps.
 /// Drawn straight over the last frame: the reference's `/90` gradient modifier generates no CSS there.
 class _StoryEnd extends StatefulWidget {
-  const _StoryEnd({required this.onAgain});
+  const _StoryEnd({required this.onAgain, this.againFocusNode});
 
   final VoidCallback onAgain;
+
+  /// Full screen moves the ring onto Again, since nothing else on screen can hold it.
+  final FocusNode? againFocusNode;
 
   @override
   State<_StoryEnd> createState() => _StoryEndState();
@@ -455,6 +711,7 @@ class _StoryEndState extends State<_StoryEnd>
                 TvButton(
                   label: 'Again',
                   icon: LucideIcons.rotateCcw,
+                  focusNode: widget.againFocusNode,
                   onSelect: widget.onAgain,
                 ),
                 TvButton(
@@ -632,6 +889,317 @@ class _PlayButton extends StatelessWidget {
                 ),
               ],
             ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Netflix-style controls over a full-screen film; a click anywhere but the buttons' row lands on the film.
+class _FilmControls extends StatelessWidget {
+  const _FilmControls({
+    required this.title,
+    required this.value,
+    required this.lit,
+    required this.message,
+    required this.onToggle,
+    required this.onSkip,
+  });
+
+  final String title;
+  final VideoPlayerValue value;
+  final _FilmControl? lit;
+  final String? message;
+  final VoidCallback onToggle;
+  final ValueChanged<Duration> onSkip;
+
+  static const _fromTop = LinearGradient(
+    begin: Alignment.topCenter,
+    end: Alignment.bottomCenter,
+    colors: [Color(0xBF000000), Color(0x00000000)],
+  );
+  static const _fromBottom = LinearGradient(
+    begin: Alignment.bottomCenter,
+    end: Alignment.topCenter,
+    colors: [Color(0xD9000000), Color(0x00000000)],
+  );
+  static const _pill = BorderRadius.all(Radius.circular(999));
+
+  @override
+  Widget build(BuildContext context) {
+    final length = value.duration;
+    final progress = length > Duration.zero
+        ? math.min(1.0, value.position.inMicroseconds / length.inMicroseconds)
+        : 0.0;
+    final time = TvText.sm.copyWith(
+      color: const Color(0xD9FFFFFF),
+      fontFeatures: const [FontFeature.tabularFigures()],
+    );
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        IgnorePointer(
+          child: DecoratedBox(
+            decoration: const BoxDecoration(gradient: _fromTop),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(
+                TvInsets.safeX,
+                TvInsets.safeY,
+                TvInsets.safeX,
+                5 * rem,
+              ),
+              child: Text(
+                title,
+                style: TvText.x2l.copyWith(
+                  fontFamily: TvText.fredoka,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ),
+        ),
+        Stack(
+          children: [
+            const Positioned.fill(
+              child: IgnorePointer(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(gradient: _fromBottom),
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                TvInsets.safeX,
+                5 * rem,
+                TvInsets.safeX,
+                TvInsets.safeY,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  IgnorePointer(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        if (message case final message?)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: rem),
+                            child: Text(
+                              message,
+                              textAlign: TextAlign.center,
+                              style: TvText.base.copyWith(color: Colors.white),
+                            ),
+                          ),
+                        Row(
+                          spacing: 1.25 * rem,
+                          children: [
+                            Text(clock(value.position), style: time),
+                            Expanded(
+                              child: ClipRRect(
+                                borderRadius: _pill,
+                                child: Container(
+                                  height: 0.5 * rem,
+                                  color: const Color(0x40FFFFFF),
+                                  alignment: Alignment.centerLeft,
+                                  // The gradient's angle is worked out from its width, so none is drawn at 0.
+                                  child: progress == 0
+                                      ? null
+                                      : FractionallySizedBox(
+                                          widthFactor: progress,
+                                          heightFactor: 1,
+                                          child: const DecoratedBox(
+                                            decoration: BoxDecoration(
+                                              gradient: TvColors.brandBold,
+                                              borderRadius: _pill,
+                                            ),
+                                          ),
+                                        ),
+                                ),
+                              ),
+                            ),
+                            Text(clock(length), style: time),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  // The 3rem under the buttons keeps room for their tooltips.
+                  Padding(
+                    padding: const EdgeInsets.only(
+                      top: 1.5 * rem,
+                      bottom: 3 * rem,
+                    ),
+                    child: ColoredBox(
+                      color: Colors.transparent,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        spacing: 2.5 * rem,
+                        children: [
+                          _ControlButton(
+                            label: 'Back ${_skip.inSeconds} seconds',
+                            lit: lit == _FilmControl.back,
+                            size: 4 * rem,
+                            color: const Color(0x26FFFFFF),
+                            hoverColor: const Color(0x4DFFFFFF),
+                            onTap: () => onSkip(-_skip),
+                            child: const Icon(
+                              LucideIcons.rotateCcw,
+                              size: 2 * rem,
+                              color: Colors.white,
+                            ),
+                          ),
+                          _ControlButton(
+                            label: value.isPlaying ? 'Pause' : 'Play',
+                            lit: lit == _FilmControl.play,
+                            size: 5 * rem,
+                            color: Colors.white,
+                            hoverColor: const Color(0xE6FFFFFF),
+                            onTap: onToggle,
+                            child: value.isPlaying
+                                ? const FilledIcon(
+                                    FilledGlyph.pause,
+                                    size: 2.25 * rem,
+                                    color: Colors.black,
+                                  )
+                                : const Padding(
+                                    padding: EdgeInsets.only(left: 0.25 * rem),
+                                    child: FilledIcon(
+                                      FilledGlyph.play,
+                                      size: 2.25 * rem,
+                                      color: Colors.black,
+                                    ),
+                                  ),
+                          ),
+                          _ControlButton(
+                            label: 'Forward ${_skip.inSeconds} seconds',
+                            lit: lit == _FilmControl.forward,
+                            size: 4 * rem,
+                            color: const Color(0x26FFFFFF),
+                            hoverColor: const Color(0x4DFFFFFF),
+                            onTap: () => onSkip(_skip),
+                            child: const Icon(
+                              LucideIcons.rotateCw,
+                              size: 2 * rem,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+/// A never-focused full-screen button whose tooltip shows on hover, or while the key that drove it has it lit.
+class _ControlButton extends StatefulWidget {
+  const _ControlButton({
+    required this.label,
+    required this.lit,
+    required this.size,
+    required this.color,
+    required this.hoverColor,
+    required this.onTap,
+    required this.child,
+  });
+
+  final String label;
+  final bool lit;
+  final double size;
+  final Color color;
+  final Color hoverColor;
+  final VoidCallback onTap;
+  final Widget child;
+
+  @override
+  State<_ControlButton> createState() => _ControlButtonState();
+}
+
+class _ControlButtonState extends State<_ControlButton> {
+  // Tailwind's default transition: 150ms on its standard ease.
+  static const _transition = Duration(milliseconds: 150);
+  static const _ease = Cubic(0.4, 0, 0.2, 1);
+  static const _pill = BorderRadius.all(Radius.circular(999));
+
+  bool _hovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final circle = BorderRadius.circular(widget.size / 2);
+    return Semantics(
+      button: true,
+      label: widget.label,
+      excludeSemantics: true,
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        onEnter: (_) => setState(() => _hovered = true),
+        onExit: (_) => setState(() => _hovered = false),
+        child: GestureDetector(
+          onTap: widget.onTap,
+          child: Stack(
+            clipBehavior: Clip.none,
+            alignment: Alignment.topCenter,
+            children: [
+              // The focus ring's band, in white: a key lights the button it drove.
+              OutsetShadow(
+                shadows: widget.lit
+                    ? const [
+                        BoxShadow(color: Colors.white, spreadRadius: 4 * px),
+                      ]
+                    : const [],
+                borderRadius: circle,
+                child: AnimatedContainer(
+                  duration: _transition,
+                  curve: _ease,
+                  width: widget.size,
+                  height: widget.size,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: _hovered ? widget.hoverColor : widget.color,
+                    borderRadius: circle,
+                  ),
+                  child: widget.child,
+                ),
+              ),
+              Positioned(
+                top: widget.size + 0.75 * rem,
+                child: IgnorePointer(
+                  child: AnimatedOpacity(
+                    opacity: widget.lit || _hovered ? 1 : 0,
+                    duration: _transition,
+                    curve: _ease,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: rem,
+                        vertical: 0.25 * rem,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: _pill,
+                        boxShadow: TvShadows.lg(),
+                      ),
+                      child: Text(
+                        widget.label,
+                        softWrap: false,
+                        style: TvText.sm.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ),

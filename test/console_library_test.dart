@@ -67,7 +67,7 @@ void main() {
       await settleFor(tester);
 
       // The catalogue leads the rail; a property admin has no partners or invites.
-      for (final label in ['Home', 'Learning', 'Overview', 'Rooms']) {
+      for (final label in ['Home', 'Learning', 'Videos', 'Overview', 'Rooms']) {
         expect(find.text(label), findsOneWidget);
       }
       expect(find.text('Partners'), findsNothing);

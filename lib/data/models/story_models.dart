@@ -25,7 +25,7 @@ enum SeriesType {
   }
 }
 
-/// One catalogue row. Rows carry no media URL, so a grid never mints a signed URL per unwatched tile.
+/// One catalogue row. A story's row carries no media URL, so a grid never mints a signed URL per unwatched tile.
 class Story {
   const Story({
     required this.id,
@@ -35,6 +35,7 @@ class Story {
     this.duration,
     this.language,
     this.ageGroup,
+    this.mediaUrl,
   });
 
   factory Story.fromJson(Map<String, dynamic> json) => Story(
@@ -45,6 +46,7 @@ class Story {
     duration: json['duration'] as String?,
     language: json['language'] as String?,
     ageGroup: json['age_group'] as String?,
+    mediaUrl: json['media_url'] as String?,
   );
 
   final String id;
@@ -56,6 +58,9 @@ class Story {
   final String? duration;
   final String? language;
   final String? ageGroup;
+
+  /// Films only: the film itself, for a still on a card with no artwork.
+  final String? mediaUrl;
 }
 
 class StoryPage {

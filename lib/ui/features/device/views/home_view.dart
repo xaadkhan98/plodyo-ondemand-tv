@@ -28,6 +28,7 @@ class _HomeViewState extends State<HomeView> {
   late Future<List<Story>> _stories;
   late Future<List<Story>> _series;
   late Future<List<Story>> _learning;
+  late Future<List<Story>> _videos;
   String? _language;
   bool _loaded = false;
 
@@ -48,6 +49,9 @@ class _HomeViewState extends State<HomeView> {
     ).then((page) => page.data);
     _series = _seriesRail(SeriesType.entertainment);
     _learning = _seriesRail(SeriesType.learning);
+    _videos = catalogueRead(
+      () => _device.getVideos(language: language, pageSize: _railSize),
+    ).then((page) => page.data);
   }
 
   Future<List<Story>> _seriesRail(SeriesType type) => catalogueRead(
@@ -89,20 +93,28 @@ class _HomeViewState extends State<HomeView> {
                   error: _error(snapshot),
                   onSelect: (story) => openStory(context, story),
                 ),
-                _SeriesRail(
+                _OptionalRail(
                   future: _series,
                   title: 'Series',
                   subtitle: 'Follow the same friends through every episode.',
                   autofocus: noHero,
                   onSelect: (series) => openSeries(context, series),
                 ),
-                _SeriesRail(
+                _OptionalRail(
                   future: _learning,
                   title: 'Learning series',
                   subtitle:
                       'Numbers, words and feelings, one episode at a time.',
                   autofocus: noHero,
                   onSelect: (series) => openSeries(context, series),
+                ),
+                // A card plays the film by its video id.
+                _OptionalRail(
+                  future: _videos,
+                  title: 'Videos',
+                  subtitle: 'Cartoon films to watch together.',
+                  autofocus: noHero,
+                  onSelect: (video) => openVideo(context, video),
                 ),
               ],
             );
@@ -122,8 +134,9 @@ List<Story>? _rows(AsyncSnapshot<List<Story>> snapshot) =>
 Object? _error(AsyncSnapshot<List<Story>> snapshot) =>
     snapshot.connectionState == ConnectionState.done ? snapshot.error : null;
 
-class _SeriesRail extends StatelessWidget {
-  const _SeriesRail({
+/// A rail of series or films, dropped once it resolves empty.
+class _OptionalRail extends StatelessWidget {
+  const _OptionalRail({
     required this.future,
     required this.title,
     required this.subtitle,
@@ -142,16 +155,16 @@ class _SeriesRail extends StatelessWidget {
     return FutureBuilder(
       future: future,
       builder: (context, snapshot) {
-        final series = _rows(snapshot);
+        final rows = _rows(snapshot);
         final error = _error(snapshot);
         // A category with nothing in it leaves no empty labelled row on the home screen.
-        if (series != null && series.isEmpty && error == null) {
+        if (rows != null && rows.isEmpty && error == null) {
           return const SizedBox.shrink();
         }
         return StoryRail(
           title: title,
           subtitle: subtitle,
-          stories: series,
+          stories: rows,
           error: error,
           autofocus: autofocus,
           onSelect: onSelect,

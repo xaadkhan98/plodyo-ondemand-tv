@@ -14,6 +14,10 @@ void goBack(BuildContext context) =>
 void openStory(BuildContext context, Story story) =>
     context.push('/story?id=${Uri.encodeQueryComponent(story.id)}');
 
+/// Plays a film from the Videos lane; the player reads it, and counts its play, by its video id.
+void openVideo(BuildContext context, Story video) =>
+    context.push('/story?video=${Uri.encodeQueryComponent(video.id)}');
+
 /// A series has no media of its own, so its card opens the episode list.
 void openSeries(BuildContext context, Story series) =>
     context.push('/series?id=${Uri.encodeQueryComponent(series.id)}');

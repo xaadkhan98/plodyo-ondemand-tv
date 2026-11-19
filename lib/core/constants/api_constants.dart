@@ -66,6 +66,7 @@ class ApiConstants {
   // Admin Library Routes: the room TV's catalogue, read with a bearer
   static const String adminContentEndpoint = '/ondemand/admin/content';
   static const String adminSeriesEndpoint = '/ondemand/admin/series';
+  static const String adminVideosEndpoint = '/ondemand/admin/videos';
 
   // Device TV Routes (Room TV Flow)
   static const String devicePairEndpoint = '/ondemand/device/pair';
@@ -74,6 +75,9 @@ class ApiConstants {
   static const String deviceHeartbeatEndpoint = '/ondemand/device/heartbeat';
   static const String deviceViewingEndpoint = '/ondemand/device/viewing';
   static const String deviceSeriesEndpoint = '/ondemand/device/series';
+
+  // Public library films: one row per language of a film
+  static const String deviceVideosEndpoint = '/ondemand/device/videos';
 
   // Request Timeouts
   static const Duration connectTimeout = Duration(seconds: 15);

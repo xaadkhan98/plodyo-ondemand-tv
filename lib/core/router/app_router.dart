@@ -9,6 +9,7 @@ import '../../ui/features/device/views/room_view.dart';
 import '../../ui/features/device/views/search_view.dart';
 import '../../ui/features/device/views/stories_view.dart';
 import '../../ui/features/device/views/terms_view.dart';
+import '../../ui/features/device/views/videos_view.dart';
 import '../../data/models/story_models.dart';
 import '../../ui/features/auth/views/sign_in_view.dart';
 import '../../ui/features/auth/views/forgot_password_view.dart';
@@ -43,7 +44,14 @@ final GlobalKey<NavigatorState> _shellNavigatorKey =
     GlobalKey<NavigatorState>();
 
 /// The catalogue screens, which both lanes render: a TV with its device token, the console with its bearer.
-const _libraryPaths = {'/', '/stories', '/series', '/learning', '/story'};
+const _libraryPaths = {
+  '/',
+  '/stories',
+  '/series',
+  '/learning',
+  '/videos',
+  '/story',
+};
 
 /// The room TV's own screens: the console has no room for them to show.
 const _devicePaths = {'/search', '/room', '/terms'};
@@ -118,18 +126,27 @@ final GoRouter appRouter = GoRouter(
               const SeriesListView(type: SeriesType.learning),
         ),
         GoRoute(
+          path: '/videos',
+          builder: (context, state) => const VideosView(),
+        ),
+        GoRoute(
           path: '/search',
           builder: (context, state) => const SearchView(),
         ),
         GoRoute(path: '/room', builder: (context, state) => const RoomView()),
         GoRoute(path: '/terms', builder: (context, state) => const TermsView()),
-        // A query rather than a path segment, as the reference: a story is only ever opened by its id.
+        // A query rather than a path segment, as the reference: a story by its `id`, a Videos film by `video`.
         GoRoute(
           path: '/story',
-          redirect: (context, state) =>
-              state.uri.queryParameters['id'] == null ? '/' : null,
+          redirect: (context, state) {
+            final query = state.uri.queryParameters;
+            return query['id'] == null && query['video'] == null ? '/' : null;
+          },
           builder: (context, state) =>
-              PlayerView(storyId: state.uri.queryParameters['id']!),
+              switch (state.uri.queryParameters['video']) {
+                final video? => PlayerView(storyId: video, video: true),
+                null => PlayerView(storyId: state.uri.queryParameters['id']!),
+              },
         ),
         GoRoute(
           path: '/overview',

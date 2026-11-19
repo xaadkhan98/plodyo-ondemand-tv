@@ -92,6 +92,11 @@ class _MainTvLayoutState extends State<MainTvLayout> {
       icon: LucideIcons.graduationCap,
     ),
     const NavItem(
+      path: '/videos',
+      label: 'Videos',
+      icon: LucideIcons.clapperboard,
+    ),
+    const NavItem(
       path: '/overview',
       label: 'Overview',
       icon: LucideIcons.layoutDashboard,

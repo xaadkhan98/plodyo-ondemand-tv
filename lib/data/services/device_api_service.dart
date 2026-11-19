@@ -54,6 +54,10 @@ class CatalogueReader {
   String get _series => deviceToken != null
       ? ApiConstants.deviceSeriesEndpoint
       : ApiConstants.adminSeriesEndpoint;
+
+  String get _videos => deviceToken != null
+      ? ApiConstants.deviceVideosEndpoint
+      : ApiConstants.adminVideosEndpoint;
 }
 
 /// The room TV's endpoints: X-Device-Token, never a bearer, and no refresh step. The catalogue reads also
@@ -158,6 +162,41 @@ class DeviceApiService {
   Future<StoryDetail> getStory(CatalogueReader reader, String storyId) async {
     final res = await _client.get(
       '${reader._content}/${Uri.encodeComponent(storyId)}',
+      deviceToken: reader.deviceToken,
+      accessToken: reader.accessToken,
+    );
+    return StoryDetail.fromJson(res as Map<String, dynamic>);
+  }
+
+  /// GET /videos: public films, a row per language of a film. Same language rule as the catalogue.
+  Future<PaginatedResponse<Story>> getVideos(
+    CatalogueReader reader, {
+    String? language,
+    String? search,
+    int? page,
+    int? pageSize,
+  }) async {
+    final res = await _client.get(
+      reader._videos,
+      deviceToken: reader.deviceToken,
+      accessToken: reader.accessToken,
+      queryParameters: {
+        'language': ?language,
+        'search': ?search,
+        'page': ?page?.toString(),
+        'page_size': ?pageSize?.toString(),
+      },
+    );
+    return PaginatedResponse.fromJson(
+      res as Map<String, dynamic>,
+      Story.fromJson,
+    );
+  }
+
+  /// GET /videos/:id: a film at the moment of playback, in a story's shape with no pages.
+  Future<StoryDetail> getVideo(CatalogueReader reader, String videoId) async {
+    final res = await _client.get(
+      '${reader._videos}/${Uri.encodeComponent(videoId)}',
       deviceToken: reader.deviceToken,
       accessToken: reader.accessToken,
     );

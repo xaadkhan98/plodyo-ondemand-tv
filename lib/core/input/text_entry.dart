@@ -50,6 +50,14 @@ class TextEntryController<F extends Enum> extends ChangeNotifier {
   }
 }
 
+/// What a key press types: null for a control character, or a key that types nothing.
+String? typedText(KeyEvent event) {
+  final character = event.character;
+  if (character == null || character.isEmpty) return null;
+  final code = character.codeUnitAt(0);
+  return code >= 0x20 && code != 0x7F ? character : null;
+}
+
 /// Wires a [TextEntryController] to the hardware: typed characters append, and Back (or Backspace)
 /// deletes — leaving through [onExit] only once the field is empty, so one mistyped character never exits.
 class TextEntryScope extends StatelessWidget {
@@ -57,11 +65,15 @@ class TextEntryScope extends StatelessWidget {
     super.key,
     required this.controller,
     this.onExit,
+    this.holdsBack = true,
     required this.child,
   });
 
   final TextEntryController controller;
   final VoidCallback? onExit;
+
+  /// False leaves Back to the screen, for a field typed into while its keyboard is closed.
+  final bool holdsBack;
   final Widget child;
 
   void _back() {
@@ -81,15 +93,12 @@ class TextEntryScope extends StatelessWidget {
     if (key == LogicalKeyboardKey.escape ||
         key == LogicalKeyboardKey.backspace ||
         key == LogicalKeyboardKey.goBack) {
+      if (!holdsBack) return KeyEventResult.ignored;
       _back();
       return KeyEventResult.handled;
     }
-    final character = event.character;
-    if (character != null &&
-        character.isNotEmpty &&
-        character.codeUnitAt(0) >= 0x20 &&
-        character.codeUnitAt(0) != 0x7F) {
-      controller.append(character);
+    if (typedText(event) case final text?) {
+      controller.append(text);
       return KeyEventResult.handled;
     }
     return KeyEventResult.ignored;
@@ -99,7 +108,7 @@ class TextEntryScope extends StatelessWidget {
   Widget build(BuildContext context) {
     // System Back (Android's back key and gesture) arrives as a route pop, not a key event.
     return PopScope(
-      canPop: false,
+      canPop: !holdsBack,
       onPopInvokedWithResult: (didPop, _) {
         if (!didPop) _back();
       },

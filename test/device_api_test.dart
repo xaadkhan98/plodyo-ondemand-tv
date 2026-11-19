@@ -382,19 +382,98 @@ void main() {
     );
 
     test(
+      'films: the room default unless a language is picked, the title search, and a still for the card',
+      () async {
+        final (repo, sent) = await _pairedApi({
+          '/ondemand/device/videos': (
+            200,
+            {
+              'data': [
+                {
+                  'id': 'v1',
+                  'title': 'Le Petit Phare',
+                  'description': null,
+                  'artwork_url': null,
+                  'duration': null,
+                  'language': 'FRA',
+                  'age_group': '2-4',
+                  'media_url': 'https://cdn/phare.mp4',
+                },
+              ],
+              'total': 1,
+              'page': 1,
+              'page_size': 10,
+            },
+          ),
+        });
+
+        final rail = await repo.getVideos(pageSize: 10);
+        await repo.getVideos(
+          language: 'FRA',
+          search: 'phare',
+          page: 2,
+          pageSize: 24,
+        );
+
+        expect(sent[0].url.queryParameters, {'page_size': '10'});
+        expect(sent[1].url.queryParameters, {
+          'language': 'FRA',
+          'search': 'phare',
+          'page': '2',
+          'page_size': '24',
+        });
+        expect(sent[0].headers['X-Device-Token'], _token);
+        final film = rail.data.single;
+        expect(film.mediaUrl, 'https://cdn/phare.mp4');
+        // Every film is one length, so there is no length to show.
+        expect(film.duration, isNull);
+      },
+    );
+
+    test('a film is read by its video id, with no pages', () async {
+      final (repo, sent) = await _pairedApi({
+        '/ondemand/device/videos/v1': (
+          200,
+          {
+            'id': 'v1',
+            'title': 'Le Petit Phare',
+            'media_url': 'https://cdn/phare.mp4',
+            'pages': <Object>[],
+          },
+        ),
+      });
+
+      final detail = await repo.getVideo('v1');
+
+      expect(sent.single.url.path, '/ondemand/device/videos/v1');
+      expect(detail.story.id, 'v1');
+      expect(detail.mediaUrl, 'https://cdn/phare.mp4');
+      expect(detail.pages, isEmpty);
+    });
+
+    test(
       'unpaired, the console reads the same rows under /admin with its bearer',
       () async {
         final (repo, sent) = _api({
           '/ondemand/admin/content': (200, page),
           '/ondemand/admin/series': (200, page),
+          '/ondemand/admin/videos': (200, page),
+          '/ondemand/admin/videos/v1': (
+            200,
+            {'id': 'v1', 'title': 'Le Petit Phare', 'media_url': null},
+          ),
         }, consoleBearer: 'console');
 
         await repo.getStories(ageGroup: AgeGroup.toddler);
         await repo.getSeries(seriesType: SeriesType.learning);
+        await repo.getVideos();
+        await repo.getVideo('v1');
 
         expect(sent.map((r) => r.url.path), [
           '/ondemand/admin/content',
           '/ondemand/admin/series',
+          '/ondemand/admin/videos',
+          '/ondemand/admin/videos/v1',
         ]);
         expect(sent.first.url.queryParameters, {
           'page': '1',

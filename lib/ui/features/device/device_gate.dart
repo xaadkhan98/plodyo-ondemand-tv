@@ -26,6 +26,7 @@ const _items = [
     label: 'Learning',
     icon: LucideIcons.graduationCap,
   ),
+  NavItem(path: '/videos', label: 'Videos', icon: LucideIcons.clapperboard),
   NavItem(path: '/search', label: 'Search', icon: LucideIcons.search),
   NavItem(
     path: '/terms',

@@ -62,6 +62,7 @@ class StoryGrid extends StatefulWidget {
     required this.onSelect,
     required this.header,
     this.noun = 'stories',
+    this.emptyHint = 'Try a different age group or language.',
   });
 
   /// The filters the list is read under; a change starts a fresh list rather than appending to the old one.
@@ -76,6 +77,9 @@ class StoryGrid extends StatefulWidget {
 
   /// Plural, for the messages.
   final String noun;
+
+  /// Under "Nothing here yet": what to try instead.
+  final String emptyHint;
 
   @override
   State<StoryGrid> createState() => _StoryGridState();
@@ -156,7 +160,7 @@ class _StoryGridState extends State<StoryGrid> {
         else if (_error case final error?)
           _GridError(noun: widget.noun, error: error)
         else if (_stories.isEmpty)
-          const _Empty()
+          _Empty(hint: widget.emptyHint)
         else ...[
           // No per-card entrance: it would replay on every "Load more", and the home rails are the one stagger.
           CardGrid(
@@ -288,9 +292,11 @@ class _GridError extends StatelessWidget {
   }
 }
 
-/// Nothing under these filters: a rocking pile of books and the two things worth changing.
+/// Nothing under these filters: a rocking pile of books and what is worth changing.
 class _Empty extends StatelessWidget {
-  const _Empty();
+  const _Empty({required this.hint});
+
+  final String hint;
 
   static const _radius = BorderRadius.all(Radius.circular(1.5 * rem));
 
@@ -326,7 +332,7 @@ class _Empty extends StatelessWidget {
             ),
             const SizedBox(height: 0.25 * rem),
             Text(
-              'Try a different age group or language.',
+              hint,
               style: TvText.base.copyWith(color: TvColors.mutedForeground),
             ),
           ],

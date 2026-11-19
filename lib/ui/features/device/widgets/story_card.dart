@@ -85,7 +85,10 @@ class StoryCard extends StatelessWidget {
                   child: Stack(
                     fit: StackFit.expand,
                     children: [
-                      StoryImage(url: story.artworkUrl),
+                      StoryImage(
+                        url: story.artworkUrl,
+                        videoUrl: story.mediaUrl,
+                      ),
                       // A bucket ("short") or an episode count, which frees the caption for the title alone.
                       if (story.duration case final duration?)
                         Positioned(

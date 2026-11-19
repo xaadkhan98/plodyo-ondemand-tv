@@ -23,6 +23,21 @@ void main() {
     )
     ..stories['art'] = const StoryDetail(
       story: Story(id: 'art', title: 'Counting Fireflies'),
+    )
+    ..videos = const [
+      Story(
+        id: 'phare',
+        title: 'Le Petit Phare et la Mouette qui Voulait Voir la Mer',
+        ageGroup: '2-4',
+        mediaUrl: 'https://cdn.example/phare.mp4',
+      ),
+    ]
+    ..films['phare'] = const StoryDetail(
+      story: Story(
+        id: 'phare',
+        title: 'Le Petit Phare et la Mouette qui Voulait Voir la Mer',
+      ),
+      mediaUrl: 'https://cdn.example/phare.mp4',
     );
 
   const screens = [
@@ -30,6 +45,7 @@ void main() {
     '/stories',
     '/series',
     '/learning',
+    '/videos',
     '/search',
     '/room',
     '/series?id=sr1',
@@ -37,6 +53,7 @@ void main() {
     '/story?id=film',
     '/story?id=book',
     '/story?id=art',
+    '/story?video=phare',
   ];
 
   for (final (name, size, dpr) in tvScreens) {
